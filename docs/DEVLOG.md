@@ -51,3 +51,10 @@ and runs in batch mode. That makes the setup reproducible and reviewable: the sc
 | Third person | Side | Front |
 |---|---|---|
 | ![third](images/third.png) | ![side](images/side.png) | ![front](images/front.png) |
+
+## 2026-10-16 — First deploy to Quest 2
+- Built `Builds/TractorVR.apk` in batch mode (`BuildQuest.Build`, 57.8 MB, 0 errors) and installed it over USB with the
+  adb bundled in Unity's Android SDK (`...\PlaybackEngines\AndroidPlayer\SDK\platform-tools\adb.exe`). The app launches; it is under *Unknown Sources*.
+- Closing the editor also kills its adb server. The fresh server had to be re-authorized on the headset ("Allow USB debugging").
+- Logcat shows `ClassNotFoundException: com.google.android.play.core.assetpacks.AssetPackManager`. This is harmless: Unity probes for
+  Play Asset Delivery, which Quest doesn't have.
