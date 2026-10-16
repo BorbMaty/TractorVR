@@ -58,3 +58,5 @@ and runs in batch mode. That makes the setup reproducible and reviewable: the sc
 - Closing the editor also kills its adb server. The fresh server had to be re-authorized on the headset ("Allow USB debugging").
 - Logcat shows `ClassNotFoundException: com.google.android.play.core.assetpacks.AssetPackManager`. This is harmless: Unity probes for
   Play Asset Delivery, which Quest doesn't have.
+- Headset test: everything works (controls, views, seat position, wheel spin/steer look great). The tester got **motion sickness**,
+  so comfort (vignette, gentler acceleration and steering, a comfort setting) is now the next item on the ROADMAP.

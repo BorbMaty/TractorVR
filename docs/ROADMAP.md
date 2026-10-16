@@ -1,6 +1,6 @@
 # Roadmap
 
-## Phase 1: flat world, general controls ✅ built / ⏳ testing
+## Phase 1: flat world, general controls ✅ built / ✅ runs on Quest 2 / ⏳ comfort tuning
 Goal: drive the John Deere 6195M on a flat world with the Quest 2 thumbsticks, from two viewpoints.
 
 Done:
@@ -15,13 +15,17 @@ Done:
 
 Still to do:
 - [ ] Play test in the editor (keyboard)
-- [ ] First successful APK build (`Tractor VR → Build Quest APK`)
-- [ ] Headset test on the Quest 2:
-  - [ ] Controller bindings (sticks, A/B, left grip)
-  - [ ] Seat height/position feels right (adjust with left grip; consider baking the result into `ProjectSetup`)
-  - [ ] Third-person comfort (distance 9.5 m, height 4.2 m, yaw smoothing 0.35 s)
-  - [ ] Speed feel (max 40 km/h forward, 15 km/h reverse, acceleration 1.8 m/s²)
-  - [ ] Frame rate holds 72/90 Hz (OVR Metrics Tool)
+- [x] First successful APK build (`Tractor VR → Build Quest APK`), 2026-10-16
+- [x] Headset test on the Quest 2 (2026-10-16): app runs, wheels spin and steer correctly
+  - [x] Controller bindings (sticks, A/B, left grip)
+  - [x] Seat height/position feels right (could still bake a calibrated value into `ProjectSetup`)
+  - [ ] Third-person comfort (distance 9.5 m, height 4.2 m, yaw smoothing 0.35 s): **caused motion sickness**, see comfort below
+  - [ ] Speed feel (max 40 km/h forward, 15 km/h reverse, acceleration 1.8 m/s²): looks right, but acceleration/turning too abrupt for comfort
+  - [ ] Frame rate holds 72/90 Hz (no visible stutter yet; not measured with OVR Metrics Tool)
+- [ ] Comfort (motion sickness reported in the first headset test):
+  - [ ] Comfort vignette while turning/accelerating
+  - [ ] Gentler defaults: acceleration ~1.0 m/s², braking ~2.5 m/s², smoother steering ramp
+  - [ ] Comfort level setting (off/low/high) on the controller, saved in PlayerPrefs
 - [ ] Optional: find the original TurboSquid `tex\` folder, put it in `Assets/Models/tex/`, and use it instead of the generated materials
 
 ## Phase 2: "the specifications" (priority to be decided from the project brief)
