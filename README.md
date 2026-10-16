@@ -23,6 +23,7 @@ Docs: [Roadmap](docs/ROADMAP.md) · [Development log](docs/DEVLOG.md) · [CLAUDE
 | Release stick | — | Coast to a stop |
 | **A** | C | Switch view: cab ↔ third person |
 | **B** | R | Recenter the view |
+| **X** (left) | V | Comfort vignette: off / low / high (saved, default high) |
 | **Hold left grip** + sticks | Left Shift | Seat adjust: left stick ↑↓ = height, right stick = forward/back/sideways (saved) |
 
 ## Project layout

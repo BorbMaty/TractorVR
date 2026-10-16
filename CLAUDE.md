@@ -19,6 +19,8 @@ See `README.md` for controls, `docs/ROADMAP.md` for what's next and `docs/DEVLOG
 | `Assets/Scripts/TractorController.cs` | Kinematic bicycle model, Ackermann steering, wheel spin/steer animation |
 | `Assets/Scripts/VRCameraRig.cs` | Cab / third-person views, recenter, seat calibration (PlayerPrefs) |
 | `Assets/Scripts/TractorHud.cs` | Rig-locked speed readout (TextMesh) |
+| `Assets/Scripts/ComfortVignette.cs` + `Assets/Shaders/ComfortVignette.shader` | Edge darkening while turning / changing speed; level on X (PlayerPrefs) |
+| `Assets/Scripts/ControllerVisual.cs` | Animates the stand-in Touch controller models (stick, buttons, trigger, grip; hidden when untracked) |
 | `Assets/Scripts/Editor/ProjectSetup.cs` | **Generates everything**: player/XR/URP settings, model import, materials, scene, preview renders |
 | `Assets/Scripts/Editor/BuildQuest.cs` | APK build → `Builds/TractorVR.apk` |
 | `Assets/Scenes/TractorFlat.unity` | Generated scene (do not hand-edit, see below) |
@@ -56,6 +58,11 @@ $u = "C:\Program Files\Unity\Hub\Editor\6000.6.3f1\Editor\Unity.exe"
 - The rig is yaw-only in third person (no pitch/roll), for comfort. Head tracking supplies the rest.
 - Recenter = the `Camera Offset` transform cancels the head's local pose, so floor/device tracking origin doesn't matter. It also re-runs on the OS recenter (`trackingOriginUpdated`).
 - In batch-mode previews, set `ShaderUtil.allowAsyncCompilation = false`. Otherwise uncompiled transparent variants render as grey placeholder haze, which looks like broken glass but isn't.
+- **Comfort is a requirement**: the first headset test caused motion sickness. Keep acceleration ≤ ~1 m/s², the yaw-rate cap (`maxYawRate`) and lateral limit (`maxLateralAccel`), and don't add camera motion the head didn't make (no bob, shake, pitch/roll on the rig).
+- The vignette is a head-locked quad 1 m in front of the camera (far enough that both eyes see it centred), ZTest Always, Overlay queue. Its shader needs the `UNITY_VERTEX_OUTPUT_STEREO` macros, or it renders in one eye only on Quest (multiview).
+- Controllers are primitives built by `ProjectSetup.BuildController` in OpenXR **grip-pose** space (+Z along the handle toward the face plate, -Y = trigger side), driven by `devicePosition/deviceRotation`. The official Meta model would need the Meta XR SDK (not installed).
+- The first render in a batch-mode session comes out grey, so `RenderPreviews` throws a warm-up shot away.
+- Killing the editor also kills its adb server. A fresh adb server must be re-authorized on the headset (tick *Always allow from this computer*).
 - Avoid deprecated APIs (`FindObjectsOfType` etc.): use `FindObjectsByType` / serialized references.
 - The FBX is ~58 MB and stored with Git LFS (`*.fbx`). The model is a licensed TurboSquid asset, so keep the repo private.
 - `IRUMSim/` (outside this repo) is an older compiled Unity 2022.3 build of the original sim. It is reference only and has no sources.

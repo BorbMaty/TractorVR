@@ -482,7 +482,159 @@ public static class ProjectSetup
         hud.input = vr.input;
         hud.text = tm;
 
+        hud.comfort = BuildVignette(camGo.transform, ctrl, vr);
+        var kit = new ControllerKit
+        {
+            body = SaveMat(Lit(new Color(0.11f, 0.11f, 0.12f), 0.55f), "Controller_Body"),
+            ring = SaveMat(Lit(new Color(0.2f, 0.2f, 0.22f), 0.6f), "Controller_Ring"),
+            idle = SaveMat(Lit(new Color(0.55f, 0.56f, 0.58f), 0.5f), "Controller_Button"),
+            pressed = SaveMat(Lit(new Color(1f, 0.85f, 0.1f), 0.5f), "Controller_Pressed"),
+            ringMesh = RingMesh(),
+        };
+        BuildController(offset, true, kit);
+        BuildController(offset, false, kit);
+
         log.AppendLine("Rig built.");
+    }
+
+    // Head-locked quad 1 m ahead, 5 m wide → covers ±68° (tan = 2.5), beyond the Quest 2 field of view.
+    static ComfortVignette BuildVignette(Transform cam, TractorController tractor, VRCameraRig rig)
+    {
+        var go = GameObject.CreatePrimitive(PrimitiveType.Quad);
+        go.name = "Comfort Vignette";
+        Object.DestroyImmediate(go.GetComponent<Collider>());
+        go.transform.SetParent(cam, false);
+        go.transform.localPosition = new Vector3(0f, 0f, 1f);
+        go.transform.localScale = new Vector3(5f, 5f, 1f);
+        var r = go.GetComponent<MeshRenderer>();
+        r.shadowCastingMode = ShadowCastingMode.Off;
+        r.receiveShadows = false;
+        r.sharedMaterial = SaveMat(new Material(Shader.Find("TractorVR/ComfortVignette")), "ComfortVignette");
+        r.enabled = false; // ComfortVignette turns it on while moving
+
+        var v = go.AddComponent<ComfortVignette>();
+        v.tractor = tractor;
+        v.input = rig.input;
+        v.rig = rig.transform;
+        v.quad = r;
+        v.quadTanHalf = 2.5f;
+        return v;
+    }
+
+    // ------------------------------------------------------------------ controllers
+    // Stand-in Quest Touch model from primitives, in OpenXR grip-pose space
+    // (+Z along the handle toward the face plate, +Y back of the hand, -Y trigger side).
+    class ControllerKit { public Material body, ring, idle, pressed; public Mesh ringMesh; }
+
+    static void BuildController(Transform cameraOffset, bool left, ControllerKit kit)
+    {
+        string hand = left ? "LeftHand" : "RightHand";
+        float m = left ? -1f : 1f; // mirror X for the left hand
+        Material body = kit.body, idle = kit.idle;
+
+        var root = new GameObject(left ? "Left Controller" : "Right Controller");
+        root.transform.SetParent(cameraOffset, false);
+        var tpd = root.AddComponent<TrackedPoseDriver>();
+        tpd.positionInput = new InputActionProperty(new InputAction(hand + "Pos", InputActionType.Value, $"<XRController>{{{hand}}}/devicePosition", expectedControlType: "Vector3"));
+        tpd.rotationInput = new InputActionProperty(new InputAction(hand + "Rot", InputActionType.Value, $"<XRController>{{{hand}}}/deviceRotation", expectedControlType: "Quaternion"));
+        tpd.trackingStateInput = new InputActionProperty(new InputAction(hand + "State", InputActionType.Value, $"<XRController>{{{hand}}}/trackingState", expectedControlType: "Integer"));
+
+        Transform Part(PrimitiveType type, string name, Transform parent, Vector3 pos, Vector3 euler, Vector3 scale, Material mat)
+        {
+            var go = GameObject.CreatePrimitive(type);
+            go.name = name;
+            Object.DestroyImmediate(go.GetComponent<Collider>());
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = pos;
+            go.transform.localRotation = Quaternion.Euler(euler);
+            go.transform.localScale = scale;
+            var r = go.GetComponent<MeshRenderer>();
+            r.sharedMaterial = mat;
+            r.shadowCastingMode = ShadowCastingMode.Off;
+            return go.transform;
+        }
+
+        // Handle along Z: 10 cm long, 3.4 cm thick.
+        Part(PrimitiveType.Capsule, "Handle", root.transform, new Vector3(0f, -0.004f, -0.025f), new Vector3(90f, 0f, 0f), new Vector3(0.034f, 0.05f, 0.034f), body);
+
+        // Face plate on top of the handle, tilted 45° so it faces up when the controller is held naturally.
+        var face = new GameObject("Face").transform;
+        face.SetParent(root.transform, false);
+        face.localPosition = new Vector3(0f, 0.006f, 0.035f);
+        face.localRotation = Quaternion.Euler(45f, 0f, 0f);
+        Part(PrimitiveType.Cylinder, "Plate", face, Vector3.zero, Vector3.zero, new Vector3(0.06f, 0.006f, 0.06f), body);
+
+        var stick = new GameObject("Stick").transform;
+        stick.SetParent(face, false);
+        stick.localPosition = new Vector3(-0.009f * m, 0.006f, -0.004f);
+        Part(PrimitiveType.Cylinder, "Shaft", stick, new Vector3(0f, 0.004f, 0f), Vector3.zero, new Vector3(0.006f, 0.004f, 0.006f), body);
+        Part(PrimitiveType.Cylinder, "Cap", stick, new Vector3(0f, 0.009f, 0f), Vector3.zero, new Vector3(0.019f, 0.002f, 0.019f), idle);
+
+        var primary = Part(PrimitiveType.Cylinder, left ? "X" : "A", face, new Vector3(0.012f * m, 0.0065f, -0.012f), Vector3.zero, new Vector3(0.011f, 0.002f, 0.011f), idle);
+        var secondary = Part(PrimitiveType.Cylinder, left ? "Y" : "B", face, new Vector3(0.016f * m, 0.0065f, 0.004f), Vector3.zero, new Vector3(0.011f, 0.002f, 0.011f), idle);
+
+        // Tracking ring: hoops over the fingers in front of the face plate.
+        var ringGo = new GameObject("Ring");
+        ringGo.transform.SetParent(root.transform, false);
+        ringGo.transform.localPosition = new Vector3(0f, -0.028f, 0.045f);
+        ringGo.transform.localRotation = Quaternion.Euler(0f, 0f, 90f); // torus axis (Y) → X
+        ringGo.AddComponent<MeshFilter>().sharedMesh = kit.ringMesh;
+        var rr = ringGo.AddComponent<MeshRenderer>();
+        rr.sharedMaterial = kit.ring;
+        rr.shadowCastingMode = ShadowCastingMode.Off;
+
+        var trigger = Part(PrimitiveType.Cube, "Trigger", root.transform, new Vector3(0f, -0.022f, 0.012f), new Vector3(-20f, 0f, 0f), new Vector3(0.012f, 0.01f, 0.024f), idle);
+        var grip = Part(PrimitiveType.Cube, "Grip", root.transform, new Vector3(-0.016f * m, -0.008f, -0.02f), Vector3.zero, new Vector3(0.006f, 0.016f, 0.032f), idle);
+
+        var vis = root.AddComponent<ControllerVisual>();
+        vis.leftHand = left;
+        vis.stick = stick;
+        vis.primaryButton = primary.GetComponent<Renderer>();
+        vis.secondaryButton = secondary.GetComponent<Renderer>();
+        vis.trigger = trigger;
+        vis.grip = grip;
+        vis.idle = idle;
+        vis.pressed = kit.pressed;
+    }
+
+    static Material Lit(Color c, float smoothness)
+    {
+        var mat = new Material(LitShader);
+        mat.SetColor("_BaseColor", c);
+        mat.SetFloat("_Smoothness", smoothness);
+        return mat;
+    }
+
+    // Torus around local Y, radius 4.5 cm, tube 0.6 cm. Saved as an asset so the scene can reference it.
+    static Mesh RingMesh()
+    {
+        string p = $"{GenDir}/ControllerRing.asset";
+        AssetDatabase.DeleteAsset(p);
+
+        const int seg = 48, tube = 10;
+        const float R = 0.045f, r = 0.006f;
+        var verts = new Vector3[(seg + 1) * (tube + 1)];
+        var tris = new int[seg * tube * 6];
+        for (int i = 0; i <= seg; i++)
+        for (int j = 0; j <= tube; j++)
+        {
+            float u = i * Mathf.PI * 2f / seg, v = j * Mathf.PI * 2f / tube;
+            float d = R + r * Mathf.Cos(v);
+            verts[i * (tube + 1) + j] = new Vector3(d * Mathf.Cos(u), r * Mathf.Sin(v), d * Mathf.Sin(u));
+        }
+        int t = 0;
+        for (int i = 0; i < seg; i++)
+        for (int j = 0; j < tube; j++)
+        {
+            int a = i * (tube + 1) + j, b = a + tube + 1;
+            tris[t++] = a; tris[t++] = a + 1; tris[t++] = b;
+            tris[t++] = b; tris[t++] = a + 1; tris[t++] = b + 1;
+        }
+        var mesh = new Mesh { name = "ControllerRing", vertices = verts, triangles = tris };
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+        AssetDatabase.CreateAsset(mesh, p);
+        return mesh;
     }
 
     // ------------------------------------------------------------------ preview renders (batch mode QA)
@@ -510,11 +662,38 @@ public static class ProjectSetup
             cam.targetTexture = null;
             RenderTexture.active = null;
         }
+        // Untracked controllers sit at the rig origin (the eye point); hide them except in their own shot.
+        var leftCtl = GameObject.Find("Left Controller");
+        var ctl = GameObject.Find("Right Controller").transform;
+        leftCtl.SetActive(false);
+        ctl.gameObject.SetActive(false);
+        // The first batch-mode render comes out grey (lighting/environment not ready yet): throw one away.
+        Shot("warmup.png", seat.position, Quaternion.Euler(10f, 0f, 0f));
+        File.Delete("Logs/Previews/warmup.png");
         Shot("cab.png", seat.position, Quaternion.Euler(10f, 0f, 0f));
         Shot("cab_down.png", seat.position, Quaternion.Euler(35f, 0f, 0f));
         Shot("third.png", tractor.position + new Vector3(0f, 4.2f, -9.5f) + Vector3.up * 0f, Quaternion.Euler(15f, 0f, 0f));
         Shot("side.png", tractor.position + new Vector3(8f, 1.8f, 1.4f), Quaternion.Euler(5f, -90f, 0f));
         Shot("front.png", tractor.position + new Vector3(3f, 2f, 9f), Quaternion.Euler(8f, 200f, 0f));
+
+        // Right controller close-up, posed as if held in front of the driver (grip Z tilted 45° forward-up).
+        ctl.gameObject.SetActive(true);
+        ctl.SetPositionAndRotation(seat.position + new Vector3(0.15f, -0.35f, 0.4f), Quaternion.Euler(-45f, 0f, 0f));
+        Shot("controller.png", ctl.position + new Vector3(-0.12f, 0.12f, -0.22f), Quaternion.LookRotation(ctl.position - (ctl.position + new Vector3(-0.12f, 0.12f, -0.22f))));
+
+        // Cab view with the vignette at full "High" strength.
+        var vig = Object.FindAnyObjectByType<ComfortVignette>();
+        var vr = vig.GetComponent<Renderer>();
+        var vm = vr.sharedMaterial;
+        vm.SetFloat("_InnerDeg", vig.high.innerDeg);
+        vm.SetFloat("_OuterDeg", vig.high.outerDeg);
+        vm.SetFloat("_TanHalf", vig.quadTanHalf);
+        vr.enabled = true;
+        ctl.gameObject.SetActive(false);
+        Shot("vignette_high.png", seat.position, Quaternion.Euler(10f, 0f, 0f));
+        vr.enabled = false;
+        vm.SetFloat("_InnerDeg", vig.idleInnerDeg);
+        vm.SetFloat("_OuterDeg", vig.idleOuterDeg);
         Debug.Log("[Setup] Preview images written to Logs/Previews");
     }
 

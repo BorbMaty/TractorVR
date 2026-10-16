@@ -10,6 +10,7 @@ using UnityEngine.InputSystem;
 ///   A (right) ........... switch camera: cab / third person
 ///   B (right) ........... recenter view
 ///   Left grip (hold) .... seat calibration mode (sticks move the seat instead of driving)
+///   X (left) ............ cycle comfort vignette: off / low / high
 /// </summary>
 public class TractorInput : MonoBehaviour
 {
@@ -18,6 +19,7 @@ public class TractorInput : MonoBehaviour
     InputAction switchViewAction;
     InputAction recenterAction;
     InputAction calibrateAction;
+    InputAction comfortAction;
 
     public Vector2 LeftStick => steerAction.ReadValue<Vector2>();
     public Vector2 RightStick => throttleAction.ReadValue<Vector2>();
@@ -26,6 +28,7 @@ public class TractorInput : MonoBehaviour
     public bool SwitchViewPressed => switchViewAction.WasPressedThisFrame();
     public bool RecenterPressed => recenterAction.WasPressedThisFrame();
     public bool Calibrating => calibrateAction.IsPressed();
+    public bool ComfortCyclePressed => comfortAction.WasPressedThisFrame();
 
     void Awake()
     {
@@ -57,6 +60,11 @@ public class TractorInput : MonoBehaviour
         calibrateAction.AddBinding("<XRController>{LeftHand}/{GripButton}");
         calibrateAction.AddBinding("<Gamepad>/leftShoulder");
         calibrateAction.AddBinding("<Keyboard>/leftShift");
+
+        comfortAction = new InputAction("Comfort", InputActionType.Button);
+        comfortAction.AddBinding("<XRController>{LeftHand}/{PrimaryButton}");
+        comfortAction.AddBinding("<Gamepad>/buttonWest");
+        comfortAction.AddBinding("<Keyboard>/v");
     }
 
     void OnEnable()
@@ -66,6 +74,7 @@ public class TractorInput : MonoBehaviour
         switchViewAction.Enable();
         recenterAction.Enable();
         calibrateAction.Enable();
+        comfortAction.Enable();
     }
 
     void OnDisable()
@@ -75,5 +84,6 @@ public class TractorInput : MonoBehaviour
         switchViewAction.Disable();
         recenterAction.Disable();
         calibrateAction.Disable();
+        comfortAction.Disable();
     }
 }

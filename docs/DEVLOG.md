@@ -60,3 +60,31 @@ and runs in batch mode. That makes the setup reproducible and reviewable: the sc
   Play Asset Delivery, which Quest doesn't have.
 - Headset test: everything works (controls, views, seat position, wheel spin/steer look great). The tester got **motion sickness**,
   so comfort (vignette, gentler acceleration and steering, a comfort setting) is now the next item on the ROADMAP.
+
+## 2026-10-16: Comfort pass + visible controllers
+The first headset session caused motion sickness, so this pass reduces the motion the inner ear notices.
+
+**Gentler motion** (`TractorController`)
+- Acceleration 1.8 → 1.0 m/s², braking 5 → 2.5, coast 1.0 → 0.8, steer rate 70 → 35°/s.
+- Squared stick response for steering: fine control near centre.
+- New steering limit instead of the old `steerAtMaxSpeed` factor: the lock angle is capped so the yaw rate stays ≤ 25°/s
+  and v·ω ≤ 2.5 m/s². At 10 km/h this allows ~24° (radius ~6 m), at 40 km/h ~3° (radius ~50 m), which is also more realistic
+  than before (the old model allowed ~74°/s yaw and ~14 m/s² lateral at full speed).
+
+**Comfort vignette** (`ComfortVignette.cs`, `TractorVR/ComfortVignette` shader)
+- Darkens the edge of the view in proportion to the rig's yaw rate and the tractor's speed change. It fades in fast and out slowly.
+- Head-locked quad 1 m ahead (an eye offset of 32 mm then shifts it by only ~2°; at 0.1 m it would be off-centre by ~18° per eye).
+- Shader works in view angles: clear inside `_InnerDeg`, black beyond `_OuterDeg`. Low: 38°/52°, High: 24°/40° at full strength.
+- **X** cycles Off / Low / High (PlayerPrefs, default High). The HUD shows the level for 2.5 s.
+
+**Controllers** (`ControllerVisual.cs`, `ProjectSetup.BuildController`)
+- Stand-in Quest Touch models from primitives + a generated torus ring, under `Camera Offset`, posed with TrackedPoseDriver on the
+  grip pose. The stick tilts, buttons sink and turn yellow when pressed, and the trigger and grip move. Hidden while not tracked.
+- The official Meta controller models would need the Meta XR SDK. That can come later with hands/grab interaction.
+
+**Previews**: `controller.png` and `vignette_high.png` were added. The first render of a batch session came out grey, so a warm-up
+shot is now thrown away.
+
+| Controller (stand-in) | Vignette, High, full strength |
+|---|---|
+| ![controller](images/controller.png) | ![vignette](images/vignette_high.png) |

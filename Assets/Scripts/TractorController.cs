@@ -27,15 +27,18 @@ public class TractorController : MonoBehaviour
     [Header("Speed")]
     public float maxForwardKmh = 40f;
     public float maxReverseKmh = 15f;
-    public float acceleration = 1.8f;  // m/s²
-    public float braking = 5f;         // m/s²
-    public float coastDecel = 1.0f;    // m/s² when the stick is released
+    // Gentle values on purpose: changes in speed are a main cause of VR motion sickness.
+    public float acceleration = 1.0f;  // m/s²
+    public float braking = 2.5f;       // m/s²
+    public float coastDecel = 0.8f;    // m/s² when the stick is released
 
     [Header("Steering")]
     public float maxSteerAngle = 40f;      // degrees, virtual centre wheel
-    public float steerRate = 70f;          // degrees per second
-    [Tooltip("Reduce the steering lock at speed for stability (fraction kept at max speed).")]
-    public float steerAtMaxSpeed = 0.45f;
+    public float steerRate = 35f;          // degrees per second
+    [Tooltip("Comfort: cap on how fast the tractor (and the cab view) can yaw.")]
+    public float maxYawRate = 25f;         // degrees per second
+    [Tooltip("Lateral acceleration limit (v² / R); also keeps high-speed turns realistic.")]
+    public float maxLateralAccel = 2.5f;   // m/s²
 
     public float SpeedMs { get; private set; }
     public float SpeedKmh => SpeedMs * 3.6f;
@@ -72,8 +75,18 @@ public class TractorController : MonoBehaviour
 
     void UpdateSteering(float steer, float dt)
     {
-        float speedFactor = Mathf.Lerp(1f, steerAtMaxSpeed, Mathf.Abs(SpeedKmh) / maxForwardKmh);
-        float target = steer * maxSteerAngle * speedFactor;
+        // Squared response: fine control around the centre, full lock still reachable.
+        steer = Mathf.Sign(steer) * steer * steer;
+
+        // Limit the steering angle so the yaw rate stays below maxYawRate and v·ω below maxLateralAccel.
+        float v = Mathf.Abs(SpeedMs);
+        float lockAngle = maxSteerAngle;
+        if (v > 0.1f)
+        {
+            float maxOmega = Mathf.Min(maxYawRate * Mathf.Deg2Rad, maxLateralAccel / v);
+            lockAngle = Mathf.Min(lockAngle, Mathf.Atan(maxOmega * wheelbase / v) * Mathf.Rad2Deg);
+        }
+        float target = steer * lockAngle;
         SteerAngle = Mathf.MoveTowards(SteerAngle, target, steerRate * dt);
     }
 
