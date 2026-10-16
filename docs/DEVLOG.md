@@ -88,3 +88,19 @@ shot is now thrown away.
 | Controller (stand-in) | Vignette, High, full strength |
 |---|---|
 | ![controller](images/controller.png) | ![vignette](images/vignette_high.png) |
+
+## 2026-10-16: Real Quest 2 controller models
+The stand-in primitive controllers looked wrong in the headset (the tracking ring sat between the buttons). They are replaced by
+the official **Quest 2 Touch models**, copied from the Meta XR Core SDK 207.0.1 (downloaded from Meta's npm registry; only
+the two FBX files and the texture were taken, the SDK itself is not installed). They're under the Oculus SDK License, which is fine for a Quest app in a private repo.
+
+- **Pose:** the bone positions showed that the models are authored in Meta's pointer frame (face plate at the origin, stick
+  and buttons at y≈0, the laser along +Z), not the OpenXR grip frame. So the TrackedPoseDriver now uses the **aim pose**
+  (`pointerPosition/pointerRotation`), and the model is offset so its `*_laser_begin` node coincides with that pose.
+- **Animation:** the FBX is rigged. `ControllerVisual` drives the bones directly with the ranges read from Meta's animation curves:
+  stick ±22°, A/B (X/Y) 1.78 mm, trigger 20°, grip (1.3°, 7.4°, 4.1°). No Animator is needed.
+- Imported with Animation Type None and no materials. One URP Lit material uses the albedo texture.
+
+| Controllers, front | Side |
+|---|---|
+| ![controllers](images/controller.png) | ![side](images/controller_side.png) |

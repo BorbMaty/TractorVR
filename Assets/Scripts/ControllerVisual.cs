@@ -2,26 +2,26 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 /// <summary>
-/// Animates the stand-in Touch controller model built by ProjectSetup (primitives in grip-pose space:
-/// +Z along the handle toward the face plate, -Y = trigger side). The pose itself comes from a
-/// TrackedPoseDriver on the same object. Shows stick tilt and button / trigger / grip presses,
-/// and hides the model while the controller isn't tracked.
+/// Animates the bones of the official Quest 2 Touch model (set up by ProjectSetup.BuildController):
+/// stick tilt, A/B (X/Y) press, trigger and grip, using the ranges of Meta's own press animations.
+/// The pose comes from a TrackedPoseDriver on the same object. Hidden while the controller isn't tracked.
 /// </summary>
 public class ControllerVisual : MonoBehaviour
 {
     public bool leftHand;
-    public Transform stick;                         // pivot, tilts with the thumbstick
-    public Renderer primaryButton, secondaryButton; // A/B on the right, X/Y on the left
-    public Transform trigger, grip;
-    public Material idle, pressed;
+    public Transform stick, primaryButton, secondaryButton, trigger, grip;
+    [Tooltip("Button press depth in the bones' local units.")]
+    public float buttonTravel = 0.0018f;
 
-    const float StickTilt = 18f;      // degrees at full deflection
-    const float ButtonTravel = 0.0015f;
-    const float TriggerTravel = 0.006f;
+    // From the FBX animation curves (converted to Unity's left-handed axes: Y and Z rotations flip).
+    const float StickTilt = 22f;
+    const float TriggerAngle = 20f;
+    static readonly Vector3 GripAngles = new Vector3(1.34f, -7.36f, -4.12f);
 
     InputAction stickAction, primaryAction, secondaryAction, triggerAction, gripAction, trackedAction;
     Renderer[] renderers;
-    Vector3 primaryHome, secondaryHome, triggerHome, gripHome;
+    Quaternion stickRest, triggerRest, gripRest;
+    Vector3 primaryRest, secondaryRest;
     bool shown = true;
 
     void Awake()
@@ -35,10 +35,11 @@ public class ControllerVisual : MonoBehaviour
         trackedAction = Make("Tracked", $"<XRController>{hand}/isTracked");
 
         renderers = GetComponentsInChildren<Renderer>(true);
-        primaryHome = primaryButton.transform.localPosition;
-        secondaryHome = secondaryButton.transform.localPosition;
-        triggerHome = trigger.localPosition;
-        gripHome = grip.localPosition;
+        stickRest = stick.localRotation;
+        triggerRest = trigger.localRotation;
+        gripRest = grip.localRotation;
+        primaryRest = primaryButton.localPosition;
+        secondaryRest = secondaryButton.localPosition;
     }
 
     static InputAction Make(string name, string binding) =>
@@ -67,20 +68,14 @@ public class ControllerVisual : MonoBehaviour
         if (!tracked) return;
 
         Vector2 s = stickAction.ReadValue<Vector2>();
-        stick.localRotation = Quaternion.Euler(s.y * StickTilt, 0f, -s.x * StickTilt);
+        stick.localRotation = stickRest * Quaternion.Euler(s.y * StickTilt, 0f, -s.x * StickTilt);
 
-        Press(primaryButton, primaryHome, primaryAction.ReadValue<float>() > 0.5f);
-        Press(secondaryButton, secondaryHome, secondaryAction.ReadValue<float>() > 0.5f);
+        primaryButton.localPosition = primaryRest - Vector3.up * (primaryAction.ReadValue<float>() > 0.5f ? buttonTravel : 0f);
+        secondaryButton.localPosition = secondaryRest - Vector3.up * (secondaryAction.ReadValue<float>() > 0.5f ? buttonTravel : 0f);
 
-        // Both move into the handle: the trigger along +Y, the grip button (on the palm side) along ±X.
-        trigger.localPosition = triggerHome + Vector3.up * (triggerAction.ReadValue<float>() * TriggerTravel);
-        float side = leftHand ? -1f : 1f;
-        grip.localPosition = gripHome + Vector3.right * (side * gripAction.ReadValue<float>() * TriggerTravel * 0.5f);
-    }
-
-    void Press(Renderer button, Vector3 home, bool down)
-    {
-        button.transform.localPosition = home - Vector3.up * (down ? ButtonTravel : 0f);
-        button.sharedMaterial = down ? pressed : idle;
+        trigger.localRotation = triggerRest * Quaternion.Euler(triggerAction.ReadValue<float>() * TriggerAngle, 0f, 0f);
+        Vector3 g = GripAngles;
+        if (leftHand) { g.y = -g.y; g.z = -g.z; } // the left model is mirrored
+        grip.localRotation = gripRest * Quaternion.Euler(g * gripAction.ReadValue<float>());
     }
 }

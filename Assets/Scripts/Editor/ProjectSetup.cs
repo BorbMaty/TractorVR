@@ -483,16 +483,9 @@ public static class ProjectSetup
         hud.text = tm;
 
         hud.comfort = BuildVignette(camGo.transform, ctrl, vr);
-        var kit = new ControllerKit
-        {
-            body = SaveMat(Lit(new Color(0.11f, 0.11f, 0.12f), 0.55f), "Controller_Body"),
-            ring = SaveMat(Lit(new Color(0.2f, 0.2f, 0.22f), 0.6f), "Controller_Ring"),
-            idle = SaveMat(Lit(new Color(0.55f, 0.56f, 0.58f), 0.5f), "Controller_Button"),
-            pressed = SaveMat(Lit(new Color(1f, 0.85f, 0.1f), 0.5f), "Controller_Pressed"),
-            ringMesh = RingMesh(),
-        };
-        BuildController(offset, true, kit);
-        BuildController(offset, false, kit);
+        var controllerMat = ControllerMaterial();
+        BuildController(offset, true, controllerMat);
+        BuildController(offset, false, controllerMat);
 
         log.AppendLine("Rig built.");
     }
@@ -522,119 +515,66 @@ public static class ProjectSetup
     }
 
     // ------------------------------------------------------------------ controllers
-    // Stand-in Quest Touch model from primitives, in OpenXR grip-pose space
-    // (+Z along the handle toward the face plate, +Y back of the hand, -Y trigger side).
-    class ControllerKit { public Material body, ring, idle, pressed; public Mesh ringMesh; }
+    // Official Quest 2 Touch models from the Meta XR Core SDK (see Assets/Models/MetaControllers/README.md).
+    // They are authored in Meta's pointer frame (origin on the face plate, +Z along the laser), so they are
+    // driven by the OpenXR aim pose (pointerPosition/pointerRotation) and offset so that the model's
+    // *_laser_begin node lands exactly on that pose.
+    const string ControllerDir = "Assets/Models/MetaControllers";
 
-    static void BuildController(Transform cameraOffset, bool left, ControllerKit kit)
+    static Material ControllerMaterial()
+    {
+        foreach (var side in new[] { "Left", "Right" })
+        {
+            var imp = (ModelImporter)AssetImporter.GetAtPath($"{ControllerDir}/OculusTouchForQuest2_{side}.fbx");
+            imp.importAnimation = false;
+            imp.importCameras = false;
+            imp.importLights = false;
+            imp.animationType = ModelImporterAnimationType.None; // bones stay plain transforms, no Animator
+            imp.materialImportMode = ModelImporterMaterialImportMode.None;
+            imp.SaveAndReimport();
+        }
+        var mat = new Material(LitShader);
+        mat.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>($"{ControllerDir}/OculusTouchForQuest2_AlbedoRoughness.tga"));
+        mat.SetColor("_BaseColor", Color.white);
+        mat.SetFloat("_Smoothness", 0.35f);
+        return SaveMat(mat, "Controller_Quest2");
+    }
+
+    static void BuildController(Transform cameraOffset, bool left, Material mat)
     {
         string hand = left ? "LeftHand" : "RightHand";
-        float m = left ? -1f : 1f; // mirror X for the left hand
-        Material body = kit.body, idle = kit.idle;
-
         var root = new GameObject(left ? "Left Controller" : "Right Controller");
         root.transform.SetParent(cameraOffset, false);
         var tpd = root.AddComponent<TrackedPoseDriver>();
-        tpd.positionInput = new InputActionProperty(new InputAction(hand + "Pos", InputActionType.Value, $"<XRController>{{{hand}}}/devicePosition", expectedControlType: "Vector3"));
-        tpd.rotationInput = new InputActionProperty(new InputAction(hand + "Rot", InputActionType.Value, $"<XRController>{{{hand}}}/deviceRotation", expectedControlType: "Quaternion"));
+        tpd.positionInput = new InputActionProperty(new InputAction(hand + "Pos", InputActionType.Value, $"<XRController>{{{hand}}}/pointerPosition", expectedControlType: "Vector3"));
+        tpd.rotationInput = new InputActionProperty(new InputAction(hand + "Rot", InputActionType.Value, $"<XRController>{{{hand}}}/pointerRotation", expectedControlType: "Quaternion"));
         tpd.trackingStateInput = new InputActionProperty(new InputAction(hand + "State", InputActionType.Value, $"<XRController>{{{hand}}}/trackingState", expectedControlType: "Integer"));
 
-        Transform Part(PrimitiveType type, string name, Transform parent, Vector3 pos, Vector3 euler, Vector3 scale, Material mat)
+        var fbx = AssetDatabase.LoadAssetAtPath<GameObject>($"{ControllerDir}/OculusTouchForQuest2_{(left ? "Left" : "Right")}.fbx");
+        var model = Object.Instantiate(fbx, root.transform);
+        model.name = "Model";
+        foreach (var r in model.GetComponentsInChildren<Renderer>())
         {
-            var go = GameObject.CreatePrimitive(type);
-            go.name = name;
-            Object.DestroyImmediate(go.GetComponent<Collider>());
-            go.transform.SetParent(parent, false);
-            go.transform.localPosition = pos;
-            go.transform.localRotation = Quaternion.Euler(euler);
-            go.transform.localScale = scale;
-            var r = go.GetComponent<MeshRenderer>();
             r.sharedMaterial = mat;
             r.shadowCastingMode = ShadowCastingMode.Off;
-            return go.transform;
         }
 
-        // Handle along Z: 10 cm long, 3.4 cm thick.
-        Part(PrimitiveType.Capsule, "Handle", root.transform, new Vector3(0f, -0.004f, -0.025f), new Vector3(90f, 0f, 0f), new Vector3(0.034f, 0.05f, 0.034f), body);
-
-        // Face plate on top of the handle, tilted 45° so it faces up when the controller is held naturally.
-        var face = new GameObject("Face").transform;
-        face.SetParent(root.transform, false);
-        face.localPosition = new Vector3(0f, 0.006f, 0.035f);
-        face.localRotation = Quaternion.Euler(45f, 0f, 0f);
-        Part(PrimitiveType.Cylinder, "Plate", face, Vector3.zero, Vector3.zero, new Vector3(0.06f, 0.006f, 0.06f), body);
-
-        var stick = new GameObject("Stick").transform;
-        stick.SetParent(face, false);
-        stick.localPosition = new Vector3(-0.009f * m, 0.006f, -0.004f);
-        Part(PrimitiveType.Cylinder, "Shaft", stick, new Vector3(0f, 0.004f, 0f), Vector3.zero, new Vector3(0.006f, 0.004f, 0.006f), body);
-        Part(PrimitiveType.Cylinder, "Cap", stick, new Vector3(0f, 0.009f, 0f), Vector3.zero, new Vector3(0.019f, 0.002f, 0.019f), idle);
-
-        var primary = Part(PrimitiveType.Cylinder, left ? "X" : "A", face, new Vector3(0.012f * m, 0.0065f, -0.012f), Vector3.zero, new Vector3(0.011f, 0.002f, 0.011f), idle);
-        var secondary = Part(PrimitiveType.Cylinder, left ? "Y" : "B", face, new Vector3(0.016f * m, 0.0065f, 0.004f), Vector3.zero, new Vector3(0.011f, 0.002f, 0.011f), idle);
-
-        // Tracking ring: hoops over the fingers in front of the face plate.
-        var ringGo = new GameObject("Ring");
-        ringGo.transform.SetParent(root.transform, false);
-        ringGo.transform.localPosition = new Vector3(0f, -0.028f, 0.045f);
-        ringGo.transform.localRotation = Quaternion.Euler(0f, 0f, 90f); // torus axis (Y) → X
-        ringGo.AddComponent<MeshFilter>().sharedMesh = kit.ringMesh;
-        var rr = ringGo.AddComponent<MeshRenderer>();
-        rr.sharedMaterial = kit.ring;
-        rr.shadowCastingMode = ShadowCastingMode.Off;
-
-        var trigger = Part(PrimitiveType.Cube, "Trigger", root.transform, new Vector3(0f, -0.022f, 0.012f), new Vector3(-20f, 0f, 0f), new Vector3(0.012f, 0.01f, 0.024f), idle);
-        var grip = Part(PrimitiveType.Cube, "Grip", root.transform, new Vector3(-0.016f * m, -0.008f, -0.02f), Vector3.zero, new Vector3(0.006f, 0.016f, 0.032f), idle);
+        Transform Bone(string name) => model.GetComponentsInChildren<Transform>().First(t => t.name == name);
+        Transform laser = model.GetComponentsInChildren<Transform>().First(t => t.name.EndsWith("_laser_begin"));
+        Quaternion laserRot = Quaternion.Inverse(model.transform.rotation) * laser.rotation;
+        Vector3 laserPos = Vector3.Scale(model.transform.InverseTransformPoint(laser.position), model.transform.localScale);
+        model.transform.localRotation = Quaternion.Inverse(laserRot);
+        model.transform.localPosition = -(model.transform.localRotation * laserPos);
 
         var vis = root.AddComponent<ControllerVisual>();
         vis.leftHand = left;
-        vis.stick = stick;
-        vis.primaryButton = primary.GetComponent<Renderer>();
-        vis.secondaryButton = secondary.GetComponent<Renderer>();
-        vis.trigger = trigger;
-        vis.grip = grip;
-        vis.idle = idle;
-        vis.pressed = kit.pressed;
-    }
-
-    static Material Lit(Color c, float smoothness)
-    {
-        var mat = new Material(LitShader);
-        mat.SetColor("_BaseColor", c);
-        mat.SetFloat("_Smoothness", smoothness);
-        return mat;
-    }
-
-    // Torus around local Y, radius 4.5 cm, tube 0.6 cm. Saved as an asset so the scene can reference it.
-    static Mesh RingMesh()
-    {
-        string p = $"{GenDir}/ControllerRing.asset";
-        AssetDatabase.DeleteAsset(p);
-
-        const int seg = 48, tube = 10;
-        const float R = 0.045f, r = 0.006f;
-        var verts = new Vector3[(seg + 1) * (tube + 1)];
-        var tris = new int[seg * tube * 6];
-        for (int i = 0; i <= seg; i++)
-        for (int j = 0; j <= tube; j++)
-        {
-            float u = i * Mathf.PI * 2f / seg, v = j * Mathf.PI * 2f / tube;
-            float d = R + r * Mathf.Cos(v);
-            verts[i * (tube + 1) + j] = new Vector3(d * Mathf.Cos(u), r * Mathf.Sin(v), d * Mathf.Sin(u));
-        }
-        int t = 0;
-        for (int i = 0; i < seg; i++)
-        for (int j = 0; j < tube; j++)
-        {
-            int a = i * (tube + 1) + j, b = a + tube + 1;
-            tris[t++] = a; tris[t++] = a + 1; tris[t++] = b;
-            tris[t++] = b; tris[t++] = a + 1; tris[t++] = b + 1;
-        }
-        var mesh = new Mesh { name = "ControllerRing", vertices = verts, triangles = tris };
-        mesh.RecalculateNormals();
-        mesh.RecalculateBounds();
-        AssetDatabase.CreateAsset(mesh, p);
-        return mesh;
+        vis.stick = Bone("b_thumbstick");
+        vis.primaryButton = Bone(left ? "b_button_x" : "b_button_a");
+        vis.secondaryButton = Bone(left ? "b_button_y" : "b_button_b");
+        vis.trigger = Bone("b_trigger_front");
+        vis.grip = Bone("b_trigger_grip");
+        // Meta's press animation moves A/B down 1.78 mm; the buttons are 15.53 mm apart. Scale to bone-local units.
+        vis.buttonTravel = 1.78f / 15.53f * Vector3.Distance(vis.primaryButton.localPosition, vis.secondaryButton.localPosition);
     }
 
     // ------------------------------------------------------------------ preview renders (batch mode QA)
@@ -676,10 +616,17 @@ public static class ProjectSetup
         Shot("side.png", tractor.position + new Vector3(8f, 1.8f, 1.4f), Quaternion.Euler(5f, -90f, 0f));
         Shot("front.png", tractor.position + new Vector3(3f, 2f, 9f), Quaternion.Euler(8f, 200f, 0f));
 
-        // Right controller close-up, posed as if held in front of the driver (grip Z tilted 45° forward-up).
+        // Both controllers held in front of the driver, pointing forward and slightly down (aim pose).
+        leftCtl.SetActive(true);
         ctl.gameObject.SetActive(true);
-        ctl.SetPositionAndRotation(seat.position + new Vector3(0.15f, -0.35f, 0.4f), Quaternion.Euler(-45f, 0f, 0f));
-        Shot("controller.png", ctl.position + new Vector3(-0.12f, 0.12f, -0.22f), Quaternion.LookRotation(ctl.position - (ctl.position + new Vector3(-0.12f, 0.12f, -0.22f))));
+        Vector3 hands = seat.position + new Vector3(0f, -0.3f, 0.35f);
+        leftCtl.transform.SetPositionAndRotation(hands + new Vector3(-0.1f, 0f, 0f), Quaternion.Euler(15f, 5f, 0f));
+        ctl.SetPositionAndRotation(hands + new Vector3(0.1f, 0f, 0f), Quaternion.Euler(15f, -5f, 0f));
+        Vector3 eye = hands + new Vector3(0f, 0.2f, -0.25f);
+        Shot("controller.png", eye, Quaternion.LookRotation(hands - eye));
+        Vector3 side = hands + new Vector3(0.3f, 0.02f, 0.02f);
+        Shot("controller_side.png", side, Quaternion.LookRotation(hands + new Vector3(0.1f, 0f, 0f) - side));
+        leftCtl.SetActive(false);
 
         // Cab view with the vignette at full "High" strength.
         var vig = Object.FindAnyObjectByType<ComfortVignette>();
