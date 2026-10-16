@@ -8,3 +8,4 @@ Builds/
 *.csproj
 *.sln
 .vs/
+.utmp/
