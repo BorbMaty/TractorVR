@@ -1,6 +1,15 @@
 # Roadmap
 
-## Phase 1: flat world, general controls ✅ built / ✅ runs on Quest 2 / ⏳ comfort tuning
+## ▶ Where we left off (2026-10-16)
+Phase 1 is done and runs on the Quest 2. The comfort pass and real controller models are tested in the headset.
+The latest APK is installed. The Unity editor is closed and the working tree is clean.
+
+**Next session, suggested order:**
+1. Steering wheel: split it out of `SM2_..._Cab_Interier_01` (Blender or mesh split by vertex region) and turn it with `SteerAngle`
+2. Drivetrain: engine RPM + gears + engine sound
+3. Leftovers from phase 1: frame-rate check with OVR Metrics Tool, keyboard play test in the editor
+
+## Phase 1: flat world, general controls ✅ built / ✅ runs on Quest 2 / ✅ comfort tuned
 Goal: drive the John Deere 6195M on a flat world with the Quest 2 thumbsticks, from two viewpoints.
 
 Done:

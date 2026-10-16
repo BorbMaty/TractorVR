@@ -107,3 +107,15 @@ the two FBX files and the texture were taken, the SDK itself is not installed). 
 
 ## 2026-10-16: Headset check
 - Real controller models, comfort vignette and the gentler driving were tested on the Quest 2: all good.
+
+## 2026-10-16: Session summary
+What happened today, in order:
+1. First APK build (batch mode) and install over adb. The app ran first time, and the wheels and steering looked right.
+2. Headset test: controls, views and seat were fine, but the tester got **motion sick**.
+3. Comfort pass: gentler acceleration/braking, yaw-rate and lateral-acceleration limits, squared steering response, edge vignette with
+   off/low/high on X.
+4. Visible controllers: first primitive stand-ins (wrong ring placement), then the official Quest 2 models from the Meta XR Core SDK on the aim pose.
+5. Headset re-test: all good.
+
+Workflow lessons (also in CLAUDE.md): the editor must be closed for batch builds; closing it resets adb authorization unless
+*Always allow* is ticked; a launch via adb is blocked while the headset sleeps; preview PNGs open in a viewer get locked by Windows.
