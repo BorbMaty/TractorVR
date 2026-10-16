@@ -104,3 +104,6 @@ the two FBX files and the texture were taken, the SDK itself is not installed). 
 | Controllers, front | Side |
 |---|---|
 | ![controllers](images/controller.png) | ![side](images/controller_side.png) |
+
+## 2026-10-16: Headset check
+- Real controller models, comfort vignette and the gentler driving were tested on the Quest 2: all good.

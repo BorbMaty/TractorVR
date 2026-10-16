@@ -23,10 +23,10 @@ Still to do:
   - [ ] Speed feel (max 40 km/h forward, 15 km/h reverse, acceleration 1.8 m/s²): looks right, but acceleration/turning too abrupt for comfort
   - [ ] Frame rate holds 72/90 Hz (no visible stutter yet; not measured with OVR Metrics Tool)
 - [ ] Comfort (motion sickness reported in the first headset test):
-  - [x] Comfort vignette while turning/accelerating (built, needs headset test)
-  - [x] Gentler defaults: acceleration 1.0 m/s², braking 2.5 m/s², coast 0.8 m/s², steer rate 35°/s, squared stick response, yaw ≤ 25°/s, lateral ≤ 2.5 m/s² (built, needs headset test)
-  - [x] Comfort level setting (off/low/high) on X, saved in PlayerPrefs (built, needs headset test)
-- [x] Visible controllers: official Quest 2 Touch models (from the Meta XR Core SDK) with animated stick/buttons/trigger/grip (built, needs headset test)
+  - [x] Comfort vignette while turning/accelerating ✅ headset-tested 2026-10-16
+  - [x] Gentler defaults: acceleration 1.0 m/s², braking 2.5 m/s², coast 0.8 m/s², steer rate 35°/s, squared stick response, yaw ≤ 25°/s, lateral ≤ 2.5 m/s² ✅ headset-tested 2026-10-16
+  - [x] Comfort level setting (off/low/high) on X, saved in PlayerPrefs ✅ headset-tested 2026-10-16
+- [x] Visible controllers: official Quest 2 Touch models (from the Meta XR Core SDK) with animated stick/buttons/trigger/grip ✅ headset-tested 2026-10-16
 - [ ] Optional: find the original TurboSquid `tex\` folder, put it in `Assets/Models/tex/`, and use it instead of the generated materials
 
 ## Phase 2: "the specifications" (priority to be decided from the project brief)
