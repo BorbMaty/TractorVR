@@ -66,6 +66,13 @@ public class Drivetrain : MonoBehaviour
         Automatic = PlayerPrefs.GetInt("TransmissionAuto", 1) == 1;
     }
 
+    public void ToggleMode()
+    {
+        Automatic = !Automatic;
+        PlayerPrefs.SetInt("TransmissionAuto", Automatic ? 1 : 0);
+        Message?.Invoke(Automatic ? "AUTO" : "MANUAL");
+    }
+
     /// <summary>Speed cap the controller may drive at (km/h). Auto: the full range; manual: the selected gear.</summary>
     public float SpeedLimitKmh(bool forward, float maxForward, float maxReverse)
     {
@@ -79,12 +86,7 @@ public class Drivetrain : MonoBehaviour
         float kmh = Mathf.Abs(tractor.SpeedKmh);
         float throttle = input.Throttle;
 
-        if (input.TransmissionModePressed)
-        {
-            Automatic = !Automatic;
-            PlayerPrefs.SetInt("TransmissionAuto", Automatic ? 1 : 0);
-            Message?.Invoke(Automatic ? "AUTO" : "MANUAL");
-        }
+        if (input.TransmissionModePressed) ToggleMode();
         int manualShift = input.ShiftUpPressed ? 1 : input.ShiftDownPressed ? -1 : 0;
         if (manualShift != 0)
         {

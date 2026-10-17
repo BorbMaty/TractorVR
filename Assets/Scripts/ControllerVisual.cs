@@ -24,6 +24,9 @@ public class ControllerVisual : MonoBehaviour
     Vector3 primaryRest, secondaryRest;
     bool shown = true;
 
+    /// <summary>True while the controller is tracked (and drawn).</summary>
+    public bool Tracked => shown;
+
     void Awake()
     {
         string hand = leftHand ? "{LeftHand}" : "{RightHand}";

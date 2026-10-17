@@ -79,6 +79,8 @@ public class TractorController : MonoBehaviour
     /// <summary>Smoothed forward acceleration (m/s²), steady per frame even though physics steps at its own rate.</summary>
     public float Acceleration { get; private set; }
     public float SteerAngle { get; private set; }
+    /// <summary>Current steering limit (degrees) from the comfort rules at this speed.</summary>
+    public float LockAngle { get; private set; } = 40f;
     /// <summary>Share of engine power currently used for driving (0..1).</summary>
     public float PowerFraction { get; private set; }
     public bool Grounded { get; private set; }
@@ -88,6 +90,12 @@ public class TractorController : MonoBehaviour
     Hitch hitch;
     Rigidbody rb;
     float speedCmd;
+    float? heldSteer;      // steering angle from the hands on the wheel (CabControls)
+    bool steerLatched;     // wheel was let go: keep its angle until the stick is used
+
+    /// <summary>The wheel is in someone's hands: steer to this angle (clamped to the lock).</summary>
+    public void HoldSteer(float angle) => heldSteer = angle;
+    public void ReleaseHeldSteer() { heldSteer = null; steerLatched = true; }
     Vector3 spawnPos;
     Quaternion spawnRot;
     float upsideDownTime;
@@ -289,6 +297,7 @@ public class TractorController : MonoBehaviour
 
     void UpdateSteering(float steer, float dt)
     {
+        float raw = steer;
         // Squared response: fine control around the centre, full lock still reachable.
         steer = Mathf.Sign(steer) * steer * steer;
 
@@ -300,8 +309,17 @@ public class TractorController : MonoBehaviour
             float maxOmega = Mathf.Min(maxYawRate * Mathf.Deg2Rad, maxLateralAccel / v);
             lockAngle = Mathf.Min(lockAngle, Mathf.Atan(maxOmega * wheelbase / v) * Mathf.Rad2Deg);
         }
-        float target = steer * lockAngle;
-        SteerAngle = Mathf.MoveTowards(SteerAngle, target, steerRate * dt);
+        LockAngle = lockAngle;
+        float target = steer * lockAngle, rate = steerRate;
+        if (heldSteer.HasValue)
+        {
+            target = heldSteer.Value;
+            rate = steerRate * 6f;                       // the hands turn the wheel directly
+        }
+        else if (steerLatched && Mathf.Abs(raw) < 0.15f) target = SteerAngle;   // let go: the wheel stays put
+        else steerLatched = false;
+        target = Mathf.Clamp(target, -lockAngle, lockAngle);
+        SteerAngle = Mathf.MoveTowards(SteerAngle, target, rate * dt);
 
         // Ackermann: the inner wheel turns tighter than the outer one.
         float tanSteer = Mathf.Tan(SteerAngle * Mathf.Deg2Rad);

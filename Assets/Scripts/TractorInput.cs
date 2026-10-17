@@ -9,7 +9,9 @@ using UnityEngine.InputSystem;
 ///   Right stick Y ....... throttle (forward = drive, back = brake / reverse)
 ///   A (right) ........... switch camera: cab / third person
 ///   B (right) ........... recenter view
-///   Left grip (hold) .... seat calibration mode (sticks move the seat instead of driving)
+///   Seat adjust ......... toggled in the cab panel: the sticks move the seat instead of driving (keyboard: hold Left Shift)
+///   Left menu button .... cab panel open / close (keyboard M)
+///   Grip buttons ........ grab the steering wheel / speed lever (CabControls, VRHands)
 ///   X (left) ............ cycle comfort vignette: off / low / high
 ///   Right stick flick → / ← ... shift up / down (switches the gearbox to manual)
 ///   Y (left) ............ gearbox mode: auto / manual
@@ -30,13 +32,18 @@ public class TractorInput : MonoBehaviour
     InputAction comfortAction;
     InputAction modeAction;
     InputAction hornAction;
-    InputAction frontLinkageAction, ptoAction, attachAction;
+    InputAction frontLinkageAction, ptoAction, attachAction, menuAction;
     int flick;          // -1 / 0 / +1: where the right stick X was held last frame
 
     public Vector2 LeftStick => steerAction.ReadValue<Vector2>();
     public Vector2 RightStick => throttleAction.ReadValue<Vector2>();
     public float Steer => scripted ? scriptedSteer : Calibrating ? 0f : LeftStick.x;
-    public float Throttle => scripted ? scriptedThrottle : Calibrating ? 0f : RightStick.y;
+    public float Throttle => scripted ? scriptedThrottle : Calibrating ? 0f : Mathf.Abs(RightStick.y) > 0.08f ? RightStick.y : leverThrottle;
+    /// <summary>Speed lever position from the cab (CabControls), used while the right stick is idle.</summary>
+    [System.NonSerialized] public float leverThrottle;
+    /// <summary>Seat adjust mode, switched in the cab panel.</summary>
+    [System.NonSerialized] public bool seatAdjust;
+    public bool MenuPressed => menuAction.WasPressedThisFrame();
 
     /// <summary>Test autopilot (editor physics test): replaces the sticks for steering and throttle.</summary>
     [System.NonSerialized] public bool scripted;
@@ -44,7 +51,7 @@ public class TractorInput : MonoBehaviour
     [System.NonSerialized] public bool scriptedFront;
     public bool SwitchViewPressed => switchViewAction.WasPressedThisFrame();
     public bool RecenterPressed => recenterAction.WasPressedThisFrame();
-    public bool Calibrating => calibrateAction.IsPressed();
+    public bool Calibrating => seatAdjust || calibrateAction.IsPressed();
     public bool ComfortCyclePressed => comfortAction.WasPressedThisFrame();
     public bool TransmissionModePressed => modeAction.WasPressedThisFrame();
     public bool Horn => hornAction.IsPressed();
@@ -93,7 +100,6 @@ public class TractorInput : MonoBehaviour
         recenterAction.AddBinding("<Keyboard>/r");
 
         calibrateAction = new InputAction("Calibrate", InputActionType.Button);
-        calibrateAction.AddBinding("<XRController>{LeftHand}/{GripButton}");
         calibrateAction.AddBinding("<Gamepad>/leftShoulder");
         calibrateAction.AddBinding("<Keyboard>/leftShift");
 
@@ -126,6 +132,11 @@ public class TractorInput : MonoBehaviour
         attachAction.AddBinding("<XRController>{LeftHand}/{Primary2DAxisClick}");
         attachAction.AddBinding("<Gamepad>/leftStickPress");
         attachAction.AddBinding("<Keyboard>/j");
+
+        menuAction = new InputAction("Menu", InputActionType.Button);
+        menuAction.AddBinding("<XRController>{LeftHand}/{MenuButton}");
+        menuAction.AddBinding("<Gamepad>/start");
+        menuAction.AddBinding("<Keyboard>/m");
     }
 
     void Update()
@@ -153,6 +164,7 @@ public class TractorInput : MonoBehaviour
         frontLinkageAction.Enable();
         ptoAction.Enable();
         attachAction.Enable();
+        menuAction.Enable();
     }
 
     void OnDisable()
@@ -168,5 +180,6 @@ public class TractorInput : MonoBehaviour
         frontLinkageAction.Disable();
         ptoAction.Disable();
         attachAction.Disable();
+        menuAction.Disable();
     }
 }

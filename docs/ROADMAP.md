@@ -2,11 +2,13 @@
 
 ## ▶ Where we left off (2026-10-17, night)
 Phase 2 order: **1. physics + terrain ✅ → 2. hydraulics + implements ✅ → 3. VR interaction**.
-- Block 2 headset-tested 2026-10-17: controls OK, attaching OK ("takes practice"), ploughing/mowing/towing OK.
-  One bug found: **the tractor could pass into the trailer**. Fixed (test scenario M), ✅ re-checked in the headset 2026-10-17.
+- Block 3 (**VR interaction**): built, cab-control maths checked offline (`PhysicsTest` scenario N), installed on the Quest 2,
+  **not headset-tested yet**.
 
 **Next session:**
-1. Block 3: VR interaction (grab the steering wheel and the armrest joystick, hands, settings menu)
+1. Headset test with controllers: grab the steering wheel (grip), turn hand over hand; grab the speed lever and set a speed; cab panel (left menu button), touch the buttons
+2. Headset test with hand tracking (put the controllers down): hands visible, fist to grab the wheel / lever, fingertip on the panel buttons
+3. Tune (grab reach, fist thresholds, panel position/size), then decide what comes after phase 2
 
 ## Phase 1: flat world, general controls ✅ done (closed 2026-10-17)
 Goal: drive the John Deere 6195M on a flat world with the Quest 2 thumbsticks, from two viewpoints.
@@ -71,10 +73,12 @@ First block, chosen 2026-10-17: **steering wheel + drivetrain** (biggest effect 
 - [x] Terrain with gentle hills (2 × 2 km, generated at runtime, slopes up to ~11°, flat start area), haze, lower sun. Built 2026-10-17, ✅ headset-tested 2026-10-17
 - [ ] Field with crop rows, roads, a farmyard
 
-### VR interaction
+### VR interaction (block 3)
 - [x] Real Quest 2 controller models
-- [ ] Hands (XR Hands) instead of / in addition to controllers
-- [ ] Grab the real steering wheel and the armrest joystick instead of using the thumbsticks
-- [ ] Menu (wrist or world-space) for settings: view distance, seat reset, speed units
+- [x] Hand tracking (XR Hands 1.9, bundled): sample hand meshes driven by `XRHandSkeletonDriver`, shown while tracked; HAND_TRACKING in the manifest. ⏳ headset test
+- [x] Grab the steering wheel (grip button or fist), one or two hands, hand over hand; stays put when let go. ⏳ headset test
+- [x] Grab the speed lever on the armrest (the shift lever, cut out of the cab mesh): forward = drive, back = reverse, stays set (cruise). ⏳ headset test
+- [x] Cab panel at the right front corner (touch buttons): view, recenter, comfort, gearbox, hitch/front up/down, PTO, attach, seat adjust/reset, units, reset tractor. ⏳ headset test
+- [ ] Grab the hydraulic remote levers / hitch control on the armrest
 
 Done first in phase 2: **drivetrain + turning steering wheel** (see above).

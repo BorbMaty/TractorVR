@@ -44,6 +44,7 @@ public static class PhysicsTest
             input = ctrl.GetComponent<TractorInput>();
             rb = ctrl.GetComponent<Rigidbody>();
             input.scripted = true;
+            CallAwake(input);
             CallAwake(ctrl);
             hitch = ctrl.GetComponent<Hitch>();
             implements = Object.FindObjectsByType<Implement>(FindObjectsSortMode.None);
@@ -271,6 +272,49 @@ public static class PhysicsTest
         Simulate(12f, -0.25f, 0f, 2f);    // and back into it
         log.AppendLine($"   reversing into it: deepest overlap {worst * 100f:0.0} cm, trailer pushed {Vector3.Distance(parked, trailer.transform.position):0.00} m");
         extra = null;
+        CabControlsTest();
+    }
+
+    // Fake hands on the steering wheel and the speed lever (VRHands.Hand fields are written directly).
+    static void CabControlsTest()
+    {
+        log.AppendLine();
+        log.AppendLine("N. Cab controls with simulated hands");
+        var cab = ctrl.GetComponent<CabControls>();
+        var vrHands = Object.FindAnyObjectByType<VRHands>();
+        cab.GetType().GetMethod("Start", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(cab, null);
+        var update = cab.GetType().GetMethod("Update", BindingFlags.NonPublic | BindingFlags.Instance);
+        Place(new Vector3(-30f, 0f, 0f), 0f);
+        input.scriptedSteer = input.scriptedThrottle = 0f;
+        float dt = Time.fixedDeltaTime;
+        var column = ctrl.steeringWheel.parent;
+        var h = vrHands.Left;
+        void Step(int frames = 1)
+        {
+            for (int i = 0; i < frames; i++) { update.Invoke(cab, null); ctrl.FrameUpdate(dt); h.GrabStarted = h.GrabEnded = false; }
+        }
+        Vector3 Rim(float deg) => column.TransformPoint(new Vector3(Mathf.Cos(deg * Mathf.Deg2Rad), Mathf.Sin(deg * Mathf.Deg2Rad), 0f) * cab.rimRadius);
+
+        // Grab at 12 o'clock and turn 60° clockwise as the driver sees it (to 2 o'clock): a right turn of 60/13 = 4.6°.
+        h.Tracked = true; h.GrabPoint = Rim(90f); h.Grabbing = h.GrabStarted = true;
+        Step();
+        for (int i = 1; i <= 30; i++) { h.GrabPoint = Rim(90f - 2f * i); Step(); }
+        Step(60);
+        log.AppendLine($"   wheel turned 60° clockwise → steer {ctrl.SteerAngle:0.00}° (expected +{60f / ctrl.steeringRatio:0.00}), wheel held {cab.WheelHeld}");
+        h.Grabbing = false; h.GrabEnded = true; Step();
+        Step(90);
+        log.AppendLine($"   released, 1 s later → steer {ctrl.SteerAngle:0.00}° (stays), wheel held {cab.WheelHeld}");
+        input.scriptedSteer = -0.6f; Step(90); input.scriptedSteer = 0f; Step(180);
+        log.AppendLine($"   stick used → steer {ctrl.SteerAngle:0.00}° (back under stick control)");
+
+        // Speed lever: grab the knob and push it 15° forward.
+        Vector3 knob = cab.speedLever.TransformPoint(cab.knobLocal);
+        h.GrabPoint = knob; h.Grabbing = h.GrabStarted = true; Step();
+        Vector3 pivot = cab.speedLever.position;
+        h.GrabPoint = pivot + Quaternion.AngleAxis(15f, ctrl.transform.right) * (knob - pivot); Step();
+        log.AppendLine($"   lever pushed 15° forward → lever throttle {input.leverThrottle:0.00} (expected +{15f / cab.leverTilt:0.00}), knob moved {(cab.speedLever.TransformPoint(cab.knobLocal) - knob).z * 100f:0.0} cm forward");
+        h.Grabbing = false; h.GrabEnded = true; Step();
+        log.AppendLine($"   released → lever stays at {input.leverThrottle:0.00}");
     }
 
     // Deepest intersection between the implement's colliders and the tractor's (contacts sit within a few mm).

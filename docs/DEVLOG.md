@@ -292,3 +292,40 @@ Fix:
      ("STRAIGHTEN UP TO DETACH"), and collisions stay off until nothing overlaps.
 - Final scenario M: jackknife deepest overlap 0.0 cm. Reversing into the parked trailer pushes it 1 m, deepest overlap 0.0 cm. All other scenarios unchanged.
 - Headset re-check of the fix: the tractor and trailer collide as intended (jackknife and reversing into it).
+
+## 2026-10-17: Phase 2 block 3, VR interaction
+**Finding the controls.** A temporary script split the right console of the cab interior into colour-coded pieces. Found: the shift lever in an
+H-gate at the front of the armrest (one piece), three hydraulic remote levers, and a small lever at the right rear.
+The shift lever becomes a **speed lever** (like an IVT tractor's): cut out of the mesh with the steering wheel code, pivot at the bottom of the stalk.
+
+**Hands** (`VRHands`): each side is either a tracked hand or a controller, whichever is active.
+- Controller: grab point = OpenXR *grip* pose (new trackers, separate from the aim pose the controller models use), grabbing = grip button, poke tip = front of the controller.
+- Hand tracking (XR Hands 1.9.0, bundled with the editor, works offline): grab point = palm, grabbing = a fist (average index/middle/ring tip–palm distance
+  < 6.5 cm, open again > 8.5 cm), poke tip = index fingertip. The hand meshes come from the XR Hands *HandVisualizer* sample, driven by `XRHandSkeletonDriver` (all 26 joints mapped).
+- The Quest needs `com.oculus.permission.HAND_TRACKING` + `oculus.software.handtracking` in the manifest. The OpenXR package only adds them for
+  its Meta hand-mesh feature, so `QuestManifest` (Gradle post-process) adds them. Checked in the built APK with `aapt dump permissions`.
+
+**Cab controls** (`CabControls`)
+- Steering wheel: grab within 7 cm of the rim. The hand's angle around the column (in `SteeringColumn` space) turns the wheel, averaged over both hands,
+  each hand tracked separately so hand over hand works. Wheel angle / 13 = steering angle, still clamped by the speed-dependent comfort lock (the wheel slips in the hand beyond it).
+  Let go: the wheel stays (like real hydrostatic steering) until the left stick is moved.
+- Speed lever: grab the knob, tilt ±25° → the same speed command as the right stick. A neutral detent of ±8 %. It stays where it was let go (cruise), so both hands
+  can be on the wheel. Moving the right stick puts it back to neutral.
+
+**Cab panel** (`CabPanel`): 14 touch buttons at the right front of the cab (where the 6M's CommandCenter display is), riding with the rig.
+They cover view, recenter, comfort, gearbox, hitch up/down, front up/down, PTO, attach/detach, seat adjust on/off, seat reset, km/h ↔ mph, and reset tractor.
+Open with the left menu button (M) or the MENU tab. Buttons highlight while touched and click. Seat adjust moved here because the grips now grab.
+
+**Offline check** (new `PhysicsTest` scenario N, simulated hands):
+
+| Check | Result |
+|---|---|
+| Grab the rim at 12 o'clock, turn 60° clockwise | steer +4.62° (expected 60/13 = 4.62) |
+| Let go, wait 1 s | stays at 4.62° |
+| Use the stick | back to stick control (0.00°) |
+| Grab the lever knob, push 15° forward | lever throttle 0.60 (expected 0.60), knob 4.5 cm forward |
+| Let go | stays at 0.60 |
+
+All earlier scenarios unchanged. **Build**: setup + APK without errors, installed. **Not headset-tested yet** (controllers and hand tracking).
+
+![panel](images/panel.png)

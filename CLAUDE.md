@@ -20,6 +20,10 @@ See `README.md` for controls, `docs/ROADMAP.md` for what's next and `docs/DEVLOG
 | `Assets/Scripts/Hitch.cs` | Rear 3-point linkage (four-bar solved from model pivots → table θ/φ per position), front linkage, drawbar, PTO, attach/detach, mass/CoM update |
 | `Assets/Scripts/Implement.cs` | Implement: kinematic on the linkage mount / ball joint on the drawbar, depth from `TerrainGenerator.Height`, draft force, PTO spinners, TrailRenderer marks |
 | `Assets/Scripts/SimpleWheels.cs` | Raycast wheels for the trailer (parking brake while uncoupled) |
+| `Assets/Scripts/VRHands.cs` | Per side: tracked hand (XR Hands: palm, fist, index tip) or controller (grip pose, grip button, aim tip) |
+| `Assets/Scripts/CabControls.cs` | Grab the wheel (rim angle in `SteeringColumn` space → `TractorController.HoldSteer`) and the speed lever (→ `TractorInput.leverThrottle`) |
+| `Assets/Scripts/CabPanel.cs` | Rig-locked touch panel (built at runtime from materials set by setup); also sets `CabPanel.Mph` |
+| `Assets/Scripts/Editor/QuestManifest.cs` | Gradle post-process: HAND_TRACKING permission + handtracking feature in the Quest manifest |
 | `Assets/Scripts/TerrainGenerator.cs` | Hills built at runtime from `Height(x,z)` (8×8 chunks, 5 m grid, MeshColliders) |
 | `Assets/Scripts/Editor/PhysicsTest.cs` | Offline driving test (scripted sticks, manual `Physics.Simulate`) → `Logs/PhysicsTest.txt` |
 | `Assets/Scripts/VRCameraRig.cs` | Cab / third-person views, recenter, seat calibration (PlayerPrefs) |
@@ -60,6 +64,9 @@ $u = "C:\Program Files\Unity\Hub\Editor\6000.6.3f1\Editor\Unity.exe"
   Pieces lying flat inside the rim (hub cap) go with it. Output: `Generated/CabInterior_NoWheel.asset` + `Generated/SteeringWheel.asset`,
   hierarchy `Tractor/SteeringColumn` (Z = axis, away from the driver) > `SteeringWheel` (spins on local Z) > `WheelMesh`.
   Wheel centre (0, 2.35, 1.09), Ø 0.397 m, rim 23° from horizontal. Right turn = negative local Z rotation.
+- **Speed lever** = the shift lever in the H-gate at the front of the right armrest (interior piece ~19 cm tall near (0.31, 2.34, 0.64)).
+  Cut out like the wheel, hinge `Tractor/SpeedLever` at the bottom of the stalk (0.359, 2.252, 0.672), knob (0.257, 2.417, 0.606), tilts ±25° around X (+ = forward).
+  The right console also has three hydraulic remote levers (knobs at x 0.42/0.47/0.52, z 0.50) and the H-gate plate. They're still static.
 - Instrument cluster = the glass piece of the interior nearest the wheel (0.257 × 0.109 m). The generated dial face sits 4 mm in front of it.
   From the seat, the hub hides the middle of the cluster and the column shroud hides its lower half, so the readouts live in the upper half of each dial.
 - Linkage parts have their **pivots on the real hinge points** (verified with tinted renders): `Rear_Holder_Ruler_01` lift arms (rockshaft y 1.588 z −0.119),
@@ -87,6 +94,10 @@ $u = "C:\Program Files\Unity\Hub\Editor\6000.6.3f1\Editor\Unity.exe"
 - Tractor colliders: a main block (full width, from z −0.55 forward), a narrow rear block (1 m wide, hitch/frame) and four wheel blocks.
   A single full-width box out to the hitch limited a coupled trailer to ~12° of swing. The trailer body starts 1.6 m behind its eye, so it swings ~50° before touching the tyres (joint limit 70°). Plough draft is fed forward into the drive force (a P-only speed controller left a 4 km/h error).
 - Rear linkage reach: link ends 0.43–1.27 m, so 3-point implements need their lower-link pins at ~0.75 m when parked.
+- The **grips are for grabbing** (wheel, lever). Seat adjust moved to the cab panel (`TractorInput.seatAdjust`; Left Shift in the editor).
+  Steering by hand: `HoldSteer(angle)` while held. After `ReleaseHeldSteer()` the angle is latched until |left stick| > 0.15. The comfort lock still clamps it.
+- XR Hands: `XRHandSkeletonDriver.jointTransformReferences` is null on a component added from code, so set a new list before `FindJointsFromRoot`.
+  Hand joints are in tracking space (children of `Camera Offset`). OpenXR feature `HandTracking` is enabled for Android + Standalone.
 - Run `PhysicsTest` after changing the vehicle. It has caught every physics bug so far, without a headset.
 - The rig is yaw-only in third person (no pitch/roll), for comfort. Head tracking supplies the rest.
 - Recenter = the `Camera Offset` transform cancels the head's local pose, so floor/device tracking origin doesn't matter. It also re-runs on the OS recenter (`trackingOriginUpdated`).

@@ -57,7 +57,11 @@ public class ComfortVignette : MonoBehaviour
 
     void Update()
     {
-        if (!input.ComfortCyclePressed) return;
+        if (input.ComfortCyclePressed) Cycle();
+    }
+
+    public void Cycle()
+    {
         CurrentLevel = (Level)(((int)CurrentLevel + 1) % 3);
         PlayerPrefs.SetInt(PrefKey, (int)CurrentLevel);
         PlayerPrefs.Save();

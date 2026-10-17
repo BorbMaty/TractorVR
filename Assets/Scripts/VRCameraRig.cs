@@ -58,13 +58,7 @@ public class VRCameraRig : MonoBehaviour
 
     void Update()
     {
-        if (input.SwitchViewPressed)
-        {
-            view = view == View.Cab ? View.ThirdPerson : View.Cab;
-            followYaw = tractor.transform.eulerAngles.y;
-            followYawVel = 0f;
-            ViewChanged?.Invoke(view);
-        }
+        if (input.SwitchViewPressed) ToggleView();
         if (input.RecenterPressed) Recenter();
 
         // Auto recenter once the headset has delivered its first poses.
@@ -90,6 +84,20 @@ public class VRCameraRig : MonoBehaviour
             Quaternion yaw = Quaternion.Euler(0f, followYaw, 0f);
             transform.SetPositionAndRotation(t.position + yaw * thirdPersonOffset, yaw);
         }
+    }
+
+    public void ToggleView()
+    {
+        view = view == View.Cab ? View.ThirdPerson : View.Cab;
+        followYaw = tractor.transform.eulerAngles.y;
+        followYawVel = 0f;
+        ViewChanged?.Invoke(view);
+    }
+
+    public void ResetSeat()
+    {
+        seatAnchor.localPosition = seatHome;
+        SaveSeatOffset(Vector3.zero);
     }
 
     public void Recenter()

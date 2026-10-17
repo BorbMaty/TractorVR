@@ -45,7 +45,8 @@ public class TractorHud : MonoBehaviour
     {
         float kmh = tractor.SpeedKmh;
         string dir = drivetrain.Direction == Drivetrain.Dir.Forward ? "F" : drivetrain.Direction == Drivetrain.Dir.Reverse ? "R" : "N";
-        string line = $"{Mathf.Abs(kmh):0} km/h  {dir} {drivetrain.GearName}  {drivetrain.Rpm:0} rpm";
+        string speed = CabPanel.Mph ? $"{Mathf.Abs(kmh) * 0.6214f:0} mph" : $"{Mathf.Abs(kmh):0} km/h";
+        string line = $"{speed}  {dir} {drivetrain.GearName}  {drivetrain.Rpm:0} rpm";
         if (input.Calibrating && rig.view == VRCameraRig.View.Cab) line += "\nSEAT ADJUST";
         string work = Implements();
         if (work.Length > 0) line += "\n" + work;

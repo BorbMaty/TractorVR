@@ -137,7 +137,7 @@ public static class ProjectSetup
             foreach (var f in oxr.GetFeatures())
             {
                 string n = f.GetType().Name;
-                bool want = n == "OculusTouchControllerProfile" || n == "MetaQuestTouchPlusControllerProfile"
+                bool want = n == "OculusTouchControllerProfile" || n == "MetaQuestTouchPlusControllerProfile" || n == "HandTracking"
                             || (group == BuildTargetGroup.Android && n == "MetaQuestFeature");
                 if (want && !f.enabled) f.enabled = true;
                 if (want) Debug.Log($"[Setup]   {group} feature {n} enabled");
@@ -401,7 +401,11 @@ public static class ProjectSetup
         log.AppendLine($"DriverEye at {seat.localPosition}");
 
         // 6) Steering wheel cut out of the cab interior mesh, instrument cluster on the column, drivetrain.
-        ctrl.steeringWheel = SplitSteeringWheel(root.transform, Part("Cab_Interier_01"), log, out Pose clusterPose, out Vector2 clusterSize);
+        ctrl.steeringWheel = SplitSteeringWheel(root.transform, Part("Cab_Interier_01"), log, out Pose clusterPose, out Vector2 clusterSize,
+            out Transform speedLever, out Vector3 leverKnob);
+        var cabControls = root.AddComponent<CabControls>();
+        cabControls.speedLever = speedLever;
+        cabControls.knobLocal = speedLever.InverseTransformPoint(root.transform.TransformPoint(leverKnob));
         var drivetrain = root.AddComponent<Drivetrain>();
         BuildLinkage(root.transform, Part, log);
         BuildDashboard(root.transform, clusterPose, clusterSize, ctrl, drivetrain, log);
@@ -513,7 +517,8 @@ public static class ProjectSetup
     // by position). The rim is the biggest piece that is centred left-right and 0.3–0.5 m across. Its plane (PCA)
     // gives the steering column axis. Every piece lying flat inside the rim (spokes, hub cap) goes with it.
     // The result is two new meshes: the interior without the wheel, and the wheel in its own pivot frame.
-    static Transform SplitSteeringWheel(Transform root, Transform interior, StringBuilder log, out Pose clusterPose, out Vector2 clusterSize)
+    static Transform SplitSteeringWheel(Transform root, Transform interior, StringBuilder log, out Pose clusterPose, out Vector2 clusterSize,
+        out Transform lever, out Vector3 leverKnob)
     {
         var mf = interior.GetComponent<MeshFilter>();
         var renderer = interior.GetComponent<MeshRenderer>();
@@ -554,6 +559,31 @@ public static class ProjectSetup
         }
         log.AppendLine($"Steering wheel: {pieces} pieces, {inWheel.Count(b => b)} of {p.Length} vertices");
 
+        // Speed lever (the shift lever in the H-gate at the front of the right armrest): a ~19 cm tall piece right of the seat.
+        // Its pivot is the bottom of the stalk, the knob is the top.
+        var leverPart = parts.Where(g => { var b = PartBounds(g); return b.center.x > 0.2f && b.size.y > 0.15f && b.size.y < 0.25f && b.size.magnitude < 0.3f; })
+            .OrderBy(g => Vector3.Distance(PartBounds(g).center, new Vector3(0.31f, 2.34f, 0.64f))).First();
+        var inLever = new bool[p.Length];
+        foreach (int i in leverPart) inLever[i] = true;
+        float minY = leverPart.Min(i => p[i].y), maxY = leverPart.Max(i => p[i].y);
+        Vector3 Centroid(System.Func<int, bool> f) { var sel = leverPart.Where(f).ToArray(); var c = Vector3.zero; foreach (int i in sel) c += p[i]; return c / sel.Length; }
+        Vector3 leverPivot = Centroid(i => p[i].y < minY + 0.012f);
+        leverKnob = Centroid(i => p[i].y > maxY - 0.04f);
+        log.AppendLine($"Speed lever: {leverPart.Length} vertices, pivot {leverPivot:F3}, knob {leverKnob:F3}");
+        lever = new GameObject("SpeedLever").transform;
+        lever.SetParent(root, false);
+        lever.localPosition = leverPivot;
+        var leverHinge = lever;
+        Mesh leverMesh = SubsetMesh(src, inLever, true, v => leverHinge.InverseTransformPoint(interior.TransformPoint(v)), renderer.sharedMaterials, out Material[] leverMats,
+            n => leverHinge.InverseTransformDirection(interior.TransformDirection(n)));
+        leverMesh.name = "SpeedLever";
+        var leverGo = new GameObject("LeverMesh");
+        leverGo.transform.SetParent(lever, false);
+        leverGo.AddComponent<MeshFilter>().sharedMesh = SaveMesh(leverMesh, "SpeedLever");
+        leverGo.AddComponent<MeshRenderer>().sharedMaterials = leverMats;
+        var removed = new bool[p.Length];
+        for (int i = 0; i < p.Length; i++) removed[i] = inWheel[i] || inLever[i];
+
         // Pivot frame: SteeringColumn (fixed, Z = axis) > SteeringWheel (spins around local Z) > mesh.
         var column = new GameObject("SteeringColumn").transform;
         column.SetParent(root, false);
@@ -562,7 +592,7 @@ public static class ProjectSetup
         pivot.SetParent(column, false);
 
         var mats = renderer.sharedMaterials;
-        Mesh rest = SubsetMesh(src, inWheel, false, null, mats, out Material[] restMats);
+        Mesh rest = SubsetMesh(src, removed, false, null, mats, out Material[] restMats);
         Mesh wheel = SubsetMesh(src, inWheel, true, v => pivot.InverseTransformPoint(interior.TransformPoint(v)), mats, out Material[] wheelMats,
             n => pivot.InverseTransformDirection(interior.TransformDirection(n)));
         rest.name = "CabInterior_NoWheel";
@@ -969,6 +999,19 @@ public static class ProjectSetup
     }
 
     // Two-tone electric horn (400 + 500 Hz, band-limited sawtooth). Whole cycles per second, so the 1 s clip loops.
+    // Short tick for the cab panel buttons.
+    static AudioClip ClickClip()
+    {
+        int n = Rate / 25;
+        var s = new float[n];
+        for (int i = 0; i < n; i++)
+        {
+            float t = i / (float)Rate;
+            s[i] = Mathf.Sin(2f * Mathf.PI * 2400f * t) * Mathf.Exp(-t / 0.006f) + 0.5f * Mathf.Sin(2f * Mathf.PI * 900f * t) * Mathf.Exp(-t / 0.01f);
+        }
+        return WriteClip("UiClick", Normalize(s, 0.6f));
+    }
+
     static AudioClip HornClip()
     {
         var s = new float[Rate];
@@ -1345,9 +1388,24 @@ public static class ProjectSetup
 
         hud.comfort = BuildVignette(camGo.transform, ctrl, vr);
         var controllerMat = ControllerMaterial();
-        BuildController(offset, true, controllerMat);
-        BuildController(offset, false, controllerMat);
+        var leftCtl = BuildController(offset, true, controllerMat);
+        var rightCtl = BuildController(offset, false, controllerMat);
         BuildAudio(tractor, vr);
+
+        // Hands: grip poses for grabbing (controllers), tracked hand meshes, and the cab panel.
+        var hands = rig.AddComponent<VRHands>();
+        hands.cameraOffset = offset;
+        hands.leftGrip = GripPose(offset, "LeftHand");
+        hands.rightGrip = GripPose(offset, "RightHand");
+        hands.leftAim = leftCtl.transform;
+        hands.rightAim = rightCtl.transform;
+        hands.leftControllerVisual = leftCtl;
+        hands.rightControllerVisual = rightCtl;
+        var handMat = SaveMat(new Material(LitShader) { color = new Color(0.78f, 0.72f, 0.68f) }, "Hand");
+        handMat.SetFloat("_Smoothness", 0.25f);
+        BuildHand(offset, true, handMat, log);
+        BuildHand(offset, false, handMat, log);
+        BuildCabPanel(rig.transform, vr, tractor, hud.comfort, hands);
 
         log.AppendLine("Rig built.");
     }
@@ -1402,7 +1460,78 @@ public static class ProjectSetup
         return SaveMat(mat, "Controller_Quest2");
     }
 
-    static void BuildController(Transform cameraOffset, bool left, Material mat)
+    // OpenXR grip pose (the centre of the hand around the handle): what the hands grab with.
+    static Transform GripPose(Transform cameraOffset, string hand)
+    {
+        var t = new GameObject(hand + " Grip").transform;
+        t.SetParent(cameraOffset, false);
+        var tpd = t.gameObject.AddComponent<TrackedPoseDriver>();
+        tpd.positionInput = new InputActionProperty(new InputAction(hand + "GripPos", InputActionType.Value, $"<XRController>{{{hand}}}/devicePosition", expectedControlType: "Vector3"));
+        tpd.rotationInput = new InputActionProperty(new InputAction(hand + "GripRot", InputActionType.Value, $"<XRController>{{{hand}}}/deviceRotation", expectedControlType: "Quaternion"));
+        tpd.trackingStateInput = new InputActionProperty(new InputAction(hand + "GripState", InputActionType.Value, $"<XRController>{{{hand}}}/trackingState", expectedControlType: "Integer"));
+        return t;
+    }
+
+    // Tracked hand (XR Hands sample model) under the tracking space: XRHandTrackingEvents + XRHandSkeletonDriver move the bones,
+    // XRHandMeshController shows the mesh only while the hand is tracked.
+    static void BuildHand(Transform cameraOffset, bool left, Material mat, StringBuilder log)
+    {
+        var fbx = AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Models/Hands/{(left ? "Left" : "Right")}Hand.fbx");
+        var root = new GameObject(left ? "Left Hand" : "Right Hand");
+        root.transform.SetParent(cameraOffset, false);
+        var events = root.AddComponent<UnityEngine.XR.Hands.XRHandTrackingEvents>();
+        events.handedness = left ? UnityEngine.XR.Hands.Handedness.Left : UnityEngine.XR.Hands.Handedness.Right;
+        var model = (GameObject)PrefabUtility.InstantiatePrefab(fbx, root.transform);
+        PrefabUtility.UnpackPrefabInstance(model, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+        var smr = model.GetComponentInChildren<SkinnedMeshRenderer>();
+        smr.sharedMaterial = mat;
+        smr.shadowCastingMode = ShadowCastingMode.Off;
+        smr.updateWhenOffscreen = true;
+        var driver = root.AddComponent<UnityEngine.XR.Hands.XRHandSkeletonDriver>();
+        driver.handTrackingEvents = events;
+        driver.rootTransform = model.GetComponentsInChildren<Transform>().First(t => t.name.ToLowerInvariant().Contains("wrist"));
+        var missing = new System.Collections.Generic.List<string>();
+        driver.jointTransformReferences = new System.Collections.Generic.List<UnityEngine.XR.Hands.JointToTransformReference>();   // null on a new component
+        driver.FindJointsFromRoot(missing);
+        var mesh = root.AddComponent<UnityEngine.XR.Hands.XRHandMeshController>();
+        mesh.handTrackingEvents = events;
+        mesh.handMeshRenderer = smr;
+        mesh.showMeshWhenTrackingIsAcquired = true;
+        mesh.hideMeshWhenTrackingIsLost = true;
+        smr.enabled = false;
+        log.AppendLine($"{root.name}: root bone {driver.rootTransform.name}, {driver.jointTransformReferences.Count} joints, missing: {string.Join(", ", missing)}");
+    }
+
+    // Cab panel at the right front, within reach, facing the driver (built by CabPanel at runtime from these materials).
+    static void BuildCabPanel(Transform rig, VRCameraRig vr, GameObject tractor, ComfortVignette comfort, VRHands hands)
+    {
+        var unlit = Shader.Find("Universal Render Pipeline/Unlit");
+        Material Flat(string name, Color c) { var m = new Material(unlit); m.SetColor("_BaseColor", c); return SaveMat(m, name); }
+        var go = new GameObject("Cab Panel");
+        go.transform.SetParent(rig, false);
+        go.transform.localPosition = new Vector3(0.30f, -0.17f, 0.40f);
+        go.transform.localRotation = Quaternion.LookRotation(go.transform.localPosition);   // face the eye point
+        var panel = go.AddComponent<CabPanel>();
+        panel.rig = vr;
+        panel.tractor = tractor.GetComponent<TractorController>();
+        panel.drivetrain = tractor.GetComponent<Drivetrain>();
+        panel.hitch = tractor.GetComponent<Hitch>();
+        panel.comfort = comfort;
+        panel.input = tractor.GetComponent<TractorInput>();
+        panel.hands = hands;
+        panel.buttonMat = Flat("Panel_Button", new Color(0.16f, 0.2f, 0.16f));
+        panel.buttonHotMat = Flat("Panel_ButtonHot", new Color(0.35f, 0.62f, 0.25f));
+        panel.panelMat = Flat("Panel_Back", new Color(0.04f, 0.04f, 0.045f));
+        panel.textMat = AssetDatabase.LoadAssetAtPath<Material>(GenDir + "/DashText.mat");
+        var src = go.AddComponent<AudioSource>();
+        src.playOnAwake = false;
+        src.spatialBlend = 0.5f;
+        src.volume = 0.5f;
+        src.clip = ClickClip();
+        panel.click = src;
+    }
+
+    static ControllerVisual BuildController(Transform cameraOffset, bool left, Material mat)
     {
         string hand = left ? "LeftHand" : "RightHand";
         var root = new GameObject(left ? "Left Controller" : "Right Controller");
@@ -1437,6 +1566,7 @@ public static class ProjectSetup
         vis.grip = Bone("b_trigger_grip");
         // Meta's press animation moves A/B down 1.78 mm; the buttons are 15.53 mm apart. Scale to bone-local units.
         vis.buttonTravel = 1.78f / 15.53f * Vector3.Distance(vis.primaryButton.localPosition, vis.secondaryButton.localPosition);
+        return vis;
     }
 
     // ------------------------------------------------------------------ preview renders (batch mode QA)
@@ -1504,6 +1634,16 @@ public static class ProjectSetup
         Shot("plough_attached.png", pc, Quaternion.LookRotation(tractor.TransformPoint(new Vector3(0.3f, 0.4f, -2.2f)) - pc));
         plough.SetPositionAndRotation(ploughHome, ploughRot);
         hitch.PreviewPose(1f, 1f);
+
+        // Cab panel (open) and the speed lever pushed forward, from the seat looking right.
+        var panelComp = Object.FindAnyObjectByType<CabPanel>();
+        var cabCtl = tractor.GetComponent<CabControls>();
+        panelComp.PreviewOpen();
+        cabCtl.speedLever.localRotation = Quaternion.AngleAxis(15f, Vector3.right);
+        cam.fieldOfView = 70f;
+        Shot("panel.png", seat.position, Quaternion.LookRotation(panelComp.transform.position + new Vector3(0f, -0.08f, 0f) - seat.position));
+        cam.fieldOfView = 90f;
+        cabCtl.speedLever.localRotation = Quaternion.identity;
 
         // Instrument cluster from the seat: needles at 1500 rpm / 20 km/h, steering wheel turned 90° for a right turn.
         var board = Object.FindAnyObjectByType<Dashboard>();

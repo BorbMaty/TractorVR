@@ -28,10 +28,16 @@ Docs: [Roadmap](docs/ROADMAP.md) · [Development log](docs/DEVLOG.md) · [CLAUDE
 - **Implements**: plough (rear hitch, leaves furrows, pulls 30 kN), front disc mower (PTO), tipping trailer (drawbar). Back up / drive up to one and press attach
 
 ![plough](docs/images/plough_attached.png)
+- **VR interaction**: grab the steering wheel and the speed lever (grip button, or a fist with hand tracking), cab panel with touch buttons, tracked hands
+
+![panel](docs/images/panel.png)
 
 ![dashboard](docs/images/dash.png)
 
 ## Controls
+With **hand tracking** (controllers put down): make a fist on the wheel rim or the lever knob to grab, touch the panel buttons with a fingertip.
+The panel's MENU tab is always visible at the right front of the cab.
+
 
 | Quest 2 controller | Keyboard (editor) | Action |
 |---|---|---|
@@ -42,7 +48,10 @@ Docs: [Roadmap](docs/ROADMAP.md) · [Development log](docs/DEVLOG.md) · [CLAUDE
 | **A** | C | Switch view: cab ↔ third person |
 | **B** | R | Recenter the view |
 | **X** (left) | V | Comfort vignette: off / low / high (saved, default high) |
-| **Hold left grip** + sticks | Left Shift | Seat adjust: left stick ↑↓ = height, right stick = forward/back/sideways (saved) |
+| Panel: SEAT ADJ ON + sticks | Hold Left Shift | Seat adjust: left stick ↑↓ = height, right stick = forward/back/sideways (saved) |
+| **Grip** (either hand) near the wheel rim | — | Grab the steering wheel and turn it; it stays where you let go until you use the left stick |
+| **Grip** on the lever knob (right armrest) | — | Speed lever: push forward = drive, pull back = reverse; stays set. The right stick puts it back to neutral |
+| **Menu** button (left) | M | Cab panel at the right front: touch the buttons with a controller tip or a fingertip |
 | Right stick flick → / ← | X / Z | Shift up / down (switches the gearbox to manual) |
 | **Y** (left) | T | Gearbox: automatic ↔ manual (saved) |
 | Right trigger | H | Horn |
@@ -59,6 +68,10 @@ Assets/Scripts/TerrainGenerator.cs    rolling hills, generated at startup
 Assets/Scripts/Hitch.cs               rear hitch + front linkage + drawbar, PTO, attach / detach
 Assets/Scripts/Implement.cs           coupling, depth, draft, PTO parts, work trails
 Assets/Scripts/SimpleWheels.cs        trailer wheels
+Assets/Scripts/VRHands.cs             hands from controllers or hand tracking (grab point, grabbing, poke tip)
+Assets/Scripts/CabControls.cs         grab the steering wheel and the speed lever
+Assets/Scripts/CabPanel.cs            cab panel with touch buttons
+Assets/Models/Hands/                  hand models (XR Hands sample, Unity Package Distribution License)
 Assets/Scripts/Editor/PhysicsTest.cs  offline driving test         (menu: Tractor VR > Run Physics Test)
 Assets/Scripts/VRCameraRig.cs         cab / third-person views, recenter, seat calibration
 Assets/Scripts/Drivetrain.cs          engine RPM + 20F/20R gearbox (auto / manual)

@@ -38,6 +38,10 @@ public class Hitch : MonoBehaviour
     public float attachAngle = 30f;     // degrees of heading difference
     public float ptoRpm = 1000f;
 
+    float menuRear, menuFront;
+    /// <summary>Cab panel buttons: move the rear hitch / front linkage this frame (-1 lower, +1 raise).</summary>
+    public void MenuLift(bool frontLinkage, float direction) { if (frontLinkage) menuFront = direction; else menuRear = direction; }
+
     public float RearPosition { get; private set; }
     public float FrontPosition { get; private set; } = 1f;
     public bool Pto { get; private set; }
@@ -221,8 +225,10 @@ public class Hitch : MonoBehaviour
 
     public void FrameUpdate(float dt)
     {
-        float lever = input.HitchLever;
+        float lever = menuRear != 0f ? menuRear : input.HitchLever;
         bool front = input.FrontLinkageHeld;
+        if (menuFront != 0f) { lever = menuFront; front = true; }
+        menuRear = menuFront = 0f;
         if (input.PtoPressed) SetPto(!Pto);
         if (input.AttachPressed) ToggleAttach();
 
