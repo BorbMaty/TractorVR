@@ -462,3 +462,23 @@ APK 62.2 MB, installed. ⏳ Headset check.
 - Ground + layout approved in the headset.
 - README reworked into a gallery (world, driving, implements, cab). New showcase renders from the setup script (`ShowcaseShots`: the tractor posed
   out in the world with the implements coupled): `hero.png`, `ploughing.png`, `trailer.png`, `mower.png`. All `docs/images` refreshed from the latest renders.
+
+## 2026-10-18: Finishing phases 1 and 2, batch 1 (hand controls + testing)
+Decision: finish every open item of phases 1 and 2 before continuing phase 3. Items already covered elsewhere were ticked or moved
+(soil types / roads / farmyard done in phase 3 step 1; wheel slip → phase 3 step 2; crop rows → phase 3 step 3). The rest is split into three batches.
+
+**Batch 1**
+- **Grab feedback**: the steering wheel rim and the speed lever knob glow softly when a hand (or controller) is in reach, brighter while held
+  (`_Highlight` in `TriplanarLit`, set per renderer with a MaterialPropertyBlock).
+- **Speed lever geared down**: hand travel along the tractor's forward axis, 20 cm from neutral to full, relative to where it was grabbed. A **notchy neutral**
+  (±20 %) snaps it upright with a click.
+- **Hand snap**: a tracked hand that holds the wheel is drawn on the rim (at its own angle), and on the knob for the lever
+  (`XRHandSkeletonDriver.ApplyRootPoseOffset`). Tracking jitter no longer shows on the hand.
+- **STOP / NEUTRAL** panel button: lever to neutral and brake at 2.5 m/s² to a standstill (coasting would take 3× longer), then hold. **FRAME TIME** button:
+  fps, frame time and the worst frame of the last second on the HUD (for the frame-rate check in the headset).
+- **Play-mode test** (phase 1's open "play test in the editor"): `PlayModeTest` plays the real scene for 25 s with scripted input (drive, steer, STOP,
+  every panel button twice, hitch down/up) and fails on any runtime error. It runs in batch mode and exits by itself. First run: OK
+  (21.6 km/h on the yard concrete in gear D4, stopped from 22.8 km/h, 15 buttons).
+- PhysicsTest: lever notch (3 cm → 0.00) and gearing (12 cm → 0.60) checked; new scenario P: STOP from 20.1 km/h → standstill in 2.2 s (expected 2.2), then holds.
+
+APK installed, ⏳ headset check.

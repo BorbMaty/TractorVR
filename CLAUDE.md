@@ -28,6 +28,7 @@ See `README.md` for controls, `docs/ROADMAP.md` for what's next and `docs/DEVLOG
 | `Assets/Scripts/Ground.cs` | `WorldLayout` (yard, barn, shed, fields, roads, mud spots) + `GroundMap` (surface per m²: grip, rolling, draft; control texture) |
 | `Assets/Shaders/GroundLit.shader` | Terrain: grass / soil / mud blended by the control texture, world-XZ tiling, macro variation |
 | `Assets/Scripts/TerrainGenerator.cs` | Hills built at runtime from `Height(x,z)` (8×8 chunks, 5 m grid, MeshColliders) |
+| `Assets/Scripts/Editor/PlayModeTest.cs` | Real scene in editor play mode, 25 s scripted (drive, steer, STOP, every panel button, hitch); exits by itself, code 1 on runtime errors → `Logs/PlayModeTest.txt` |
 | `Assets/Scripts/Editor/PhysicsTest.cs` | Offline driving test (scripted sticks, manual `Physics.Simulate`) → `Logs/PhysicsTest.txt` |
 | `Assets/Scripts/VRCameraRig.cs` | Cab / third-person views, recenter, seat calibration (PlayerPrefs) |
 | `Assets/Scripts/Drivetrain.cs` | Engine RPM/load + 20F/20R gearbox (auto/manual), caps the controller's speed in manual |
@@ -114,7 +115,8 @@ $u = "C:\Program Files\Unity\Hub\Editor\6000.6.3f1\Editor\Unity.exe"
 - Outside play mode `Destroy` does nothing: components removed by game code that also runs in the editor tests need `DestroyImmediate` there
   (the trailer's joint survived detaching in `PhysicsTest` and dragged the trailer along with every teleport).
 - Teleports (`ResetTractor`, the test's `Place`) call `ResetSuspension`: it clears the spring history and straightens a latched steering wheel.
-- Run `PhysicsTest` after changing the vehicle. It has caught every physics bug so far, without a headset.
+- Run `PhysicsTest` after changing the vehicle, and `PlayModeTest` after changing anything that runs in the game
+  (`Unity.exe -batchmode -projectPath . -executeMethod PlayModeTest.Run` without -quit). State survives the domain reload via SessionState. It has caught every physics bug so far, without a headset.
 - The rig is yaw-only in third person (no pitch/roll), for comfort. Head tracking supplies the rest.
 - Recenter = the `Camera Offset` transform cancels the head's local pose, so floor/device tracking origin doesn't matter. It also re-runs on the OS recenter (`trackingOriginUpdated`).
 - In batch-mode previews, set `ShaderUtil.allowAsyncCompilation = false`. Otherwise uncompiled transparent variants render as grey placeholder haze, which looks like broken glass but isn't.

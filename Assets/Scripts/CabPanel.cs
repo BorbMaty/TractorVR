@@ -66,6 +66,8 @@ public class CabPanel : MonoBehaviour
             ("seatReset",() => "SEAT RESET", () => rig.ResetSeat(), false),
             ("units",    () => Mph ? "UNITS: MPH" : "UNITS: KM/H", ToggleUnits, false),
             ("reset",    () => "RESET TRACTOR", () => tractor.ResetTractor(), false),
+            ("stop",     () => "STOP / NEUTRAL", () => { tractor.GetComponent<CabControls>().Neutral(); tractor.RequestStop(); }, false),
+            ("perf",     () => TractorHud.ShowPerf ? "FRAME TIME: ON" : "FRAME TIME: OFF", () => TractorHud.ShowPerf = !TractorHud.ShowPerf, false),
         };
         int rows = (items.Length + 1) / 2;
         var bg = Quad("Background", transform, new Vector3(0f, 0f, 0.004f), new Vector2(2 * W + 3 * Gap, rows * (H + Gap) + Gap), panelMat);

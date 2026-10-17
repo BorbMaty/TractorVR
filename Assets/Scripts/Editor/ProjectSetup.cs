@@ -1834,8 +1834,8 @@ public static class ProjectSetup
         hands.rightControllerVisual = rightCtl;
         var handMat = SaveMat(new Material(LitShader) { color = new Color(0.78f, 0.72f, 0.68f) }, "Hand");
         handMat.SetFloat("_Smoothness", 0.25f);
-        BuildHand(offset, true, handMat, log);
-        BuildHand(offset, false, handMat, log);
+        hands.leftDriver = BuildHand(offset, true, handMat, log);
+        hands.rightDriver = BuildHand(offset, false, handMat, log);
         BuildCabPanel(rig.transform, vr, tractor, hud.comfort, hands);
 
         log.AppendLine("Rig built.");
@@ -1905,7 +1905,7 @@ public static class ProjectSetup
 
     // Tracked hand (XR Hands sample model) under the tracking space: XRHandTrackingEvents + XRHandSkeletonDriver move the bones,
     // XRHandMeshController shows the mesh only while the hand is tracked.
-    static void BuildHand(Transform cameraOffset, bool left, Material mat, StringBuilder log)
+    static UnityEngine.XR.Hands.XRHandSkeletonDriver BuildHand(Transform cameraOffset, bool left, Material mat, StringBuilder log)
     {
         var fbx = AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Models/Hands/{(left ? "Left" : "Right")}Hand.fbx");
         var root = new GameObject(left ? "Left Hand" : "Right Hand");
@@ -1931,6 +1931,7 @@ public static class ProjectSetup
         mesh.hideMeshWhenTrackingIsLost = true;
         smr.enabled = false;
         log.AppendLine($"{root.name}: root bone {driver.rootTransform.name}, {driver.jointTransformReferences.Count} joints, missing: {string.Join(", ", missing)}");
+        return driver;
     }
 
     // Cab panel at the right front, within reach, facing the driver (built by CabPanel at runtime from these materials).
@@ -1960,6 +1961,12 @@ public static class ProjectSetup
         src.volume = 0.5f;
         src.clip = ClickClip();
         panel.click = src;
+        // The speed lever clicks into its neutral notch.
+        var cab = tractor.GetComponent<CabControls>();
+        var leverClick = cab.speedLever.gameObject.AddComponent<AudioSource>();
+        leverClick.playOnAwake = false; leverClick.spatialBlend = 0.8f; leverClick.volume = 0.6f; leverClick.pitch = 0.7f;
+        leverClick.clip = src.clip;
+        cab.click = leverClick;
     }
 
     static ControllerVisual BuildController(Transform cameraOffset, bool left, Material mat)

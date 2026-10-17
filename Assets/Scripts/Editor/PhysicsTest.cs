@@ -113,6 +113,18 @@ public static class PhysicsTest
                            $"speed command {typeof(TractorController).GetField("speedCmd", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(ctrl)}");
             RunImplementScenarios();
             SurfaceScenario();
+
+            Section("P. STOP button at 20 km/h (vs. letting go of the stick: coasting at 0.8 m/s²)");
+            Place(new Vector3(32f, 0f, 0f), 90f);
+            Simulate(1f, 0f, 0f, 10f);
+            Simulate(7f, 0.45f, 0f, 10f);
+            float v0 = ctrl.SpeedKmh;
+            input.scriptedThrottle = 0f;
+            ctrl.RequestStop();
+            float tStop = 0f;
+            while (ctrl.SpeedKmh > 0.2f && tStop < 20f) { StepQuiet(); tStop += Time.fixedDeltaTime; }
+            Simulate(3f, 0f, 0f, 10f);
+            log.AppendLine($"   from {v0:0.0} km/h: stopped in {tStop:0.0} s (≈{v0 / 3.6f / ctrl.braking:0.0} s at {ctrl.braking} m/s²; coasting would take {v0 / 3.6f / ctrl.coastDecel:0.0} s), then {ctrl.SpeedKmh:0.0} km/h");
         }
         catch (System.Exception e)
         {
@@ -378,9 +390,10 @@ public static class PhysicsTest
         // Speed lever: grab the knob and push it 15° forward.
         Vector3 knob = cab.speedLever.TransformPoint(cab.knobLocal);
         h.GrabPoint = knob; h.Grabbing = h.GrabStarted = true; Step();
-        Vector3 pivot = cab.speedLever.position;
-        h.GrabPoint = pivot + Quaternion.AngleAxis(15f, ctrl.transform.right) * (knob - pivot); Step();
-        log.AppendLine($"   lever pushed 15° forward → lever throttle {input.leverThrottle:0.00} (expected +{15f / cab.leverTilt:0.00}), knob moved {(cab.speedLever.TransformPoint(cab.knobLocal) - knob).z * 100f:0.0} cm forward");
+        h.GrabPoint = knob + ctrl.transform.forward * 0.03f; Step();
+        log.AppendLine($"   hand 3 cm forward → lever {input.leverThrottle:0.00} (inside the ±{cab.neutralNotch:0.0} neutral notch: expected 0.00)");
+        h.GrabPoint = knob + ctrl.transform.forward * 0.12f; Step();
+        log.AppendLine($"   hand 12 cm forward → lever throttle {input.leverThrottle:0.00} (expected +{0.12f / cab.leverTravel:0.00}), knob moved {(cab.speedLever.TransformPoint(cab.knobLocal) - knob).z * 100f:0.0} cm forward");
         h.Grabbing = false; h.GrabEnded = true; Step();
         log.AppendLine($"   released → lever stays at {input.leverThrottle:0.00}");
 
@@ -434,6 +447,19 @@ public static class PhysicsTest
             if (a.enabled && Physics.ComputePenetration(a, a.transform.position, a.transform.rotation, b, b.transform.position, b.transform.rotation, out _, out float d))
                 worst = Mathf.Max(worst, d);
         return worst;
+    }
+
+    // One physics step of everything, without logging.
+    static void StepQuiet()
+    {
+        float dt = Time.fixedDeltaTime;
+        hitch.FrameUpdate(dt);
+        foreach (var i in implements) i.FrameUpdate(dt);
+        ctrl.FrameUpdate(dt);
+        ctrl.PhysicsStep();
+        foreach (var i in implements) i.PhysicsStep();
+        foreach (var w in wheelSets) w.PhysicsStep();
+        Physics.Simulate(dt);
     }
 
     static float SlopeUnder()

@@ -1,11 +1,14 @@
 # Roadmap
 
 ## ▶ Where we left off (2026-10-18)
-Phase 2 blocks 1–3 (physics + terrain, hydraulics + implements, VR interaction) and the cab visuals (interior textures + AO) are done and
-headset-checked. Mirrors moved to the future ideas below.
+**Finishing phases 1 and 2 before continuing phase 3** (decided 2026-10-18). The open items are done in three batches, each headset-checked:
+1. **Hand controls + testing**: the five hand-control improvements, a play-mode test in the editor, a frame-time readout. Built and installed, ⏳ headset check.
+2. **Cab**: opening doors, fuel / temperature + CommandCenter display, torque curve + hand throttle, grabbable hydraulic levers
+3. **Implements**: top link, front-linkage cylinders, trailer tipping, front ballast weight, better implement models
 
-**Now: phase 3** (chosen 2026-10-18): physics, terrain, working cab buttons. Step 1 (ground + layout) ✅ done and headset-checked.
-Next: step 2 (traction: wheel slip, brakes, 4WD, diff lock).
+Still needed from the user: a frame-rate measurement in the headset (FRAME TIME on the cab panel, or `adb logcat -s VrApi` while playing),
+and whether the original TurboSquid `tex\` folder is available.
+Phase 3 (step 2 traction next) continues after that.
 
 ## Phase 1: flat world, general controls ✅ done (closed 2026-10-17)
 Goal: drive the John Deere 6195M on a flat world with the Quest 2 thumbsticks, from two viewpoints.
@@ -21,20 +24,20 @@ Done:
 - [x] Scene generator + batch-mode preview renders + APK build script
 
 Status at closing (the open items below were accepted as good enough after the headset tests):
-- [ ] Play test in the editor (keyboard): not done, not needed so far
+- [x] Play test in the editor: automated (`Tractor VR → Run Play Mode Test`, `PlayModeTest`): the real scene in play mode with scripted input, 25 s, fails on any runtime error. ✅ 2026-10-18
 - [x] First successful APK build (`Tractor VR → Build Quest APK`), 2026-10-16
 - [x] Headset test on the Quest 2 (2026-10-16): app runs, wheels spin and steer correctly
   - [x] Controller bindings (sticks, A/B, left grip)
   - [x] Seat height/position feels right (could still bake a calibrated value into `ProjectSetup`)
-  - [ ] Third-person comfort (distance 9.5 m, height 4.2 m, yaw smoothing 0.35 s): **caused motion sickness**, see comfort below
-  - [ ] Speed feel (max 40 km/h forward, 15 km/h reverse, acceleration 1.8 m/s²): looks right, but acceleration/turning too abrupt for comfort
-  - [ ] Frame rate holds 72/90 Hz (no visible stutter yet; not measured with OVR Metrics Tool)
-- [ ] Comfort (motion sickness reported in the first headset test):
+  - [x] Third-person comfort: caused motion sickness at first; solved by the comfort pass below ✅ headset-tested 2026-10-16
+  - [x] Speed feel: acceleration/turning were too abrupt; solved by the comfort pass (and the phase 2 drivetrain: 50 km/h top speed) ✅
+  - [ ] Frame rate holds 72/90 Hz: no visible stutter; FRAME TIME readout added to the cab panel (2026-10-18), ⏳ measure in the headset
+- [x] Comfort (motion sickness reported in the first headset test):
   - [x] Comfort vignette while turning/accelerating ✅ headset-tested 2026-10-16
   - [x] Gentler defaults: acceleration 1.0 m/s², braking 2.5 m/s², coast 0.8 m/s², steer rate 35°/s, squared stick response, yaw ≤ 25°/s, lateral ≤ 2.5 m/s² ✅ headset-tested 2026-10-16
   - [x] Comfort level setting (off/low/high) on X, saved in PlayerPrefs ✅ headset-tested 2026-10-16
 - [x] Visible controllers: official Quest 2 Touch models (from the Meta XR Core SDK) with animated stick/buttons/trigger/grip ✅ headset-tested 2026-10-16
-- [ ] Optional: find the original TurboSquid `tex\` folder, put it in `Assets/Models/tex/`, and use it instead of the generated materials
+- [ ] Optional: find the original TurboSquid `tex\` folder, put it in `Assets/Models/tex/`, and use it instead of the generated materials (⏳ asked the user)
 
 ## Phase 2: "the specifications" (started 2026-10-17)
 First block, chosen 2026-10-17: **steering wheel + drivetrain** (biggest effect on how it feels in the headset).
@@ -44,20 +47,23 @@ First block, chosen 2026-10-17: **steering wheel + drivetrain** (biggest effect 
 - [x] Instrument cluster: RPM + speed dials with needles, direction + gear, AUTO/MAN. Built 2026-10-17, ✅ headset-tested 2026-10-17
 - [x] Interior textures: generated tiling detail (fine plastic grain, seat fabric weave, ribbed floor mat, pedal tread) through a triplanar shader
   (the cab plastics have no usable UVs), plus baked ambient occlusion on the cab interior, wheel and lever. Built 2026-10-18, ✅ headset-checked 2026-10-18
-- [ ] Dashboard extras: fuel/temperature, CommandCenter display on the right corner post
-- [ ] Opening doors (`Door_L/R` are already separate)
+- [ ] Dashboard extras: fuel/temperature, CommandCenter display on the right corner post (batch 2)
+- [ ] Opening doors (`Door_L/R` are already separate) (batch 2)
 
 ### Drivetrain
 - [x] Engine RPM: idle 850, rated 2100, high idle 2250; RPM follows the gear, clutch slip when pulling away; load estimate for sound. ✅ headset-tested 2026-10-17
 - [x] Gearbox: 20F/20R AutoQuad Plus-style (ranges A–E × 4 steps), auto + manual mode, F/N/R shuttle, 50 km/h top speed. ✅ headset-tested 2026-10-17
 - [x] Sounds (synthesised, no samples): engine (two RPM-pitched loops cross-faded by load, muffled in the cab), shift clunk, reverse beeper, horn. ✅ headset-tested 2026-10-17
-- [ ] Torque curve / real tractive force (needs the physics block), hand throttle
+- [x] Real tractive force: done with the physics block (drive force limited by engine power and tyre grip)
+- [ ] Torque curve (power depends on engine speed), hand throttle (batch 2)
 
 ### Physics (block 1)
 - [x] Replace the kinematic model with real wheel physics: Rigidbody + custom raycast suspension (spring-damper per wheel), tyre forces with a friction circle, 90 Hz physics + interpolation. Built 2026-10-17, ✅ headset-tested 2026-10-17
 - [x] Mass 7.5 t, centre of gravity (40 % front), grip μ 0.8, slopes (195 hp power limit on climbs), parking brake that holds on a slope, collisions (pushable hay bales). Built 2026-10-17, ✅ headset-tested 2026-10-17
 - [x] Offline physics test in the editor (`PhysicsTest`): settle, acceleration, turns, steepest hill, parking, bale push
-- [ ] Wheel slip / spin visuals, soil types, ballast settings
+- [x] Soil types: done in phase 3 step 1 (GroundMap: grip, rolling resistance, draft per surface)
+- [ ] Wheel slip / spin visuals → moved to phase 3 step 2 (traction)
+- [ ] Ballast: front weight on the front linkage (batch 3)
 
 ### Hydraulics and implements (block 2)
 - [x] Rear 3-point hitch animated as a real four-bar linkage from the model's pivots (lift arms, lift rods, lower links, stabilisers, lift cylinders); link ends 0.43–1.27 m. Built 2026-10-17, ✅ headset-tested 2026-10-17
@@ -66,11 +72,12 @@ First block, chosen 2026-10-17: **steering wheel + drivetrain** (biggest effect 
 - [x] Implements (built from primitives): 3-furrow plough (rear, 30 kN draft, depth control, furrow trail), 3 m front disc mower (PTO, spinning discs, mown strip), single-axle trailer (drawbar ball joint, own raycast wheels, jack). ✅ headset-tested 2026-10-17
 - [x] Attach/detach with reach/alignment/height checks and HUD guidance; mounted mass moves the centre of mass
 - [x] Trailer collides with the tractor while coupled and after detaching (bug from the headset test, fixed 2026-10-17). ✅ re-checked in the headset
-- [ ] Top link visual for mounted implements, front cylinders, trailer tipping, better implement models
+- [ ] Top link for mounted implements, front-linkage cylinders, trailer tipping, better implement models (batch 3)
 
 ### Environment
 - [x] Terrain with gentle hills (2 × 2 km, generated at runtime, slopes up to ~11°, flat start area), haze, lower sun. Built 2026-10-17, ✅ headset-tested 2026-10-17
-- [ ] Field with crop rows, roads, a farmyard
+- [x] Roads and a farmyard: done in phase 3 step 1
+- [ ] Field with crop rows → moved to phase 3 step 3
 
 ### VR interaction (block 3)
 - [x] Real Quest 2 controller models
@@ -78,14 +85,14 @@ First block, chosen 2026-10-17: **steering wheel + drivetrain** (biggest effect 
 - [x] Grab the steering wheel (grip button, fist or pinch), one or two hands, hand over hand; stays put when let go. ✅ Controllers; hand tracking works (shake/drops fixed) but still a bit fussy, see the improvements below
 - [x] Grab the speed lever on the armrest (the shift lever + knob pieces + stem, cut out of the cab mesh, pivot inside the gate): forward = drive, back = reverse, stays set (cruise). ✅ Controllers; hand tracking as for the wheel
 - [x] Cab panel at the right front corner (touch buttons): view, recenter, comfort, gearbox, hitch/front up/down, PTO, attach, seat adjust/reset, units, reset tractor. ✅ headset-tested 2026-10-17
-- [ ] Grab the hydraulic remote levers / hitch control on the armrest
+- [ ] Grab the hydraulic remote levers / hitch control on the armrest (batch 2; also listed in phase 3 step 4)
 
-Possible improvements (from the hand-tracking tests, 2026-10-18; not scheduled yet):
-- [ ] Highlight the steering wheel rim / lever knob when a hand is in reach, brighter while held
-- [ ] Gear the speed lever down: ~20 cm of hand travel for the full range (now ~10 cm), less sensitive to tracking wobble
-- [ ] Snap the visible hand onto the rim / knob while holding (hides tracking jitter)
-- [ ] Wider, notchy neutral on the speed lever (±20 % instead of ±8 %), visible snap + click
-- [ ] NEUTRAL / STOP button on the cab panel (lever to neutral, tractor stops and holds)
+Hand-control improvements (from the hand-tracking tests, built 2026-10-18 in batch 1, ⏳ headset check):
+- [x] Highlight the steering wheel rim / lever knob when a hand is in reach, brighter while held
+- [x] Speed lever geared down: 20 cm of hand travel from neutral to full, relative to where it was grabbed (never jumps)
+- [x] The visible tracked hand snaps onto the rim / knob while holding (hides tracking jitter)
+- [x] Notchy neutral on the speed lever (±20 %), snaps upright with a click
+- [x] STOP / NEUTRAL button on the cab panel (lever to neutral, brakes at 2.5 m/s² and holds); also a FRAME TIME button
 
 Done first in phase 2: **drivetrain + turning steering wheel** (see above).
 

@@ -98,6 +98,10 @@ public class TractorController : MonoBehaviour
     float? heldSteer;      // steering angle from the hands on the wheel (CabControls)
     bool steerLatched;     // wheel was let go: keep its angle until the stick is used
 
+    bool stopRequested;
+    /// <summary>Brake to a stop (and then hold), as if the stick were pulled back to neutral firmly.</summary>
+    public void RequestStop() => stopRequested = true;
+
     /// <summary>The wheel is in someone's hands: steer to this angle (clamped to the lock).</summary>
     public void HoldSteer(float angle) => heldSteer = angle;
     public void ReleaseHeldSteer() { heldSteer = null; steerLatched = true; }
@@ -192,12 +196,15 @@ public class TractorController : MonoBehaviour
         if (throttle > dead) target = (throttle - dead) / (1f - dead) * fwdKmh / 3.6f;
         else if (throttle < -dead) target = (throttle + dead) / (1f - dead) * revKmh / 3.6f;
 
+        // STOP (cab panel): brake to a standstill at the comfort braking rate; any stick / lever input cancels it.
+        if (stopRequested && (target != 0f || Mathf.Abs(SpeedMs) < 0.05f)) stopRequested = false;
         float rate;
         bool opposite = Mathf.Abs(speedCmd) > 0.05f && Mathf.Sign(target) != Mathf.Sign(speedCmd) && target != 0f;
         if (opposite) rate = braking;                                      // stick against motion: brake first
         else if (Mathf.Abs(target) > Mathf.Abs(speedCmd)) rate = acceleration;
         else rate = target == 0f ? coastDecel : braking * 0.5f;            // release = coast, partial = slow down
 
+        if (stopRequested) rate = braking;
         float before = speedCmd;
         speedCmd = Mathf.MoveTowards(speedCmd, target, rate * dt);
         // Anti wind-up: when power or grip can't keep up (steep climb), the command waits for the tractor.

@@ -13,7 +13,15 @@ public class TractorHud : MonoBehaviour
     public Drivetrain drivetrain;
     public Hitch hitch;
 
+    /// <summary>Frame-time readout (cab panel), remembered.</summary>
+    public static bool ShowPerf
+    {
+        get => PlayerPrefs.GetInt("ShowPerf", 0) == 1;
+        set => PlayerPrefs.SetInt("ShowPerf", value ? 1 : 0);
+    }
+
     float messageUntil;
+    float frameAvg = 1f / 72f, frameWorst, worstWindow, worstShown;
     string message;
 
     void Start()
@@ -51,6 +59,16 @@ public class TractorHud : MonoBehaviour
         string work = Implements();
         if (work.Length > 0) line += "\n" + work;
         if (Time.time < messageUntil) line += "\n" + message;
+        if (ShowPerf)
+        {
+            // Smoothed frame time + the worst frame of the last second (a hitch shows there).
+            float dt = Time.unscaledDeltaTime;
+            frameAvg = Mathf.Lerp(frameAvg, dt, 0.05f);
+            frameWorst = Mathf.Max(frameWorst, dt);
+            worstWindow += dt;
+            if (worstWindow > 1f) { worstShown = frameWorst; frameWorst = 0f; worstWindow = 0f; }
+            line += $"\n{1f / frameAvg:0} fps  {frameAvg * 1000f:0.0} ms  worst {worstShown * 1000f:0} ms";
+        }
         text.text = line;
     }
 }

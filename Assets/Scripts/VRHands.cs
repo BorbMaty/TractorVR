@@ -18,6 +18,7 @@ public class VRHands : MonoBehaviour
         public bool Tracked;
         public bool IsHandTracking;
         public Vector3 GrabPoint;
+        public Vector3 RawGrabPoint;   // unfiltered (where the visible hand is)
         public Vector3 PokeTip;
         public bool Grabbing;
         public bool GrabStarted;   // this frame
@@ -28,6 +29,7 @@ public class VRHands : MonoBehaviour
     public Transform leftGrip, rightGrip;           // controller grip poses (TrackedPoseDriver)
     public Transform leftAim, rightAim;             // controller aim poses (the visible controllers)
     public ControllerVisual leftControllerVisual, rightControllerVisual;
+    public XRHandSkeletonDriver leftDriver, rightDriver;   // tracked hand meshes (for snapping onto what they hold)
 
     public Hand Left { get; } = new Hand();
     public Hand Right { get; } = new Hand();
@@ -68,6 +70,7 @@ public class VRHands : MonoBehaviour
         {
             // Grab point: between the palm and the middle knuckle, which stay steady in a fist (the fingertips are hidden then).
             Vector3 raw = cameraOffset.TransformPoint((palm.position + knuckle.position) * 0.5f);
+            h.RawGrabPoint = raw;
             // Fist: average fingertip distance to the palm (close < 6.5 cm, open > 8.5 cm). Pinch: thumb to index tip (< 2.5 / > 4.5 cm).
             float sum = 0f; int n = 0;
             foreach (var id in new[] { XRHandJointID.IndexTip, XRHandJointID.MiddleTip, XRHandJointID.RingTip })
@@ -92,8 +95,21 @@ public class VRHands : MonoBehaviour
         h.IsHandTracking = false;
         h.PokeTip = aim.position + aim.forward * 0.02f;
         bool tracked = controllerVisual == null || controllerVisual.Tracked;
+        h.RawGrabPoint = grip.position;
         float g = gripAction.ReadValue<float>();
         Apply(h, tracked, grip.position, tracked && (h.Grabbing ? g > 0.35f : g > 0.6f));
+    }
+
+    /// <summary>
+    /// Shows a tracked hand at <paramref name="target"/> (its grab point moved there) while it holds something, so the
+    /// wheel rim or lever knob stays in the hand and the tracking jitter doesn't show; null puts it back. Controllers are left alone.
+    /// </summary>
+    public void SnapVisual(Hand h, Vector3? target)
+    {
+        var driver = h == Left ? leftDriver : rightDriver;
+        if (driver == null) return;
+        if (target.HasValue && h.IsHandTracking) driver.ApplyRootPoseOffset(target.Value - h.RawGrabPoint);
+        else driver.ResetRootPoseOffset();
     }
 
     /// <summary>Sets a hand's state and its grab edges for this frame.</summary>

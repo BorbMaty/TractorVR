@@ -40,5 +40,6 @@ Material:
     - _Tiling: 16.666668
     m_Colors:
     - _BaseColor: {r: 0.12959996, g: 0.12959996, b: 0.12959996, a: 1}
+    - _Highlight: {r: 0, g: 0, b: 0, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

@@ -14,6 +14,7 @@ Shader "TractorVR/TriplanarLit"
         _Smoothness ("Smoothness", Range(0, 1)) = 0.3
         _Metallic ("Metallic", Range(0, 1)) = 0
         _AOStrength ("Baked AO strength", Range(0, 1)) = 0
+        _Highlight ("Highlight (added light, per renderer)", Color) = (0, 0, 0, 0)
     }
     SubShader
     {
@@ -49,6 +50,7 @@ Shader "TractorVR/TriplanarLit"
                 half _Smoothness;
                 half _Metallic;
                 half _AOStrength;
+                half4 _Highlight;
             CBUFFER_END
 
             struct Attributes
@@ -135,6 +137,7 @@ Shader "TractorVR/TriplanarLit"
                 d.shadowMask = half4(1, 1, 1, 1);
 
                 half4 c = UniversalFragmentPBR(d, s);
+                c.rgb += _Highlight.rgb;   // grab highlight (CabControls sets it with a MaterialPropertyBlock)
                 c.rgb = MixFog(c.rgb, i.fogFactor);
                 return c;
             }
