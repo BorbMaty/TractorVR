@@ -517,3 +517,18 @@ New behaviour (`CabControls`):
 
 Test (`PhysicsTest` N): swings of 5° / 15° / 25° / 0° / -15° give speed commands 0 / 0.47 / 1.00 / 0 / -0.47 exactly, with the knob 0.0 cm from the hand;
 re-grab doesn't jump; let go at -3° snaps to neutral. Noisy hand-tracking replay (+20° → -20°): never the wrong direction. PlayModeTest OK. APK installed.
+
+## 2026-10-18: Lever confirmed; frame rate, round 2 (tractor triangles)
+Session log (`adb logcat -s Unity VrApi` recorded in the background):
+- **Lever and wheel work**: lever grabbed by pinch (into reverse, -0.65), by fist (no jump, back to forward), by controller (full forward 1.00, full reverse -1.00);
+  wheel grabbed by pinch.
+- **Frame rate**: average 58 fps (48–71). Two clear states: ~13.5 ms GPU (65–70 fps) and ~17 ms (48–54 fps); the budget is 13.9 ms.
+
+Where the GPU goes: the **tractor model is 749k triangles** (~70 % of the scene), and **all of it cast shadows**, so it was drawn a second time
+for the shadow map. The steps alone are 41k + 37k triangles, and the engine under the hood 47k.
+- **Shadow stand-in**: a 416-triangle shadows-only mesh (cab roof + pillars so light still falls through the windows, cab body, hood, rear frame,
+  wheels) casts the tractor's shadow. The 66 model renderers no longer cast shadows, so the second 750k-triangle pass is gone.
+- **Mesh LODs** (Unity 6 mesh LOD generation on import, up to 4 levels): LOD0 625k, LOD1 355k, LOD2 233k, LOD3 151k triangles.
+  `QualitySettings.meshLodThreshold` 1.5. Forced-LOD renders (`lod1/2/3.png`): LOD2 at ~8 m looks the same as LOD0; LOD3 shows defects (rims, exhaust).
+  Close-up views keep full detail.
+- PlayModeTest OK. APK installed, log recording again for the next session.

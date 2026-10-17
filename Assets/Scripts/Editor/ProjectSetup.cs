@@ -30,6 +30,9 @@ public static class ProjectSetup
     // John Deere 6195M spec sheet: wheelbase 2800 mm. The model is scaled to match.
     const float RealWheelbase = 2.80f;
 
+    // How eagerly mesh LODs switch to less detail (higher = sooner). Tuned with the forced-LOD preview renders.
+    const float MeshLodThreshold = 1.5f;
+
     [MenuItem("Tractor VR/Run Full Setup")]
     public static void Run()
     {
@@ -105,6 +108,7 @@ public static class ProjectSetup
         {
             QualitySettings.SetQualityLevel(i, false);
             QualitySettings.renderPipeline = urp;
+            QualitySettings.meshLodThreshold = MeshLodThreshold;
         }
         QualitySettings.SetQualityLevel(current, false);
     }
@@ -170,6 +174,9 @@ public static class ProjectSetup
         imp.materialLocation = ModelImporterMaterialLocation.InPrefab;
         imp.isReadable = false;
         imp.addCollider = false;
+        // Quest GPU budget: the tractor is ~750k triangles. Mesh LODs let distant / small parts draw fewer.
+        imp.generateMeshLods = true;
+        imp.maximumMeshLod = 4;
         imp.SaveAndReimport(); // reimport so materials are generated for URP
     }
 
@@ -589,6 +596,10 @@ public static class ProjectSetup
         var cabControls = root.AddComponent<CabControls>();
         cabControls.speedLever = speedLever;
         cabControls.knobLocal = speedLever.InverseTransformPoint(root.transform.TransformPoint(leverKnob));
+
+        // 6b) Shadows: a low-poly stand-in casts the tractor's shadow; the 750k-triangle model itself doesn't (saves a whole pass).
+        BuildShadowProxy(root.transform, wheels, cab, log);
+        LogMeshLods(model, log);
 
         // 7) Interior detail: baked ambient occlusion on the cab interior, wheel and lever, then textured materials.
         var aoTargets = new[] { Part("Cab_Interier_01").GetComponent<MeshFilter>(), ctrl.steeringWheel.GetComponentInChildren<MeshFilter>(), speedLever.GetComponentInChildren<MeshFilter>() };
@@ -1514,6 +1525,62 @@ public static class ProjectSetup
         log.AppendLine($"Ambient occlusion baked: {total} vertices on {targets.Length} meshes, {temp.Count} occluder meshes, mean AO {sum / Mathf.Max(1, total):0.00}");
     }
 
+    // ------------------------------------------------------------------ shadow stand-in + mesh LOD stats
+    // Boxes and cylinders in tractor space: cab roof and pillars (so sunlight still falls through the windows into the cab),
+    // cab body below the windows, hood, rear frame, and the four wheels. Shadows-only renderer, a few hundred triangles.
+    static void BuildShadowProxy(Transform root, TractorController.Wheel[] wheels, Bounds cab, StringBuilder log)
+    {
+        var parts = new System.Collections.Generic.List<CombineInstance>();
+        Mesh cube = Resources.GetBuiltinResource<Mesh>("Cube.fbx"), cyl = Resources.GetBuiltinResource<Mesh>("Cylinder.fbx");
+        void Add(Mesh m, Vector3 centre, Vector3 size, Quaternion rot) =>
+            parts.Add(new CombineInstance { mesh = m, transform = Matrix4x4.TRS(centre, rot, size) });
+        Vector3 lo = root.InverseTransformPoint(cab.min), hi = root.InverseTransformPoint(cab.max);
+        float roofY = hi.y - 0.12f, windowY = lo.y + 1.05f;
+        Add(cube, new Vector3(0f, roofY, (lo.z + hi.z) * 0.5f), new Vector3(hi.x - lo.x, 0.24f, hi.z - lo.z), Quaternion.identity);
+        foreach (float x in new[] { lo.x + 0.08f, hi.x - 0.08f })
+        foreach (float z in new[] { lo.z + 0.1f, hi.z - 0.1f })
+            Add(cube, new Vector3(x, (windowY + roofY) * 0.5f, z), new Vector3(0.12f, roofY - windowY, 0.12f), Quaternion.identity);
+        Add(cube, new Vector3(0f, (lo.y + windowY) * 0.5f, (lo.z + hi.z) * 0.5f), new Vector3((hi.x - lo.x) * 0.8f, windowY - lo.y, hi.z - lo.z), Quaternion.identity);
+        Add(cube, new Vector3(0f, 1.65f, (hi.z + 3.6f) * 0.5f), new Vector3(0.95f, 1.3f, 3.6f - hi.z), Quaternion.identity);   // hood
+        Add(cube, new Vector3(0f, 1.15f, -0.55f), new Vector3(1.0f, 1.0f, 1.0f), Quaternion.identity);                      // rear frame
+        foreach (var w in wheels)
+        {
+            float width = w.steers ? 0.5f : 0.65f, d = 2f * w.radius;
+            Add(cyl, w.steerPivot.localPosition, new Vector3(d, width * 0.5f, d), Quaternion.Euler(0f, 0f, 90f));
+        }
+        var mesh = new Mesh { name = "TractorShadowProxy" };
+        mesh.CombineMeshes(parts.ToArray(), true, true);
+        var go = new GameObject("ShadowProxy");
+        go.transform.SetParent(root, false);
+        go.AddComponent<MeshFilter>().sharedMesh = SaveMesh(mesh, "TractorShadowProxy");
+        var r = go.AddComponent<MeshRenderer>();
+        r.sharedMaterial = SaveMat(new Material(LitShader), "ShadowProxy");
+        r.shadowCastingMode = ShadowCastingMode.ShadowsOnly;
+        int off = 0;
+        foreach (var other in root.GetComponentsInChildren<Renderer>(true))
+            if (other != r && other.shadowCastingMode != ShadowCastingMode.Off) { other.shadowCastingMode = ShadowCastingMode.Off; off++; }
+        log.AppendLine($"Shadow stand-in: {mesh.triangles.Length / 3} triangles; shadow casting off on {off} tractor renderers");
+    }
+
+    // Triangles per mesh LOD level, summed over the tractor model.
+    static void LogMeshLods(GameObject model, StringBuilder log)
+    {
+        var perLod = new long[8];
+        foreach (var mf in model.GetComponentsInChildren<MeshFilter>(true))
+        {
+            var m = mf.sharedMesh;
+            if (m == null) continue;
+            for (int lod = 0; lod < perLod.Length; lod++)
+            {
+                int l = Mathf.Min(lod, m.lodCount - 1);
+                long tris = 0;
+                for (int sm = 0; sm < m.subMeshCount; sm++) tris += m.lodCount > 1 ? m.GetLod(sm, l).indexCount / 3 : m.GetIndexCount(sm) / 3;
+                perLod[lod] += tris;
+            }
+        }
+        log.AppendLine("Tractor triangles per mesh LOD level: " + string.Join(", ", perLod.Take(5).Select((t, i) => $"LOD{i} {t:N0}")));
+    }
+
     // ------------------------------------------------------------------ hydraulics: linkage hinges
     // The model's linkage parts have their pivots on the real hinge points (rockshaft, lower link pins, arm tips).
     // Each moving part gets a tractor-aligned hinge at its pivot, so Hitch only has to turn hinges around X.
@@ -2188,6 +2255,14 @@ public static class ProjectSetup
         hitch.PreviewPose(1f, 1f);
         Pose(48f, 0f, 90f);
         Look("hero.png", new Vector3(-5.5f, 1.4f, 8f), new Vector3(0f, 1.5f, 1.3f), 55f);
+        // Mesh LOD check: the same view with every tractor part forced to LOD 1 / 2 / 3.
+        var tractorRenderers = tractor.GetComponentsInChildren<MeshRenderer>(true);
+        foreach (short lod in new short[] { 1, 2, 3 })
+        {
+            foreach (var r in tractorRenderers) r.forceMeshLod = lod;
+            Look($"lod{lod}.png", new Vector3(-5.5f, 1.4f, 8f), new Vector3(0f, 1.5f, 1.3f), 55f);
+        }
+        foreach (var r in tractorRenderers) r.forceMeshLod = -1;
 
         // Ploughing in the north field: plough at working depth.
         Pose(40f, 220f, 0f);
