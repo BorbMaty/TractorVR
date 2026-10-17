@@ -9,6 +9,31 @@ with real-feeling physics, a working cab and hand tracking. University project (
 
 Docs: [Roadmap](docs/ROADMAP.md) · [Development log](docs/DEVLOG.md) · [CLAUDE.md](CLAUDE.md) (project guide)
 
+## Phases
+
+### Phase 1: flat world, general controls ✅ done
+- John Deere 6195M model at real scale (wheelbase 2.80 m), wheels rigged (spin + Ackermann steering, front hubs follow)
+- Flat 2 × 2 km test field with a 10 m grid and marker posts (replaced by the farm in phase 3)
+- Two viewpoints: **cab** (driver's seat) and **third person** (behind and above), recenter, seat adjustment
+- Driving with the Touch controller thumbsticks, small speed readout
+- **Comfort**: edge vignette while turning / changing speed (off / low / high), gentle acceleration, yaw-rate and sideways-force limits
+- Official Quest 2 Touch controller models with moving stick, buttons, trigger and grip
+
+### Phase 2: the specifications ✅ done
+- **Steering wheel + drivetrain**: turning steering wheel, instrument cluster, 20F/20R gearbox (auto / manual), engine RPM and load, synthesised sounds
+- **Physics + terrain**: 7.5 t Rigidbody on raycast wheels, power limit on climbs, parking brake on slopes, rolling hills, pushable hay bales
+- **Hydraulics + implements**: rear three-point hitch and front linkage, PTO, plough, front mower, trailer; attach / detach
+- **VR interaction**: grab the steering wheel and the speed lever, hand tracking, cab panel with touch buttons
+- **Cab visuals**: generated interior textures and baked ambient occlusion
+
+### Phase 3: physics, terrain, cab buttons 🚧 in progress
+1. ✅ **Ground + layout**: farmyard, roads, fields, mud; grip and rolling resistance per surface
+2. ⏳ **Traction**: wheel slip, brakes, 4WD, diff lock (next)
+3. ⏳ **Fields + crops**: standing crop rows the mower cuts, ploughing changes the field
+4. ⏳ **Cab buttons**: hydraulic levers, pressable switches, working lights (the cab panel stays)
+
+Future ideas (working mirrors, original model textures, hand-control improvements): see the [Roadmap](docs/ROADMAP.md).
+
 ## What's in it
 
 ### The world
