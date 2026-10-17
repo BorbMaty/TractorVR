@@ -1,14 +1,10 @@
 # Roadmap
 
 ## ▶ Where we left off (2026-10-17)
-Phase 1 is **closed** (accepted after the headset tests on 2026-10-16). Phase 2 has started with **cab realism + drivetrain**:
-the steering wheel turns, there's an instrument cluster, a 20F/20R gearbox (auto/manual), engine RPM and synthesised sounds.
-It builds and is installed on the Quest 2 but is **not headset-tested yet**.
+Phase 1 is **closed**. The first phase 2 block (**steering wheel, instrument cluster, 20F/20R gearbox, engine RPM, sounds**) is
+built and **headset-tested OK** (2026-10-17). The latest APK is installed and the working tree is clean.
 
-**Next session:**
-1. Headset test of the phase 2 build: wheel direction/ratio, sound levels and engine character, shift feel, readability of the dials
-2. Tune from the test (`TractorAudio` levels, `Drivetrain` shift points, engine synthesis in `ProjectSetup.EngineClips`)
-3. Then pick the next phase 2 block (physics + terrain, hydraulics/implements, or VR interaction)
+**Next session:** pick the next phase 2 block: physics + terrain, hydraulics/implements, or VR interaction.
 
 ## Phase 1: flat world, general controls ✅ done (closed 2026-10-17)
 Goal: drive the John Deere 6195M on a flat world with the Quest 2 thumbsticks, from two viewpoints.
@@ -43,15 +39,15 @@ Status at closing (the open items below were accepted as good enough after the h
 First block, chosen 2026-10-17: **steering wheel + drivetrain** (biggest effect on how it feels in the headset).
 
 ### Cab realism
-- [x] Split the steering wheel out of `Cab_Interier_01` (done in code, no Blender needed) and rotate it with the steering input (ratio 13 → ~2.9 turns lock to lock). Built 2026-10-17, ⏳ headset test
-- [x] Instrument cluster: RPM + speed dials with needles, direction + gear, AUTO/MAN. Built 2026-10-17, ⏳ headset test
+- [x] Split the steering wheel out of `Cab_Interier_01` (done in code, no Blender needed) and rotate it with the steering input (ratio 13 → ~2.9 turns lock to lock). Built 2026-10-17, ✅ headset-tested 2026-10-17
+- [x] Instrument cluster: RPM + speed dials with needles, direction + gear, AUTO/MAN. Built 2026-10-17, ✅ headset-tested 2026-10-17
 - [ ] Dashboard extras: fuel/temperature, CommandCenter display on the right corner post
 - [ ] Opening doors (`Door_L/R` are already separate)
 
 ### Drivetrain
-- [x] Engine RPM: idle 850, rated 2100, high idle 2250; RPM follows the gear, clutch slip when pulling away; load estimate for sound. ⏳ headset test
-- [x] Gearbox: 20F/20R AutoQuad Plus-style (ranges A–E × 4 steps), auto + manual mode, F/N/R shuttle, 50 km/h top speed. ⏳ headset test
-- [x] Sounds (synthesised, no samples): engine (two RPM-pitched loops cross-faded by load, muffled in the cab), shift clunk, reverse beeper, horn. ⏳ headset test
+- [x] Engine RPM: idle 850, rated 2100, high idle 2250; RPM follows the gear, clutch slip when pulling away; load estimate for sound. ✅ headset-tested 2026-10-17
+- [x] Gearbox: 20F/20R AutoQuad Plus-style (ranges A–E × 4 steps), auto + manual mode, F/N/R shuttle, 50 km/h top speed. ✅ headset-tested 2026-10-17
+- [x] Sounds (synthesised, no samples): engine (two RPM-pitched loops cross-faded by load, muffled in the cab), shift clunk, reverse beeper, horn. ✅ headset-tested 2026-10-17
 - [ ] Torque curve / real tractive force (needs the physics block), hand throttle
 
 ### Physics

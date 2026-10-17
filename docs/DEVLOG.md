@@ -167,3 +167,6 @@ Keyboard: X / Z, T, H.
 | Cab | Cluster close-up (wheel turned 90° right) |
 |---|---|
 | ![cab](images/cab.png) | ![dash](images/dash.png) |
+
+## 2026-10-17: Phase 2 headset check
+- Steering wheel (direction and ratio), instrument cluster, gearbox (auto/manual, shifting), engine/shift/beeper/horn sounds were tested on the Quest 2: all OK, no tuning needed.
