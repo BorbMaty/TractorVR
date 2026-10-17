@@ -25,6 +25,8 @@ See `README.md` for controls, `docs/ROADMAP.md` for what's next and `docs/DEVLOG
 | `Assets/Scripts/CabPanel.cs` | Rig-locked touch panel (built at runtime from materials set by setup); also sets `CabPanel.Mph` |
 | `Assets/Scripts/Editor/QuestManifest.cs` | Gradle post-process: HAND_TRACKING permission + handtracking feature in the Quest manifest |
 | `Assets/Shaders/TriplanarLit.shader` | URP lit with triplanar detail + normal map in object space (metres), vertex-colour AO; UsePass Lit shadow/depth |
+| `Assets/Scripts/Ground.cs` | `WorldLayout` (yard, barn, shed, fields, roads, mud spots) + `GroundMap` (surface per m²: grip, rolling, draft; control texture) |
+| `Assets/Shaders/GroundLit.shader` | Terrain: grass / soil / mud blended by the control texture, world-XZ tiling, macro variation |
 | `Assets/Scripts/TerrainGenerator.cs` | Hills built at runtime from `Height(x,z)` (8×8 chunks, 5 m grid, MeshColliders) |
 | `Assets/Scripts/Editor/PhysicsTest.cs` | Offline driving test (scripted sticks, manual `Physics.Simulate`) → `Logs/PhysicsTest.txt` |
 | `Assets/Scripts/VRCameraRig.cs` | Cab / third-person views, recenter, seat calibration (PlayerPrefs) |
@@ -106,6 +108,12 @@ $u = "C:\Program Files\Unity\Hub\Editor\6000.6.3f1\Editor\Unity.exe"
   Steering by hand: `HoldSteer(angle)` while held. After `ReleaseHeldSteer()` the angle is latched until |left stick| > 0.15. The comfort lock still clamps it.
 - XR Hands: `XRHandSkeletonDriver.jointTransformReferences` is null on a component added from code, so set a new list before `FindJointsFromRoot`.
   Hand joints are in tracking space (children of `Camera Offset`). OpenXR feature `HandTracking` is enabled for Android + Standalone.
+- **Ground**: physics asks `GroundMap.SurfaceAt(point)` (tyre grip and rolling resistance are per wheel; `grip` / `rollingResistance` on the
+  controller and trailer are multipliers). Roads and the yard are visual ribbons/patches 3–7 cm above the terrain triangles
+  (`TerrainGenerator.SurfaceHeight` follows the triangles, not the smooth `Height`). Hard surfaces have draft 0 = the plough can't enter.
+- Outside play mode `Destroy` does nothing: components removed by game code that also runs in the editor tests need `DestroyImmediate` there
+  (the trailer's joint survived detaching in `PhysicsTest` and dragged the trailer along with every teleport).
+- Teleports (`ResetTractor`, the test's `Place`) call `ResetSuspension`: it clears the spring history and straightens a latched steering wheel.
 - Run `PhysicsTest` after changing the vehicle. It has caught every physics bug so far, without a headset.
 - The rig is yaw-only in third person (no pitch/roll), for comfort. Head tracking supplies the rest.
 - Recenter = the `Camera Offset` transform cancels the head's local pose, so floor/device tracking origin doesn't matter. It also re-runs on the OS recenter (`trackingOriginUpdated`).

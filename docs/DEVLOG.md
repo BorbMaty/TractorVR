@@ -402,3 +402,58 @@ made for plain colours. Only the seat cloth, pedals and floor are properly mappe
   with the plan and its expected cost. Next focus chosen: more physics, the terrain, and working buttons in the cab.
 - Phase 3 scope chosen: soil + wheel slip, brakes + diff lock + 4WD; fields + crop rows, roads + farmyard, varied ground; hydraulic levers,
   pressable switches, lights, keep the panel. Order: ground + layout → traction → fields + crops → cab buttons.
+
+## 2026-10-18: Phase 3 step 1, ground + layout
+**World layout** (`WorldLayout`): the start became a farmyard. A 52 × 64 m concrete yard has a barn (14 × 24 m, gable roof, doors to the yard) on the west side
+and an open machine shed along the south side. Gravel tracks lead to three fields on the hills (north field = crop, south-east and west = bare soil).
+An asphalt road runs north–south at x = 80. There's mud at every field gate and in hollows of the pasture (noise). The phase 1 grid floor and marker posts are gone.
+
+**Ground map** (`GroundMap`): one surface type per square metre (2000 × 2000 bytes), built at start-up from the layout + noise
+(≈ 90 % grass, 6 % fields, 4 % mud). Each surface has a tyre grip, a rolling resistance and a plough draft factor:
+
+| Surface | Grip | Rolling | Plough draft |
+|---|---|---|---|
+| Asphalt | 0.90 | 0.015 | hard (can't plough) |
+| Concrete | 0.85 | 0.015 | hard |
+| Gravel | 0.65 | 0.030 | hard |
+| Grass | 0.70 | 0.050 | × 1.25 (sod) |
+| Soil / crop | 0.65 | 0.070 | × 1.0 |
+| Ploughed | 0.50 | 0.120 | × 0.6 |
+| Mud | 0.35 | 0.150 | × 0.8 |
+
+**Look**: `TractorVR/GroundLit` blends grass / soil / mud textures from a 1024² control texture (2 m per texel, soft edges), with a 64 m
+variation texture against visible tiling. Roads and the yard are thin meshes 3–7 cm above the actual terrain triangles (a new `SurfaceHeight`
+follows the 5 m triangles, which differ from the smooth height function by up to ~4 cm), drawn with `TriplanarLit`. All ground textures are generated
+(grass blades and dry patches, soil clods, wet mud, gravel stones, asphalt aggregate, concrete slabs with joints). First version: the yard looked like a bright quilt and the mud
+like grey water, so both were toned down.
+
+**Physics**: every wheel takes its grip from the surface under it, rolling resistance is load-weighted over the wheels (tractor and trailer), the plough's draft
+depends on the soil, the plough can't go into concrete, asphalt or gravel (it rests on top, no draft), and ploughing turns the ground to "ploughed".
+
+**Test findings** (new scenario O + fixes):
+- The plough test had been ploughing the yard concrete (98 kN); now it's refused on hard ground, and the test carries the plough to the field (7.1 km/h at 30.4 kN).
+- **The trailer stayed coupled in the editor tests**: `Destroy` does nothing outside play mode, so its joint survived detaching and dragged the trailer along with
+  every teleport (35° pitch, flying tractor). It's now `DestroyImmediate` in edit mode. The game itself was never affected.
+- Teleports now reset the suspension history and straighten a hand-latched steering wheel (it had sent the test tractor in circles).
+- Preview rendering skips a PNG that is open in an image viewer instead of aborting the setup.
+
+Scenario O (6.5 km/h, drive force minus the slope share = rolling resistance):
+
+| Surface | Measured | Expected (73.6 kN × coefficient) |
+|---|---|---|
+| Asphalt (uphill) | 1.1 kN | 1.1 |
+| Concrete | 1.1 kN | 1.1 |
+| Gravel | 2.2 kN | 2.2 |
+| Grass | 3.7 kN | 3.7 |
+| Field soil | 5.1 kN | 5.2 |
+| Mud | 11.0 kN | 11.0 |
+
+APK 62.2 MB, installed. ⏳ Headset check.
+
+| Farmyard | Field gate (mud, gravel, soil) |
+|---|---|
+| ![farmyard](images/farmyard.png) | ![gate](images/field_gate.png) |
+
+| Main road | Hills |
+|---|---|
+| ![road](images/road.png) | ![hills](images/hills.png) |

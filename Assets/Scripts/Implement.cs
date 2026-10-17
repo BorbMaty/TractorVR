@@ -34,6 +34,9 @@ public class Implement : MonoBehaviour
     public float Depth { get; private set; } = -1f;
     public bool Working { get; private set; }
     public float DraftForce { get; private set; }
+    public bool HardGround { get; private set; }
+    /// <summary>How deep this implement may go here (0 on hard ground).</summary>
+    public float WorkingDepthHere => HardGround ? 0f : workingDepth;
 
     Hitch hitch;
     Transform mountPoint;
@@ -76,7 +79,7 @@ public class Implement : MonoBehaviour
         Attached = false;
         SetTractorCollisions(false);   // back on once nothing overlaps (FrameUpdate), e.g. the jack coming down
         foreach (var s in stands) s.enabled = true;
-        if (joint) Destroy(joint);
+        if (joint) { if (Application.isPlaying) Destroy(joint); else DestroyImmediate(joint); }   // edit mode: tests
         transform.SetParent(null, true);
         rb.isKinematic = false;
         rb.linearVelocity = tractorRb.GetPointVelocity(transform.position);
@@ -148,6 +151,8 @@ public class Implement : MonoBehaviour
         Depth = -1f;
         foreach (var g in groundPoints)
             Depth = Mathf.Max(Depth, TerrainGenerator.Height(g.position.x, g.position.z) - g.position.y);
+        // Concrete, asphalt and gravel (draft 0 in GroundMap): the shares can't enter, so the working depth there is 0.
+        HardGround = workingDepth > 0f && groundPoints.Length > 0 && GroundMap.SurfaceAt(groundPoints[0].position).draft <= 0f;
 
         float speed = Attached && tractorRb ? Vector3.Dot(tractorRb.linearVelocity, tractorRb.transform.forward) : 0f;
         bool pto = Attached && hitch && hitch.Pto;
@@ -157,6 +162,19 @@ public class Implement : MonoBehaviour
         {
             spinAngle += hitch.PtoSpeed / 60f * 360f * spinRatio * dt;
             foreach (var s in spinners) s.localRotation = Quaternion.Euler(0f, spinAngle, 0f);
+        }
+
+        // Ploughing turns the ground over: lower grip, more rolling resistance, less draft on the next pass.
+        if (Working && draftKN > 0f && trail)
+        {
+            Vector3 c = trail.transform.position, right = transform.right;
+            float half = trail.widthMultiplier * 0.5f;
+            for (float o = -half; o <= half; o += 0.5f)
+            {
+                Vector3 q = c + right * o;
+                var here = GroundMap.At(q.x, q.z);
+                if (here == Ground.Grass || here == Ground.Soil || here == Ground.Crop || here == Ground.Mud) GroundMap.Set(q.x, q.z, Ground.Ploughed);
+            }
         }
 
         if (trail)
@@ -203,7 +221,10 @@ public class Implement : MonoBehaviour
         if (v.magnitude < 0.05f) return;
         // Draft grows with depth and (a little) with speed; it always acts against the motion.
         float kmh = v.magnitude * 3.6f;
-        DraftForce = draftKN * 1000f * Mathf.Clamp01(Depth / Mathf.Max(0.01f, workingDepth)) * (0.8f + 0.03f * kmh);
+        // Soil decides too: grass sod is tough, ploughed ground easy, roads and concrete very hard (GroundMap).
+        float soil = groundPoints.Length > 0 ? GroundMap.SurfaceAt(groundPoints[0].position).draft : 1f;
+        if (soil <= 0f) return;   // hard ground: resting on it, no draft
+        DraftForce = draftKN * 1000f * soil * Mathf.Clamp01(Depth / Mathf.Max(0.01f, workingDepth)) * (0.8f + 0.03f * kmh);
         tractorRb.AddForceAtPosition(-v.normalized * DraftForce, mountPoint.position);
     }
 }

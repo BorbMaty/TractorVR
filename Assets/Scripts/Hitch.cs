@@ -246,8 +246,8 @@ public class Hitch : MonoBehaviour
     // and is lifted back to it (like draft control) when the ground rises.
     float MoveLinkage(float pos, float lever, float rate, Implement imp)
     {
-        if (imp != null && imp.Depth > imp.workingDepth + 0.05f) return Mathf.Clamp01(pos + 2f * rate);
-        if (lever < 0f && imp != null && imp.Depth >= imp.workingDepth) lever = 0f;
+        if (imp != null && imp.Depth > imp.WorkingDepthHere + 0.05f) return Mathf.Clamp01(pos + 2f * rate);
+        if (lever < 0f && imp != null && imp.Depth >= imp.WorkingDepthHere) lever = 0f;
         return Mathf.Clamp01(pos + lever * rate);
     }
 

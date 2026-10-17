@@ -27,6 +27,7 @@ public class TractorController : MonoBehaviour
 
         [System.NonSerialized] public Vector3 restLocal;      // pivot position as modelled (static load)
         [System.NonSerialized] public float staticLoad, compression, lastCompression, load, angle;
+        [System.NonSerialized] public GroundMap.Surface surface;   // what this wheel stands on
         [System.NonSerialized] public bool grounded;
     }
 
@@ -44,8 +45,10 @@ public class TractorController : MonoBehaviour
     public float frontStiffness = 300000f;      // N/m per wheel (TLS front axle + tyre)
     public float rearStiffness = 500000f;       // N/m per wheel (tyre only, rigid rear axle)
     public float dampingRatio = 0.45f;
-    public float grip = 0.8f;                   // μ, tyre on grass / dirt
-    public float rollingResistance = 0.04f;     // × weight
+    [Tooltip("Multiplier on the ground's tyre grip (GroundMap: asphalt 0.9 … mud 0.35).")]
+    public float grip = 1f;
+    [Tooltip("Multiplier on the ground's rolling resistance (GroundMap: asphalt 0.015 … mud 0.15).")]
+    public float rollingResistance = 1f;
 
     [Header("Engine")]
     public float enginePowerKW = 145f;          // 195 hp
@@ -84,6 +87,8 @@ public class TractorController : MonoBehaviour
     /// <summary>Share of engine power currently used for driving (0..1).</summary>
     public float PowerFraction { get; private set; }
     public bool Grounded { get; private set; }
+    /// <summary>Surface under the rear wheels (HUD, tests).</summary>
+    public string GroundLabel { get; private set; } = "";
 
     TractorInput input;
     Drivetrain drivetrain;
@@ -149,6 +154,17 @@ public class TractorController : MonoBehaviour
         rb.angularVelocity = Vector3.zero;
         speedCmd = 0f;
         upsideDownTime = 0f;
+        ResetSuspension();
+    }
+
+    /// <summary>After a teleport: forget the last spring positions, or the dampers see a huge spring speed on the next step;
+    /// and straighten the wheels (a wheel left turned by hand would otherwise stay latched).</summary>
+    public void ResetSuspension()
+    {
+        foreach (var w in wheels) { w.compression = w.lastCompression = travel; w.load = w.staticLoad; }
+        SteerAngle = 0f;
+        heldSteer = null;
+        steerLatched = false;
     }
 
     void FixedUpdate() => PhysicsStep();
@@ -202,6 +218,7 @@ public class TractorController : MonoBehaviour
             if (GroundRay(top, -up, len, out RaycastHit hit))
             {
                 w.grounded = Grounded = true;
+                w.surface = GroundMap.SurfaceAt(hit.point);
                 w.compression = len - hit.distance;
                 float k = w.steers ? frontStiffness : rearStiffness;
                 float c = 2f * dampingRatio * Mathf.Sqrt(k * w.staticLoad / -Physics.gravity.y);
@@ -244,7 +261,11 @@ public class TractorController : MonoBehaviour
         // Force along the tractor that gives the commanded acceleration, with slope and rolling resistance compensated.
         float g = -Physics.gravity.y;
         float slope = Vector3.Dot(Physics.gravity, transform.forward);            // < 0 uphill
-        float roll = Mathf.Abs(SpeedMs) > 0.1f ? rollingResistance * g * Mathf.Sign(SpeedMs) : 0f;
+        // Rolling resistance from the ground under the wheels (load-weighted).
+        float surfaceRoll = 0f;
+        foreach (var w in wheels) if (w.grounded) surfaceRoll += w.surface.rolling * w.load / totalLoad;
+        foreach (var w in wheels) if (w.grounded && !w.steers) GroundLabel = w.surface.label;
+        float roll = Mathf.Abs(SpeedMs) > 0.1f ? rollingResistance * surfaceRoll * g * Mathf.Sign(SpeedMs) : 0f;
         rb.AddForce(-transform.forward * rb.mass * roll);                        // the real resistance (soil, tyres)...
         float wanted = accelCmd + speedTracking * (speedCmd - SpeedMs);
         bool holding = speedCmd == 0f && Mathf.Abs(SpeedMs) < 0.3f;
@@ -288,7 +309,7 @@ public class TractorController : MonoBehaviour
             if (holding) fLat -= 20f * Vector3.Dot(rb.position - holdPos, side) * (w.load / g);   // no sideways creep when parked
 
             // Friction circle.
-            float max = grip * w.load, len = Mathf.Sqrt(fLong * fLong + fLat * fLat);
+            float max = grip * w.surface.grip * w.load, len = Mathf.Sqrt(fLong * fLong + fLat * fLat);
             if (len > max) { fLong *= max / len; fLat *= max / len; }
 
             rb.AddForceAtPosition(fwd * fLong + side * fLat, hit.point);

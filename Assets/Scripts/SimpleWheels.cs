@@ -22,8 +22,8 @@ public class SimpleWheels : MonoBehaviour
     public float stiffness = 250000f;
     public float dampingRatio = 0.5f;
     public float staticShare = 0.45f;          // share of the weight on each wheel at rest (the rest is on the drawbar / jack)
-    public float grip = 0.8f;
-    public float rollingResistance = 0.04f;
+    public float grip = 1f;                    // multipliers on the ground's values (GroundMap)
+    public float rollingResistance = 1f;
     public Implement implement;                // parked brake while not attached
 
     Rigidbody rb;
@@ -51,6 +51,7 @@ public class SimpleWheels : MonoBehaviour
             w.last = w.compression;
             if (!Ray(top, -up, len, out RaycastHit hit)) { w.compression = 0f; w.load = 0f; continue; }
             w.compression = len - hit.distance;
+            var ground = GroundMap.SurfaceAt(hit.point);
             float c = 2f * dampingRatio * Mathf.Sqrt(stiffness * staticLoad / g);
             w.load = Mathf.Clamp(staticLoad + stiffness * (w.compression - travel) + c * (w.compression - w.last) / dt, 0f, 6f * staticLoad);
             rb.AddForceAtPosition(up * w.load, hit.point);
@@ -61,8 +62,8 @@ public class SimpleWheels : MonoBehaviour
             float vLong = Vector3.Dot(v, fwd);
             float fLat = -Vector3.Dot(v, side) * (w.load / g) / dt * 0.5f;
             float fLong = parked ? -vLong * (w.load / g) / dt * 0.5f
-                                 : -Mathf.Clamp(vLong * 10f, -1f, 1f) * rollingResistance * w.load;
-            float max = grip * w.load, l = Mathf.Sqrt(fLat * fLat + fLong * fLong);
+                                 : -Mathf.Clamp(vLong * 10f, -1f, 1f) * rollingResistance * ground.rolling * w.load;
+            float max = grip * ground.grip * w.load, l = Mathf.Sqrt(fLat * fLat + fLong * fLong);
             if (l > max) { fLat *= max / l; fLong *= max / l; }
             rb.AddForceAtPosition(side * fLat + fwd * fLong, hit.point);
         }

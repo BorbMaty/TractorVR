@@ -28,6 +28,9 @@ Docs: [Roadmap](docs/ROADMAP.md) · [Development log](docs/DEVLOG.md) · [CLAUDE
 - **Implements**: plough (rear hitch, leaves furrows, pulls 30 kN), front disc mower (PTO), tipping trailer (drawbar). Back up / drive up to one and press attach
 
 ![plough](docs/images/plough_attached.png)
+- **World**: farmyard with barn and machine shed, gravel tracks, an asphalt road, three fields on the hills, mud; every surface has its own grip and rolling resistance
+
+![farmyard](docs/images/farmyard.png)
 - **VR interaction**: grab the steering wheel and the speed lever (grip button, or a fist with hand tracking), cab panel with touch buttons, tracked hands
 
 ![panel](docs/images/panel.png)

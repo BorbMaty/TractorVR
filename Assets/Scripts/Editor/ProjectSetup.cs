@@ -215,58 +215,42 @@ public static class ProjectSetup
         return m;
     }
 
-    // Rolling terrain (built at runtime by TerrainGenerator from its height function), marker posts and hay bales.
+    // Rolling terrain with fields, roads and the farmyard (built at runtime by TerrainGenerator), farm buildings and hay bales.
     static void BuildGround()
     {
-        // Procedural field texture: grass tone with a faint 1 m grid and stronger 10 m lines,
-        // so speed and distance are readable in VR.
-        const int size = 512;
-        var tex = new Texture2D(size, size, TextureFormat.RGBA32, true);
-        var rnd = new System.Random(7);
-        for (int y = 0; y < size; y++)
-        for (int x = 0; x < size; x++)
-        {
-            float n = (float)rnd.NextDouble() * 0.06f;
-            Color c = new Color(0.30f + n, 0.45f + n, 0.18f + n * 0.5f);
-            bool major = x < 3 || y < 3;
-            bool minor = (x % 51) < 1 || (y % 51) < 1;
-            if (major) c = Color.Lerp(c, new Color(0.85f, 0.85f, 0.75f), 0.6f);
-            else if (minor) c = Color.Lerp(c, new Color(0.2f, 0.3f, 0.1f), 0.4f);
-            tex.SetPixel(x, y, c);
-        }
-        tex.Apply();
-        tex.wrapMode = TextureWrapMode.Repeat;
-        tex.anisoLevel = 8;
-        string texPath = GenDir + "/GroundGrid.asset";
-        AssetDatabase.DeleteAsset(texPath);
-        AssetDatabase.CreateAsset(tex, texPath);
+        // Natural ground: grass / soil / mud textures for the terrain (GroundLit), gravel / asphalt / concrete for the
+        // tracks, road and yard (TriplanarLit). All generated here; the layout is WorldLayout, the surface types GroundMap.
+        foreach (var old in new[] { GenDir + "/GroundGrid.asset", GenDir + "/Post.mat" }) AssetDatabase.DeleteAsset(old);
+        var tex = GroundTextures();
+        var ground = new Material(Shader.Find("TractorVR/GroundLit"));
+        ground.SetTexture("_GrassTex", tex["Grass"].albedo); ground.SetTexture("_GrassN", tex["Grass"].normal);
+        ground.SetTexture("_SoilTex", tex["Soil"].albedo); ground.SetTexture("_SoilN", tex["Soil"].normal);
+        ground.SetTexture("_MudTex", tex["Mud"].albedo); ground.SetTexture("_MudN", tex["Mud"].normal);
+        ground.SetTexture("_Macro", tex["Macro"].albedo);
+        ground.SetVector("_Tiling", new Vector4(1f / 2f, 1f / 2f, 1f / 3f, 1f / 64f));
+        ground.SetVector("_Smooth", new Vector4(0.08f, 0.05f, 0.28f, 0f));   // mud: damp, but not a mirror
+        SaveMat(ground, "Ground");
 
-        var mat = new Material(LitShader);
-        mat.SetTexture("_BaseMap", tex);   // terrain UVs are world XZ / 10 → one tile per 10 m
-        mat.SetFloat("_Smoothness", 0.05f);
-        SaveMat(mat, "Ground");
+        Material Surface(string name, float tile, float smooth)
+        {
+            var m = new Material(Shader.Find("TractorVR/TriplanarLit"));
+            m.SetColor("_BaseColor", Color.white);
+            m.SetTexture("_DetailMap", tex[name].albedo);
+            m.SetTexture("_NormalMap", tex[name].normal);
+            m.SetFloat("_NormalStrength", 1f);
+            m.SetFloat("_Tiling", 1f / tile);
+            m.SetFloat("_Smoothness", smooth);
+            return SaveMat(m, "Ground_" + name);
+        }
 
         var terrain = new GameObject("Terrain").AddComponent<TerrainGenerator>();
-        terrain.material = mat;
+        terrain.material = ground;
+        terrain.gravel = Surface("Gravel", 1.5f, 0.1f);
+        terrain.asphalt = Surface("Asphalt", 2f, 0.2f);
+        terrain.concrete = Surface("Concrete", 4f, 0.15f);
         terrain.gameObject.isStatic = true;
 
-        // Marker posts every 25 m along a few lines — reference points for speed and steering.
-        var postMat = SaveMat(new Material(LitShader) { color = new Color(0.95f, 0.55f, 0.1f) }, "Post");
-        var parent = new GameObject("Markers").transform;
-        for (int i = -20; i <= 20; i++)
-        for (int j = -2; j <= 2; j++)
-        {
-            if (j == 0 && Mathf.Abs(i) < 2) continue;
-            var post = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            post.name = "Post";
-            post.transform.SetParent(parent);
-            float x = j * 30f, z = i * 25f;
-            post.transform.position = new Vector3(x, TerrainGenerator.Height(x, z) + 0.7f, z);
-            post.transform.localScale = new Vector3(0.15f, 0.75f, 0.15f);
-            post.GetComponent<Renderer>().sharedMaterial = postMat;
-            Object.DestroyImmediate(post.GetComponent<Collider>());
-            post.isStatic = true;
-        }
+        BuildFarmyard();
 
         // Round hay bales (Ø 1.5 m × 1.2 m, 350 kg) on the flat start area: things to push around.
         var baleMat = SaveMat(new Material(LitShader) { color = new Color(0.82f, 0.7f, 0.38f) }, "HayBale");
@@ -292,6 +276,195 @@ public static class ProjectSetup
             rb.angularDamping = 0.5f;
             rb.interpolation = RigidbodyInterpolation.Interpolate;
         }
+    }
+
+    // ------------------------------------------------------------------ ground textures + farmyard
+    // Tileable 512² textures (albedo + normal map from a height field), written as PNGs to Generated/Textures.
+    static System.Collections.Generic.Dictionary<string, (Texture2D albedo, Texture2D normal)> GroundTextures()
+    {
+        var result = new System.Collections.Generic.Dictionary<string, (Texture2D, Texture2D)>();
+        // Cellular (Worley) noise that tiles: distance to the nearest of one random point per cell (0 at a point).
+        float Worley(float u, float v, int cells, int seed)
+        {
+            float x = u * cells, y = v * cells, best = 9f;
+            int cx = Mathf.FloorToInt(x), cy = Mathf.FloorToInt(y);
+            for (int dy = -1; dy <= 1; dy++)
+            for (int dx = -1; dx <= 1; dx++)
+            {
+                int gx = cx + dx, gy = cy + dy;
+                int wx = ((gx % cells) + cells) % cells, wy = ((gy % cells) + cells) % cells;
+                float px = gx + Hash(wx, wy, seed), py = gy + Hash(wx, wy, seed + 17);
+                best = Mathf.Min(best, (px - x) * (px - x) + (py - y) * (py - y));
+            }
+            return Mathf.Sqrt(best);
+        }
+        int CellId(float u, float v, int cells, int seed)
+        {
+            float x = u * cells, y = v * cells, best = 9f; int id = 0;
+            int cx = Mathf.FloorToInt(x), cy = Mathf.FloorToInt(y);
+            for (int dy = -1; dy <= 1; dy++)
+            for (int dx = -1; dx <= 1; dx++)
+            {
+                int gx = cx + dx, gy = cy + dy;
+                int wx = ((gx % cells) + cells) % cells, wy = ((gy % cells) + cells) % cells;
+                float px = gx + Hash(wx, wy, seed), py = gy + Hash(wx, wy, seed + 17);
+                float d = (px - x) * (px - x) + (py - y) * (py - y);
+                if (d < best) { best = d; id = wx * 977 + wy; }
+            }
+            return id;
+        }
+
+        void Make(string name, float bump, System.Func<float, float, (Color c, float h)> f, int n = 512)
+        {
+            Directory.CreateDirectory(TexDir);
+            var cols = new Color[n * n];
+            var h = new float[n * n];
+            for (int y = 0; y < n; y++)
+            for (int x = 0; x < n; x++)
+            {
+                var (c, hh) = f(x / (float)n, y / (float)n);
+                cols[y * n + x] = c; h[y * n + x] = hh;
+            }
+            var albedo = new Texture2D(n, n, TextureFormat.RGB24, false);
+            albedo.SetPixels(cols);
+            var normal = new Texture2D(n, n, TextureFormat.RGB24, false);
+            var np = new Color[n * n];
+            for (int y = 0; y < n; y++)
+            for (int x = 0; x < n; x++)
+            {
+                float dx = h[y * n + (x + 1) % n] - h[y * n + (x + n - 1) % n];
+                float dy = h[((y + 1) % n) * n + x] - h[((y + n - 1) % n) * n + x];
+                Vector3 nn = new Vector3(-dx * bump, -dy * bump, 1f).normalized;
+                np[y * n + x] = new Color(nn.x * 0.5f + 0.5f, nn.y * 0.5f + 0.5f, nn.z * 0.5f + 0.5f);
+            }
+            normal.SetPixels(np);
+            Texture2D Write(Texture2D t, string file, bool isNormal)
+            {
+                string path = $"{TexDir}/{file}.png";
+                File.WriteAllBytes(path, t.EncodeToPNG());
+                AssetDatabase.ImportAsset(path);
+                var imp = (TextureImporter)AssetImporter.GetAtPath(path);
+                imp.textureType = isNormal ? TextureImporterType.NormalMap : TextureImporterType.Default;
+                imp.sRGBTexture = !isNormal;
+                imp.wrapMode = TextureWrapMode.Repeat;
+                imp.mipmapEnabled = true;
+                imp.anisoLevel = 8;
+                imp.maxTextureSize = 512;
+                imp.SaveAndReimport();
+                return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+            }
+            result[name] = (Write(albedo, "Ground_" + name, false), Write(normal, "Ground_" + name + "_N", true));
+        }
+
+        Make("Grass", 3f, (u, v) =>
+        {
+            float blades = TileNoise(u, v * 0.35f, 220, 21) * 0.6f + TileNoise(u, v, 140, 22) * 0.4f;
+            float clumps = TileNoise(u, v, 18, 23), dry = Mathf.SmoothStep(0.55f, 0.85f, TileNoise(u, v, 7, 24));
+            Color green = new Color(0.20f, 0.34f, 0.10f) * (0.7f + 0.6f * blades) * (0.85f + 0.3f * clumps);
+            Color c = Color.Lerp(green, new Color(0.42f, 0.40f, 0.20f) * (0.8f + 0.4f * blades), 0.35f * dry);
+            return (c, blades * 0.7f + clumps * 0.3f);
+        });
+        Make("Soil", 6f, (u, v) =>
+        {
+            float clod = 1f - Mathf.Clamp01(Worley(u, v, 28, 31) * 1.4f);
+            float fine = TileNoise(u, v, 160, 32);
+            bool stone = Hash(Mathf.FloorToInt(u * 300f), Mathf.FloorToInt(v * 300f), 33) > 0.995f;
+            Color c = new Color(0.33f, 0.24f, 0.16f) * (0.65f + 0.45f * clod + 0.15f * fine);
+            if (stone) c = new Color(0.55f, 0.52f, 0.47f);
+            return (c, clod * 0.7f + fine * 0.3f);
+        });
+        Make("Mud", 2f, (u, v) =>
+        {
+            float n1 = TileNoise(u, v, 6, 41), n2 = TileNoise(u, v, 40, 42);
+            float wet = Mathf.SmoothStep(0.45f, 0.7f, n1);
+            Color c = Color.Lerp(new Color(0.27f, 0.20f, 0.13f), new Color(0.17f, 0.12f, 0.08f), wet) * (0.85f + 0.3f * n2);
+            return (c, n1 * 0.5f + n2 * 0.5f);
+        });
+        Make("Gravel", 8f, (u, v) =>
+        {
+            float d = Worley(u, v, 48, 51);
+            float stone = Mathf.Clamp01(1f - d * 1.6f);
+            float tint = Hash(CellId(u, v, 48, 51), 0, 52);
+            Color sc = Color.Lerp(new Color(0.46f, 0.44f, 0.40f), new Color(0.62f, 0.58f, 0.52f), tint);
+            Color c = Color.Lerp(new Color(0.22f, 0.20f, 0.18f), sc, Mathf.SmoothStep(0.05f, 0.35f, stone));
+            return (c, stone);
+        });
+        Make("Asphalt", 3f, (u, v) =>
+        {
+            float fine = TileNoise(u, v, 256, 61), agg = Hash(Mathf.FloorToInt(u * 512f), Mathf.FloorToInt(v * 512f), 62);
+            float patch = TileNoise(u, v, 5, 63);
+            Color c = new Color(0.17f, 0.17f, 0.18f) * (0.8f + 0.3f * fine + 0.15f * patch);
+            if (agg > 0.97f) c = new Color(0.36f, 0.35f, 0.33f);
+            return (c, fine * 0.6f + (agg > 0.97f ? 0.4f : 0f));
+        });
+        Make("Concrete", 4f, (u, v) =>
+        {
+            float stain = TileNoise(u, v, 6, 71), fine = TileNoise(u, v, 200, 72);
+            // One 4 m slab per tile with a 1.5 cm joint along two edges.
+            bool joint = u < 0.004f || v < 0.004f;
+            Color c = new Color(0.47f, 0.46f, 0.44f) * (0.92f + 0.08f * stain + 0.06f * fine);
+            if (joint) c *= 0.6f;
+            return (c, joint ? 0f : 0.6f + 0.4f * fine * 0.3f);
+        });
+        Make("Macro", 0f, (u, v) =>
+        {
+            float m = TileNoise(u, v, 4, 81) * 0.6f + TileNoise(u, v, 9, 82) * 0.4f;
+            return (new Color(m, m, m), 0f);
+        }, 256);
+        return result;
+    }
+
+    // Barn on the west side of the yard (doors facing the yard) and an open machine shed along the south side.
+    static void BuildFarmyard()
+    {
+        var parent = new GameObject("Farmyard").transform;
+        parent.gameObject.isStatic = true;
+        var boards = SaveMat(new Material(LitShader) { color = new Color(0.42f, 0.12f, 0.08f) }, "Barn_Boards");
+        boards.SetFloat("_Smoothness", 0.15f);
+        var roof = SaveMat(new Material(LitShader) { color = new Color(0.26f, 0.27f, 0.28f) }, "Barn_Roof");
+        roof.SetFloat("_Smoothness", 0.35f); roof.SetFloat("_Metallic", 0.4f);
+        var door = SaveMat(new Material(LitShader) { color = new Color(0.30f, 0.09f, 0.06f) }, "Barn_Door");
+        var trim = SaveMat(new Material(LitShader) { color = new Color(0.85f, 0.84f, 0.80f) }, "Barn_Trim");
+        var shedWall = SaveMat(new Material(LitShader) { color = new Color(0.33f, 0.40f, 0.35f) }, "Shed_Wall");
+        shedWall.SetFloat("_Smoothness", 0.3f); shedWall.SetFloat("_Metallic", 0.3f);
+        var steelMat = SaveMat(new Material(LitShader) { color = new Color(0.45f, 0.46f, 0.47f) }, "Shed_Steel");
+
+        Transform Block(string name, Vector3 centre, Vector3 size, Material m, Vector3 euler = default, bool solid = true)
+        {
+            var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            go.name = name;
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = centre;
+            go.transform.localRotation = Quaternion.Euler(euler);
+            go.transform.localScale = size;
+            go.GetComponent<Renderer>().sharedMaterial = m;
+            if (!solid) Object.DestroyImmediate(go.GetComponent<Collider>());
+            go.isStatic = true;
+            return go.transform;
+        }
+
+        // Barn: 14 × 24 m, 6 m walls, gable roof (ridge 9 m) along its length.
+        var b = WorldLayout.Barn;
+        Vector2 bc = b.Centre; float bw = b.x1 - b.x0, bl = b.z1 - b.z0;
+        Block("Barn walls", new Vector3(bc.x, 3f, bc.y), new Vector3(bw, 6f, bl), boards);
+        float rise = 3f, half = bw * 0.5f + 0.4f, slope = Mathf.Atan2(rise, bw * 0.5f) * Mathf.Rad2Deg;
+        float plane = Mathf.Sqrt(half * half + rise * rise);
+        Block("Barn roof W", new Vector3(bc.x - half * 0.5f, 6f + rise * 0.5f, bc.y), new Vector3(plane, 0.2f, bl + 0.8f), roof, new Vector3(0f, 0f, slope), false);
+        Block("Barn roof E", new Vector3(bc.x + half * 0.5f, 6f + rise * 0.5f, bc.y), new Vector3(plane, 0.2f, bl + 0.8f), roof, new Vector3(0f, 0f, -slope), false);
+        Block("Barn gable N", new Vector3(bc.x, 7.4f, b.z1 - 0.05f), new Vector3(bw * 0.7f, 2.8f, 0.1f), boards, default, false);
+        Block("Barn gable S", new Vector3(bc.x, 7.4f, b.z0 + 0.05f), new Vector3(bw * 0.7f, 2.8f, 0.1f), boards, default, false);
+        Block("Barn door", new Vector3(b.x1 + 0.06f, 2.4f, bc.y), new Vector3(0.1f, 4.8f, 5f), door, default, false);
+        Block("Barn door trim", new Vector3(b.x1 + 0.08f, 2.4f, bc.y), new Vector3(0.06f, 0.15f, 5.2f), trim, new Vector3(45f, 0f, 0f), false);
+
+        // Machine shed: back and side walls, a roof on posts, open to the yard (north).
+        var s = WorldLayout.Shed;
+        Vector2 sc = s.Centre; float sw = s.x1 - s.x0, sd = s.z1 - s.z0;
+        Block("Shed back wall", new Vector3(sc.x, 2.5f, s.z0 + 0.15f), new Vector3(sw, 5f, 0.3f), shedWall);
+        Block("Shed wall W", new Vector3(s.x0 + 0.15f, 2.5f, sc.y), new Vector3(0.3f, 5f, sd), shedWall);
+        Block("Shed wall E", new Vector3(s.x1 - 0.15f, 2.5f, sc.y), new Vector3(0.3f, 5f, sd), shedWall);
+        Block("Shed roof", new Vector3(sc.x, 5.3f, sc.y), new Vector3(sw + 1f, 0.2f, sd + 1.2f), roof, new Vector3(-6f, 0f, 0f));
+        for (int i = 1; i < 4; i++)
+            Block("Shed post", new Vector3(s.x0 + i * sw / 4f, 2.6f, s.z1 - 0.2f), new Vector3(0.25f, 5.2f, 0.25f), steelMat);
     }
 
     // ------------------------------------------------------------------ tractor
@@ -1850,7 +2023,8 @@ public static class ProjectSetup
             var tex = new Texture2D(rt.width, rt.height, TextureFormat.RGB24, false);
             tex.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
             tex.Apply();
-            File.WriteAllBytes("Logs/Previews/" + file, tex.EncodeToPNG());
+            try { File.WriteAllBytes("Logs/Previews/" + file, tex.EncodeToPNG()); }
+            catch (IOException e) { Debug.LogWarning($"[Setup] Preview {file} not written (open in a viewer?): {e.Message}"); }
             cam.targetTexture = null;
             RenderTexture.active = null;
         }
@@ -1869,6 +2043,12 @@ public static class ProjectSetup
         Shot("front.png", tractor.position + new Vector3(3f, 2f, 9f), Quaternion.Euler(8f, 200f, 0f));
         // Overview of the hills and the hay bales from behind and above the start.
         Shot("hills.png", new Vector3(-25f, 22f, -45f), Quaternion.Euler(12f, 25f, 0f));
+        // The farmyard from above, a stretch of the main road, and the gate into the north field (mud, soil, grass).
+        Vector3 At(float x, float z, float up) => new Vector3(x, TerrainGenerator.Height(x, z) + up, z);
+        Shot("farmyard.png", new Vector3(42f, 28f, -60f), Quaternion.LookRotation(new Vector3(-8f, 0f, -6f) - new Vector3(42f, 28f, -60f)));
+        Shot("road.png", At(77f, -30f, 2.5f), Quaternion.LookRotation(At(80f, 60f, 0f) - At(77f, -30f, 2.5f)));
+        Shot("field_gate.png", At(-6f, 96f, 3f), Quaternion.LookRotation(At(4f, 135f, 0f) - At(-6f, 96f, 3f)));
+        Shot("ground_close.png", At(3f, 110f, 1.6f), Quaternion.LookRotation(At(3.5f, 116f, 0f) - At(3f, 110f, 1.6f)));
 
         // Linkages and implements.
         var hitch = tractor.GetComponent<Hitch>();

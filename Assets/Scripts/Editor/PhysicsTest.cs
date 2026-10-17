@@ -112,6 +112,7 @@ public static class PhysicsTest
             log.AppendLine($"   wheels (grounded/load kN): {string.Join("  ", ctrl.wheels.Select(w => $"{w.grounded}/{w.load / 1000f:0.0}"))}, sleeping {rb.IsSleeping()}, " +
                            $"speed command {typeof(TractorController).GetField("speedCmd", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(ctrl)}");
             RunImplementScenarios();
+            SurfaceScenario();
         }
         catch (System.Exception e)
         {
@@ -142,6 +143,7 @@ public static class PhysicsTest
         rb.linearVelocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
         input.scriptedThrottle = input.scriptedSteer = 0f;
+        ctrl.ResetSuspension();
         // Clear the speed command (private) along with the motion.
         typeof(TractorController).GetField("speedCmd", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(ctrl, 0f);
     }
@@ -174,6 +176,68 @@ public static class PhysicsTest
 
     static Implement Find(string name) => implements.First(i => i.name == name);
 
+    // O. What the ground map says across the world, then 15 km/h on each surface: rolling resistance shows in the power.
+    static void SurfaceScenario()
+    {
+        var counts = new int[System.Enum.GetValues(typeof(Ground)).Length];
+        for (int j = 0; j < GroundMap.Size; j += 4)
+        for (int i = 0; i < GroundMap.Size; i += 4)
+            counts[(int)GroundMap.At(i - GroundMap.Half, j - GroundMap.Half)]++;
+        int total = counts.Sum();
+        log.AppendLine();
+        log.AppendLine("O. Surfaces: share of the world " + string.Join(", ", System.Enum.GetValues(typeof(Ground)).Cast<Ground>()
+            .Select(g => $"{g} {100f * counts[(int)g] / total:0.0}%")));
+        // Short runs (~12 m at 6.5 km/h) that stay on one surface. Drive force = power / speed; minus the slope share,
+        // what's left is the rolling resistance (weight 73.6 kN × the surface's coefficient).
+        // A gently uphill stretch of the road (downhill the engine brakes and there's no drive force to measure),
+        // and a patch of mud big enough for the whole run (8 × 24 m heading north).
+        float roadZ = 0f;
+        for (float z = -800f; z < 800f; z += 10f)
+        {
+            float rise = TerrainGenerator.Height(80f, z + 15f) - TerrainGenerator.Height(80f, z);
+            if (rise > 0.02f && rise < 0.4f && z > 200f) { roadZ = z; break; }
+        }
+        Vector3 mud = Vector3.zero;
+        for (float z = -900f; z < 900f && mud == Vector3.zero; z += 8f)
+        for (float x = -900f; x < 900f; x += 8f)
+        {
+            bool all = true;
+            for (float dz = -4f; dz <= 24f && all; dz += 2f)
+            for (float dx = -4f; dx <= 4f && all; dx += 2f)
+                all = GroundMap.At(x + dx, z + dz) == Ground.Mud;
+            if (all) { mud = new Vector3(x, 0f, z); break; }
+        }
+        var spots = new (string name, Vector3 at, float yaw)[]
+        {
+            ("asphalt road (uphill)", new Vector3(80f, 0f, roadZ), 0f), ("gravel track", new Vector3(32f, 0f, 0f), 90f),
+            ("yard concrete", new Vector3(14f, 0f, -20f), 0f), ("pasture", new Vector3(-150f, 0f, 500f), 0f),
+            ("north field soil", new Vector3(60f, 0f, 300f), 0f), ($"mud at ({mud.x:0}, {mud.z:0})", mud, 0f),
+        };
+        foreach (var (name, at, yaw) in spots)
+        {
+            Place(at, yaw);
+            Simulate(1f, 0f, 0f, 10f);
+            Simulate(3f, 0.2f, 0f, 10f);   // up to ~6.5 km/h
+            float force = 0f, slope = 0f; int n = 0; string label = "";
+            float dt = Time.fixedDeltaTime;
+            for (int k = 0; k < 90; k++)
+            {
+                hitch.FrameUpdate(dt);
+                foreach (var i in implements) i.FrameUpdate(dt);
+                ctrl.FrameUpdate(dt); ctrl.PhysicsStep();
+                foreach (var i in implements) i.PhysicsStep();
+                foreach (var ws in wheelSets) ws.PhysicsStep();
+                Physics.Simulate(dt);
+                force += ctrl.PowerFraction * ctrl.enginePowerKW / Mathf.Max(0.5f, Mathf.Abs(ctrl.SpeedMs));
+                slope += Vector3.Dot(-Physics.gravity, ctrl.transform.forward) * rb.mass / 1000f;   // uphill share of the weight, kN
+                n++; label = ctrl.GroundLabel;
+            }
+            var w = ctrl.wheels[2];
+            log.AppendLine($"   {name,-22} rear wheels on {label,-8} grip {w.surface.grip:0.00} rolling {w.surface.rolling:0.000}  {ctrl.SpeedKmh:0.0} km/h  " +
+                           $"drive {force / n:0.0} kN = slope {slope / n:0.0} + rolling {force / n - slope / n:0.0} kN (expected {w.surface.rolling * 73.6f:0.0})");
+        }
+    }
+
     // Put the tractor (heading +Z) so that the given mount sits right over a coupling point.
     static void PlaceAt(Transform mount, Vector3 target)
     {
@@ -198,7 +262,11 @@ public static class PhysicsTest
         Simulate(0.5f, 0f, 0f, 10f);
         hitch.ToggleAttach();
         Simulate(1.5f, 0f, 0f, 10f);
-        extra = () => $"rear {hitch.RearPosition:0.00}  depth {plough.Depth:0.00}  draft {plough.DraftForce / 1000f:0.0} kN  {(plough.Working ? "WORK" : "")}  mass {rb.mass:0} CoM z {rb.centerOfMass.z:0.00}";
+        extra = () => $"rear {hitch.RearPosition:0.00}  depth {plough.Depth:0.00}  draft {plough.DraftForce / 1000f:0.0} kN  {(plough.Working ? "WORK" : "")}  {ctrl.GroundLabel}  mass {rb.mass:0} CoM z {rb.centerOfMass.z:0.00}";
+        // On the yard concrete the plough can't go in: lowering stops at the surface, no draft.
+        input.scriptedHitch = -1f; Simulate(3f, 0f, 0f, 1.5f); input.scriptedHitch = 1f; Simulate(4f, 0f, 0f, 10f); input.scriptedHitch = 0f;
+        log.AppendLine("   → carried to the north field (soil):");
+        Place(new Vector3(-60f, 0f, 250f), 0f); Simulate(1f, 0f, 0f, 10f);
         input.scriptedHitch = -1f; Simulate(6f, 0f, 0f, 2f);
         Simulate(20f, 0.21f, 0f, 2f);
         input.scriptedHitch = 1f; Simulate(5f, 0.21f, 0f, 1f);
@@ -284,7 +352,7 @@ public static class PhysicsTest
         var vrHands = Object.FindAnyObjectByType<VRHands>();
         cab.GetType().GetMethod("Start", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(cab, null);
         var update = cab.GetType().GetMethod("Update", BindingFlags.NonPublic | BindingFlags.Instance);
-        Place(new Vector3(-30f, 0f, 0f), 0f);
+        Place(new Vector3(14f, 0f, -20f), 0f);   // open yard (the barn is at x -44..-30)
         input.scriptedSteer = input.scriptedThrottle = 0f;
         float dt = Time.fixedDeltaTime;
         var column = ctrl.steeringWheel.parent;
