@@ -375,3 +375,5 @@ whole handle tilting together. Tests unchanged, APK installed, ⏳ re-check.
 | Lever at rest | Fully forward |
 |---|---|
 | ![rest](images/lever_side_rest.png) | ![forward](images/lever_side_fwd.png) |
+- Neutral with hand controls: only by bringing the speed lever back into its ±8 % neutral zone (about ±2°, under 1 cm at the knob), which is fiddly with
+  hand tracking. A wider notchy neutral and a NEUTRAL/STOP panel button were added to the ROADMAP as possible improvements, together with the three grab proposals.

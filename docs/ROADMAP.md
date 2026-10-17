@@ -82,4 +82,11 @@ First block, chosen 2026-10-17: **steering wheel + drivetrain** (biggest effect 
 - [x] Cab panel at the right front corner (touch buttons): view, recenter, comfort, gearbox, hitch/front up/down, PTO, attach, seat adjust/reset, units, reset tractor. ✅ headset-tested 2026-10-17
 - [ ] Grab the hydraulic remote levers / hitch control on the armrest
 
+Possible improvements (from the hand-tracking tests, 2026-10-18; not scheduled yet):
+- [ ] Highlight the steering wheel rim / lever knob when a hand is in reach, brighter while held
+- [ ] Gear the speed lever down: ~20 cm of hand travel for the full range (now ~10 cm), less sensitive to tracking wobble
+- [ ] Snap the visible hand onto the rim / knob while holding (hides tracking jitter)
+- [ ] Wider, notchy neutral on the speed lever (±20 % instead of ±8 %), visible snap + click
+- [ ] NEUTRAL / STOP button on the cab panel (lever to neutral, tractor stops and holds)
+
 Done first in phase 2: **drivetrain + turning steering wheel** (see above).
