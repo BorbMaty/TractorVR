@@ -457,3 +457,8 @@ APK 62.2 MB, installed. ⏳ Headset check.
 | Main road | Hills |
 |---|---|
 | ![road](images/road.png) | ![hills](images/hills.png) |
+
+## 2026-10-18: Step 1 checked, README gallery
+- Ground + layout approved in the headset.
+- README reworked into a gallery (world, driving, implements, cab). New showcase renders from the setup script (`ShowcaseShots`: the tractor posed
+  out in the world with the implements coupled): `hero.png`, `ploughing.png`, `trailer.png`, `mower.png`. All `docs/images` refreshed from the latest renders.

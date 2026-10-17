@@ -1,41 +1,68 @@
 # Tractor VR — John Deere 6195M on Meta Quest 2
 
-Unity **6000.6.3f1** · URP · OpenXR (Meta Quest feature) · Input System
+Unity **6000.6.3f1** · URP · OpenXR (Meta Quest feature) · Input System · XR Hands
 
-![third person](docs/images/front.png)
+A VR tractor simulator for the Quest 2: drive a John Deere 6195M from the cab, plough, mow and haul on a hilly farm,
+with real-feeling physics, a working cab and hand tracking. University project (Sapientia Hungarian University of Transylvania, IRUM).
+
+![on the farm track](docs/images/hero.png)
 
 Docs: [Roadmap](docs/ROADMAP.md) · [Development log](docs/DEVLOG.md) · [CLAUDE.md](CLAUDE.md) (project guide)
 
-## Phase 1 (done)
-- John Deere 6195M model (`Assets/Models/John_Deere_6195M.fbx`), real scale (wheelbase 2.80 m)
-- Flat 2 km × 2 km field with a 10 m grid and marker posts every 25 m
-- Two viewpoints: **cab** (driver's seat) and **third person** (behind and above)
-- Driving with the Touch controller thumbsticks: Ackermann steering, wheel spin, front hubs steer
-- Small speed readout (km/h, F/N/R, view)
-- **Comfort**: edge vignette while turning / changing speed (off/low/high on X), gentle acceleration, yaw-rate and lateral-acceleration limits
-- **Controllers visible**: official Quest 2 Touch models with moving stick, buttons, trigger and grip
+## What's in it
 
-## Phase 2 (in progress)
-- **Steering wheel** turns with the steering (cut out of the cab mesh by the setup script)
-- **Instrument cluster** on the steering column: rev counter, speedometer, direction + gear, AUTO/MAN
-- **Gearbox** like the 6195M's AutoQuad Plus 20/20: ranges A–E × 4 powershift steps, automatic or manual, top speed 50 km/h
-- **Sounds** (all synthesised by the setup script): diesel engine following RPM and load, shift clunk, reverse beeper, horn
-- **Physics**: 7.5 t body on four raycast wheels with suspension and tyre grip, engine power limit on climbs, parking brake that holds on slopes
-- **Terrain**: 2 × 2 km of gentle hills (flat around the start), round hay bales to push
+### The world
+2 × 2 km of rolling farmland built at start-up: a farmyard with a barn and an open machine shed, gravel tracks out to three fields on the
+hills, an asphalt road, mud at the field gates and in the hollows. Every surface has its own tyre grip and rolling resistance
+(asphalt 0.015 … mud 0.15), so mud and ploughed ground make the engine work.
 
-![hills](docs/images/hills.png)
-- **Hydraulics**: rear three-point hitch (real linkage motion) and front linkage, PTO
-- **Implements**: plough (rear hitch, leaves furrows, pulls 30 kN), front disc mower (PTO), tipping trailer (drawbar). Back up / drive up to one and press attach
+| Farmyard | The main road |
+|---|---|
+| ![farmyard](docs/images/farmyard.png) | ![road](docs/images/road.png) |
 
-![plough](docs/images/plough_attached.png)
-- **World**: farmyard with barn and machine shed, gravel tracks, an asphalt road, three fields on the hills, mud; every surface has its own grip and rolling resistance
+| Field gate: gravel track, mud, field soil | Rolling hills |
+|---|---|
+| ![field gate](docs/images/field_gate.png) | ![hills](docs/images/hills.png) |
 
-![farmyard](docs/images/farmyard.png)
-- **VR interaction**: grab the steering wheel and the speed lever (grip button, or a fist with hand tracking), cab panel with touch buttons, tracked hands
+### Driving
+- 7.5 t physics body on four raycast wheels (suspension, tyre friction circle), 90 Hz physics, power limit on climbs (195 hp), parking brake that holds on slopes
+- Gearbox like the 6195M's AutoQuad Plus 20/20 (A1–E4, automatic or manual), engine RPM and load, top speed 50 km/h
+- Synthesised sounds: diesel engine following RPM and load (muffled in the cab), shift clunk, reverse beeper, horn
+- **Comfort first**: gentle acceleration, yaw-rate and sideways-force limits, edge vignette (off / low / high)
 
-![panel](docs/images/panel.png)
+| Third person | Side |
+|---|---|
+| ![third person](docs/images/third.png) | ![side](docs/images/side.png) |
 
-![dashboard](docs/images/dash.png)
+### Implements and hydraulics
+Rear three-point hitch (real four-bar linkage motion from the model's pivots), front linkage, drawbar and PTO.
+Back up or drive up to an implement and press attach.
+
+| Plough: 30 kN draft, depth control, furrows | Front disc mower on the PTO |
+|---|---|
+| ![ploughing](docs/images/ploughing.png) | ![mower](docs/images/mower.png) |
+
+| Tipping trailer on the drawbar | Rear hitch lowered / raised |
+|---|---|
+| ![trailer](docs/images/trailer.png) | ![hitch](docs/images/hitch_low.png) |
+
+### The cab
+- The steering wheel turns (cut out of the cab mesh), the instrument cluster shows RPM, speed, gear and mode
+- Grab the steering wheel and the speed lever with the controller grips or, with hand tracking, a fist or a pinch
+- Cab panel with touch buttons (view, comfort, gearbox, hitch, PTO, attach, seat, units, reset)
+- Generated plastic grain, seat fabric and floor mat textures, baked ambient occlusion
+
+| Driver's view | Interior |
+|---|---|
+| ![cab](docs/images/cab.png) | ![interior](docs/images/interior.png) |
+
+| Instrument cluster | Cab panel |
+|---|---|
+| ![dashboard](docs/images/dash.png) | ![panel](docs/images/panel.png) |
+
+| Speed lever and armrest | Quest 2 controllers |
+|---|---|
+| ![lever](docs/images/lever.png) | ![controllers](docs/images/controller.png) |
 
 ## Controls
 With **hand tracking** (controllers put down): make a fist on the wheel rim or the lever knob to grab, touch the panel buttons with a fingertip.

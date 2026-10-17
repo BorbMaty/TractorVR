@@ -2137,7 +2137,57 @@ public static class ProjectSetup
         vr.enabled = false;
         vm.SetFloat("_InnerDeg", vig.idleInnerDeg);
         vm.SetFloat("_OuterDeg", vig.idleOuterDeg);
+        ShowcaseShots(tractor, cam, Shot);
         Debug.Log("[Setup] Preview images written to Logs/Previews");
+    }
+
+    // README pictures: the tractor posed out in the world (scene not saved afterwards). Implements are placed the way
+    // Implement does when coupled: their coupling point on the tractor's mount, facing the tractor's way.
+    static void ShowcaseShots(Transform tractor, Camera cam, System.Action<string, Vector3, Quaternion> shot)
+    {
+        var hitch = tractor.GetComponent<Hitch>();
+        Implement Imp(string name) => GameObject.Find(name).GetComponent<Implement>();
+        void Pose(float x, float z, float yaw)
+        {
+            var rot = Quaternion.FromToRotation(Vector3.up, TerrainGenerator.Normal(x, z, 2f)) * Quaternion.Euler(0f, yaw, 0f);
+            tractor.SetPositionAndRotation(new Vector3(x, TerrainGenerator.Height(x, z), z), rot);
+        }
+        void Couple(Implement imp, Transform mount)
+        {
+            imp.transform.rotation = mount.rotation;
+            imp.transform.position = mount.position - imp.transform.rotation * imp.hitchPoint.localPosition;
+        }
+        void Look(string file, Vector3 camLocal, Vector3 targetLocal, float fov)
+        {
+            cam.fieldOfView = fov;
+            Vector3 c = tractor.TransformPoint(camLocal), t = tractor.TransformPoint(targetLocal);
+            c.y = Mathf.Max(c.y, TerrainGenerator.Height(c.x, c.z) + 0.6f);
+            shot(file, c, Quaternion.LookRotation(t - c));
+        }
+
+        // On the gravel track out of the yard, heading east.
+        hitch.PreviewPose(1f, 1f);
+        Pose(48f, 0f, 90f);
+        Look("hero.png", new Vector3(-5.5f, 1.4f, 8f), new Vector3(0f, 1.5f, 1.3f), 55f);
+
+        // Ploughing in the north field: plough at working depth.
+        Pose(40f, 220f, 0f);
+        hitch.PreviewPose(0.17f, 1f);
+        Couple(Imp("Plough"), hitch.rearMount);
+        Look("ploughing.png", new Vector3(7f, 2.6f, -6f), new Vector3(0.3f, 0.8f, -1.8f), 60f);
+
+        // Towing the trailer up the north track.
+        hitch.PreviewPose(1f, 1f);
+        Pose(0f, 70f, 0f);
+        Couple(Imp("Trailer"), hitch.drawbarMount);
+        Look("trailer.png", new Vector3(-7.5f, 3f, 5f), new Vector3(0f, 1.2f, -2.5f), 60f);
+
+        // Front mower on the pasture, linkage down.
+        Pose(-70f, 40f, 0f);
+        hitch.PreviewPose(1f, 0.04f);
+        Couple(Imp("Mower"), hitch.frontMount);
+        Look("mower.png", new Vector3(6f, 2.2f, 10f), new Vector3(0f, 0.9f, 3.5f), 55f);
+        cam.fieldOfView = 90f;
     }
 
     // ------------------------------------------------------------------ helpers

@@ -4,7 +4,7 @@
 Phase 2 blocks 1–3 (physics + terrain, hydraulics + implements, VR interaction) and the cab visuals (interior textures + AO) are done and
 headset-checked. Mirrors moved to the future ideas below.
 
-**Now: phase 3** (chosen 2026-10-18): physics, terrain, working cab buttons. Step 1 (ground + layout) built and installed, ⏳ headset check.
+**Now: phase 3** (chosen 2026-10-18): physics, terrain, working cab buttons. Step 1 (ground + layout) ✅ done and headset-checked.
 Next: step 2 (traction: wheel slip, brakes, 4WD, diff lock).
 
 ## Phase 1: flat world, general controls ✅ done (closed 2026-10-17)
@@ -94,9 +94,9 @@ Chosen 2026-10-18 from a list: soil + wheel slip, brakes + diff lock + 4WD; fiel
 hydraulic levers, pressable switches, lights, and keep the cab panel. Order (each step needs the one before):
 
 ### Step 1: ground + layout
-- [x] Ground map: surface type per square metre (grass, field soil, crop, ploughed, mud, gravel, asphalt, concrete) with grip, rolling resistance and plough draft. ⏳ headset check
-- [x] Terrain shader (`GroundLit`) blending grass / soil / mud from a control map, generated textures, large-scale variation. ⏳ headset check
-- [x] Farmyard at the start (concrete yard, barn, open machine shed), gravel tracks to three fields, an asphalt road (x = 80), mud at the field gates and in hollows. ⏳ headset check
+- [x] Ground map: surface type per square metre (grass, field soil, crop, ploughed, mud, gravel, asphalt, concrete) with grip, rolling resistance and plough draft. ✅ headset-checked 2026-10-18
+- [x] Terrain shader (`GroundLit`) blending grass / soil / mud from a control map, generated textures, large-scale variation. ✅ headset-checked 2026-10-18
+- [x] Farmyard at the start (concrete yard, barn, open machine shed), gravel tracks to three fields, an asphalt road (x = 80), mud at the field gates and in hollows. ✅ headset-checked 2026-10-18
 - [x] Physics per surface: tyre grip and rolling resistance under each wheel (tractor and trailer), plough draft by soil, no ploughing on hard ground,
   ploughing turns the ground to "ploughed". Measured in `PhysicsTest` O (rolling 1.1 kN on asphalt … 11 kN in mud). The grid floor and marker posts are gone.
 
