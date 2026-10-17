@@ -291,3 +291,4 @@ Fix:
   2. Detaching at 70° brought the jack down inside the tractor, and the push-out **rolled the tractor 48°**. Detaching now needs the trailer within 25°
      ("STRAIGHTEN UP TO DETACH"), and collisions stay off until nothing overlaps.
 - Final scenario M: jackknife deepest overlap 0.0 cm. Reversing into the parked trailer pushes it 1 m, deepest overlap 0.0 cm. All other scenarios unchanged.
+- Headset re-check of the fix: the tractor and trailer collide as intended (jackknife and reversing into it).

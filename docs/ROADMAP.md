@@ -3,11 +3,10 @@
 ## ▶ Where we left off (2026-10-17, night)
 Phase 2 order: **1. physics + terrain ✅ → 2. hydraulics + implements ✅ → 3. VR interaction**.
 - Block 2 headset-tested 2026-10-17: controls OK, attaching OK ("takes practice"), ploughing/mowing/towing OK.
-  One bug found: **the tractor could pass into the trailer**. Fixed and covered by test scenario M, installed, ⏳ re-check in the headset.
+  One bug found: **the tractor could pass into the trailer**. Fixed (test scenario M), ✅ re-checked in the headset 2026-10-17.
 
 **Next session:**
-1. Quick headset re-check: jackknife the trailer in reverse and back into a parked trailer (they should collide now)
-2. Block 3: VR interaction (grab the steering wheel and the armrest joystick, hands, settings menu)
+1. Block 3: VR interaction (grab the steering wheel and the armrest joystick, hands, settings menu)
 
 ## Phase 1: flat world, general controls ✅ done (closed 2026-10-17)
 Goal: drive the John Deere 6195M on a flat world with the Quest 2 thumbsticks, from two viewpoints.
@@ -65,7 +64,7 @@ First block, chosen 2026-10-17: **steering wheel + drivetrain** (biggest effect 
 - [x] PTO on/off (1000 rpm at 1900 engine rpm; AUTO holds the engine at PTO speed; PTO power reduces drive power). ✅ headset-tested 2026-10-17
 - [x] Implements (built from primitives): 3-furrow plough (rear, 30 kN draft, depth control, furrow trail), 3 m front disc mower (PTO, spinning discs, mown strip), single-axle trailer (drawbar ball joint, own raycast wheels, jack). ✅ headset-tested 2026-10-17
 - [x] Attach/detach with reach/alignment/height checks and HUD guidance; mounted mass moves the centre of mass
-- [x] Trailer collides with the tractor while coupled and after detaching (bug from the headset test, fixed 2026-10-17). ⏳ re-check
+- [x] Trailer collides with the tractor while coupled and after detaching (bug from the headset test, fixed 2026-10-17). ✅ re-checked in the headset
 - [ ] Top link visual for mounted implements, front cylinders, trailer tipping, better implement models
 
 ### Environment
