@@ -3,10 +3,11 @@
 ## ▶ Where we left off (2026-10-17, night)
 Phase 2 order: **1. physics + terrain ✅ → 2. hydraulics + implements ✅ → 3. VR interaction**.
 - Block 3 headset test: controllers ✅, cab panel ✅ (also with hand tracking). Hand tracking on the wheel / lever **shook and kept dropping the grab**.
-  Fixed (filter + grab debounce + tracking grace, replay test in `PhysicsTest` N), installed, ⏳ re-check in the headset.
+  Fixed (filter + grab debounce + tracking grace, replay test in `PhysicsTest` N). Hand-tracking grabs now visible: **the lever's button block stayed behind** when the lever moved.
+  Fixed (knob pieces cut out with the lever). Both installed, ⏳ re-check in the headset.
 
 **Next session:**
-1. Headset re-check: hand tracking on the steering wheel and the speed lever (fist or pinch)
+1. Headset re-check: hand tracking on the steering wheel and the speed lever (fist or pinch); the whole lever top moves
 2. Tune if needed (`VRHands.HandSignal`: minCutoff, beta, releaseDelay, lostGrace), then decide what comes after phase 2
 
 ## Phase 1: flat world, general controls ✅ done (closed 2026-10-17)

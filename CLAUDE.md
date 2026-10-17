@@ -64,7 +64,8 @@ $u = "C:\Program Files\Unity\Hub\Editor\6000.6.3f1\Editor\Unity.exe"
   Pieces lying flat inside the rim (hub cap) go with it. Output: `Generated/CabInterior_NoWheel.asset` + `Generated/SteeringWheel.asset`,
   hierarchy `Tractor/SteeringColumn` (Z = axis, away from the driver) > `SteeringWheel` (spins on local Z) > `WheelMesh`.
   Wheel centre (0, 2.35, 1.09), Ø 0.397 m, rim 23° from horizontal. Right turn = negative local Z rotation.
-- **Speed lever** = the shift lever in the H-gate at the front of the right armrest (interior piece ~19 cm tall near (0.31, 2.34, 0.64)).
+- **Speed lever** = the shift lever in the H-gate at the front of the right armrest (interior piece ~19 cm tall near (0.31, 2.34, 0.64))
+  **plus 4 knob pieces** (button block ~8×10×7 cm + buttons, selected by bounds centre within 8 cm of the knob; an all-vertices rule missed the block).
   Cut out like the wheel, hinge `Tractor/SpeedLever` at the bottom of the stalk (0.359, 2.252, 0.672), knob (0.257, 2.417, 0.606), tilts ±25° around X (+ = forward).
   The right console also has three hydraulic remote levers (knobs at x 0.42/0.47/0.52, z 0.50) and the H-gate plate. They're still static.
 - Instrument cluster = the glass piece of the interior nearest the wheel (0.257 × 0.109 m). The generated dial face sits 4 mm in front of it.

@@ -352,3 +352,12 @@ Replay test (`PhysicsTest` N: 60° wheel turn with 4 mm noise, 12 % grab flicker
 | Filtered (after) | **0** | **0.28** | **4.68°** |
 
 APK built and installed. ⏳ Re-check in the headset.
+
+## 2026-10-17: Speed lever knob fix
+Headset: with the steadier hand tracking, it was visible that **only the stalk and the knob shell moved, while the knob's button block stayed in place**.
+The knob is several pieces in the cab mesh. The first rule ("every vertex within 7.5 cm of the knob") took two tiny buttons but missed the
+8 × 10 × 7 cm button block, whose corners reach further. The setup now logs every piece still left near the knob. With "bounds centre within 8 cm"
+it takes 4 knob pieces (801 vertices with the stalk), and nothing is left near the knob. New preview `lever.png` (lever fully forward) shows the
+whole handle tilting together. Tests unchanged, APK installed, ⏳ re-check.
+
+![lever](images/lever.png)

@@ -569,7 +569,20 @@ public static class ProjectSetup
         Vector3 Centroid(System.Func<int, bool> f) { var sel = leverPart.Where(f).ToArray(); var c = Vector3.zero; foreach (int i in sel) c += p[i]; return c / sel.Length; }
         Vector3 leverPivot = Centroid(i => p[i].y < minY + 0.012f);
         leverKnob = Centroid(i => p[i].y > maxY - 0.04f);
-        log.AppendLine($"Speed lever: {leverPart.Length} vertices, pivot {leverPivot:F3}, knob {leverKnob:F3}");
+        // The knob's button block and its buttons are separate pieces: take every small piece centred around the knob.
+        Vector3 knobCentre = leverKnob;
+        int knobPieces = 0, leverVerts = leverPart.Length;
+        foreach (var g in parts)
+        {
+            if (g == leverPart || PartBounds(g).size.magnitude > 0.15f) continue;
+            if (Vector3.Distance(PartBounds(g).center, knobCentre) > 0.08f) continue;
+            foreach (int i in g) inLever[i] = true;
+            knobPieces++; leverVerts += g.Length;
+        }
+        log.AppendLine($"Speed lever: {leverVerts} vertices ({knobPieces} knob pieces), pivot {leverPivot:F3}, knob {leverKnob:F3}");
+        foreach (var g in parts)
+            if (!inLever[g[0]] && g.Any(i => Vector3.Distance(p[i], knobCentre) < 0.1f))
+                log.AppendLine($"   left in the cab near the knob: {g.Length} vertices, bounds {PartBounds(g).center:F3} size {PartBounds(g).size:F3}");
         lever = new GameObject("SpeedLever").transform;
         lever.SetParent(root, false);
         lever.localPosition = leverPivot;
@@ -1642,6 +1655,12 @@ public static class ProjectSetup
         cabCtl.speedLever.localRotation = Quaternion.AngleAxis(15f, Vector3.right);
         cam.fieldOfView = 70f;
         Shot("panel.png", seat.position, Quaternion.LookRotation(panelComp.transform.position + new Vector3(0f, -0.08f, 0f) - seat.position));
+        // Close-up of the lever, pushed fully forward: stalk, shell, button block and buttons must move together.
+        cabCtl.speedLever.localRotation = Quaternion.AngleAxis(cabCtl.leverTilt, Vector3.right);
+        cam.fieldOfView = 40f;
+        Vector3 knobW = cabCtl.speedLever.TransformPoint(cabCtl.knobLocal);
+        Vector3 leverCam = tractor.TransformPoint(new Vector3(0.05f, 2.62f, 0.85f));   // inside the cab, front left of the lever
+        Shot("lever.png", leverCam, Quaternion.LookRotation(knobW + tractor.up * -0.06f - leverCam));
         cam.fieldOfView = 90f;
         cabCtl.speedLever.localRotation = Quaternion.identity;
 
