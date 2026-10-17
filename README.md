@@ -15,25 +15,39 @@ Docs: [Roadmap](docs/ROADMAP.md) · [Development log](docs/DEVLOG.md) · [CLAUDE
 - **Comfort**: edge vignette while turning / changing speed (off/low/high on X), gentle acceleration, yaw-rate and lateral-acceleration limits
 - **Controllers visible**: official Quest 2 Touch models with moving stick, buttons, trigger and grip
 
+## Phase 2 (in progress)
+- **Steering wheel** turns with the steering (cut out of the cab mesh by the setup script)
+- **Instrument cluster** on the steering column: rev counter, speedometer, direction + gear, AUTO/MAN
+- **Gearbox** like the 6195M's AutoQuad Plus 20/20: ranges A–E × 4 powershift steps, automatic or manual, top speed 50 km/h
+- **Sounds** (all synthesised by the setup script): diesel engine following RPM and load, shift clunk, reverse beeper, horn
+
+![dashboard](docs/images/dash.png)
+
 ## Controls
 
 | Quest 2 controller | Keyboard (editor) | Action |
 |---|---|---|
 | Left stick ← → | A / D | Steering |
-| Right stick ↑ | W | Drive forward (stick amount = target speed, max 40 km/h) |
+| Right stick ↑ | W | Drive forward (stick amount = target speed, max 50 km/h; in manual mode, a share of the gear's top speed) |
 | Right stick ↓ | S | Brake, then reverse when stopped (max 15 km/h) |
 | Release stick | — | Coast to a stop |
 | **A** | C | Switch view: cab ↔ third person |
 | **B** | R | Recenter the view |
 | **X** (left) | V | Comfort vignette: off / low / high (saved, default high) |
 | **Hold left grip** + sticks | Left Shift | Seat adjust: left stick ↑↓ = height, right stick = forward/back/sideways (saved) |
+| Right stick flick → / ← | X / Z | Shift up / down (switches the gearbox to manual) |
+| **Y** (left) | T | Gearbox: automatic ↔ manual (saved) |
+| Right trigger | H | Horn |
 
 ## Project layout
 ```
 Assets/Scripts/TractorInput.cs        input bindings (Quest + keyboard/gamepad fallback)
 Assets/Scripts/TractorController.cs   driving model (kinematic bicycle model, Ackermann, wheel animation)
 Assets/Scripts/VRCameraRig.cs         cab / third-person views, recenter, seat calibration
-Assets/Scripts/TractorHud.cs          speed readout
+Assets/Scripts/Drivetrain.cs          engine RPM + 20F/20R gearbox (auto / manual)
+Assets/Scripts/TractorAudio.cs        engine, shift, reverse beeper and horn sounds
+Assets/Scripts/Dashboard.cs           instrument cluster (needles, gear, mode)
+Assets/Scripts/TractorHud.cs          speed / gear / rpm readout
 Assets/Scripts/ComfortVignette.cs     comfort vignette (+ Assets/Shaders/ComfortVignette.shader)
 Assets/Scripts/ControllerVisual.cs    animates the controller models
 Assets/Models/MetaControllers/        Quest 2 controller models (Meta XR Core SDK, Oculus SDK License)
@@ -65,8 +79,6 @@ With Quest Link / Air Link, Play mode runs in the headset (Standalone OpenXR is 
 - If you feel motion sick: set the vignette to high (X), prefer the cab view, keep sessions short.
 
 ## Next phase ideas
-- Steering wheel in the cab turning with the steering input (it is part of the interior mesh and needs to be split out)
-- Engine RPM, gearbox (PowrQuad / AutoQuad), engine and gear sounds
 - Front loader / 3-point hitch / PTO with the hydraulic parts that are already separate in the model
   (`Rear_Holder_*`, `Rear_Forcer_*`, `Front_Forcer_*`)
 - Terrain, physics (WheelColliders), implements, field work

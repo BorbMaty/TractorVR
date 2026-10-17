@@ -11,7 +11,12 @@ using UnityEngine.InputSystem;
 ///   B (right) ........... recenter view
 ///   Left grip (hold) .... seat calibration mode (sticks move the seat instead of driving)
 ///   X (left) ............ cycle comfort vignette: off / low / high
+///   Right stick flick → / ← ... shift up / down (switches the gearbox to manual)
+///   Y (left) ............ gearbox mode: auto / manual
+///   Right trigger ....... horn
+/// Runs before the other tractor scripts so the per-frame flick events are ready when they read them.
 /// </summary>
+[DefaultExecutionOrder(-100)]
 public class TractorInput : MonoBehaviour
 {
     InputAction steerAction;
@@ -20,6 +25,9 @@ public class TractorInput : MonoBehaviour
     InputAction recenterAction;
     InputAction calibrateAction;
     InputAction comfortAction;
+    InputAction modeAction;
+    InputAction hornAction;
+    int flick;          // -1 / 0 / +1: where the right stick X was held last frame
 
     public Vector2 LeftStick => steerAction.ReadValue<Vector2>();
     public Vector2 RightStick => throttleAction.ReadValue<Vector2>();
@@ -29,6 +37,10 @@ public class TractorInput : MonoBehaviour
     public bool RecenterPressed => recenterAction.WasPressedThisFrame();
     public bool Calibrating => calibrateAction.IsPressed();
     public bool ComfortCyclePressed => comfortAction.WasPressedThisFrame();
+    public bool TransmissionModePressed => modeAction.WasPressedThisFrame();
+    public bool Horn => hornAction.IsPressed();
+    public bool ShiftUpPressed { get; private set; }
+    public bool ShiftDownPressed { get; private set; }
 
     void Awake()
     {
@@ -65,6 +77,28 @@ public class TractorInput : MonoBehaviour
         comfortAction.AddBinding("<XRController>{LeftHand}/{PrimaryButton}");
         comfortAction.AddBinding("<Gamepad>/buttonWest");
         comfortAction.AddBinding("<Keyboard>/v");
+
+        modeAction = new InputAction("TransmissionMode", InputActionType.Button);
+        modeAction.AddBinding("<XRController>{LeftHand}/{SecondaryButton}");
+        modeAction.AddBinding("<Gamepad>/buttonNorth");
+        modeAction.AddBinding("<Keyboard>/t");
+
+        hornAction = new InputAction("Horn", InputActionType.Button);
+        hornAction.AddBinding("<XRController>{RightHand}/{TriggerButton}");
+        hornAction.AddBinding("<Gamepad>/rightTrigger");
+        hornAction.AddBinding("<Keyboard>/h");
+    }
+
+    void Update()
+    {
+        // Shift = a sideways flick of the right stick (the stick has to come back towards the centre before the next one).
+        Vector2 r = Calibrating ? Vector2.zero : RightStick;
+        int now = flick;
+        if (Mathf.Abs(r.x) < 0.4f) now = 0;
+        else if (Mathf.Abs(r.x) > 0.7f && Mathf.Abs(r.x) > Mathf.Abs(r.y)) now = r.x > 0f ? 1 : -1;
+        ShiftUpPressed = now == 1 && flick != 1;
+        ShiftDownPressed = now == -1 && flick != -1;
+        flick = now;
     }
 
     void OnEnable()
@@ -75,6 +109,8 @@ public class TractorInput : MonoBehaviour
         recenterAction.Enable();
         calibrateAction.Enable();
         comfortAction.Enable();
+        modeAction.Enable();
+        hornAction.Enable();
     }
 
     void OnDisable()
@@ -85,5 +121,7 @@ public class TractorInput : MonoBehaviour
         recenterAction.Disable();
         calibrateAction.Disable();
         comfortAction.Disable();
+        modeAction.Disable();
+        hornAction.Disable();
     }
 }

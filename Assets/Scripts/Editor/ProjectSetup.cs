@@ -332,6 +332,11 @@ public static class ProjectSetup
         seat.localPosition = new Vector3(0f, eyeY, eyeZ);
         log.AppendLine($"DriverEye at {seat.localPosition}");
 
+        // 6) Steering wheel cut out of the cab interior mesh, instrument cluster on the column, drivetrain.
+        ctrl.steeringWheel = SplitSteeringWheel(root.transform, Part("Cab_Interier_01"), log, out Pose clusterPose, out Vector2 clusterSize);
+        var drivetrain = root.AddComponent<Drivetrain>();
+        BuildDashboard(root.transform, clusterPose, clusterSize, ctrl, drivetrain, log);
+
         log.AppendLine("Nodes:");
         foreach (var t in model.GetComponentsInChildren<Transform>(true))
         {
@@ -434,6 +439,528 @@ public static class ProjectSetup
         return new TractorController.Wheel { steerPivot = steer, spinPivot = spin, radius = radius, steers = front, leftSide = left };
     }
 
+    // ------------------------------------------------------------------ steering wheel + instrument cluster
+    // The steering wheel is baked into Cab_Interier_01. The mesh is split into its connected pieces (vertices welded
+    // by position). The rim is the biggest piece that is centred left-right and 0.3–0.5 m across. Its plane (PCA)
+    // gives the steering column axis. Every piece lying flat inside the rim (spokes, hub cap) goes with it.
+    // The result is two new meshes: the interior without the wheel, and the wheel in its own pivot frame.
+    static Transform SplitSteeringWheel(Transform root, Transform interior, StringBuilder log, out Pose clusterPose, out Vector2 clusterSize)
+    {
+        var mf = interior.GetComponent<MeshFilter>();
+        var renderer = interior.GetComponent<MeshRenderer>();
+        Mesh src = mf.sharedMesh;
+        Vector3[] local = src.vertices;
+        Vector3[] p = local.Select(v => root.InverseTransformPoint(interior.TransformPoint(v))).ToArray();
+        int[] comp = MeshComponents(src);
+        var parts = Enumerable.Range(0, p.Length).GroupBy(i => comp[i]).Select(g => g.ToArray()).ToList();
+        Bounds PartBounds(int[] g) { var b = new Bounds(p[g[0]], Vector3.zero); foreach (int i in g) b.Encapsulate(p[i]); return b; }
+
+        var rim = parts.Where(g =>
+        {
+            var b = PartBounds(g);
+            return Mathf.Abs(b.center.x) < 0.03f && b.size.x > 0.3f && b.size.x < 0.5f;
+        }).OrderByDescending(g => g.Length).First();
+
+        // Column axis = rim plane normal, pointing away from the driver (forward/down).
+        Vector3 axis = PlaneNormal(rim.Select(i => p[i]));
+        if (axis.z < 0f) axis = -axis;
+        Quaternion frame = Quaternion.LookRotation(axis, Vector3.up);
+        FrameExtents(rim.Select(i => p[i]), frame, out Vector3 centre, out Vector3 size);
+        float radius = Mathf.Max(size.x, size.y) * 0.5f;
+        log.AppendLine($"Steering wheel: centre {centre:F3}, axis {axis:F3} (rim {Vector3.Angle(axis, Vector3.down):0}° from horizontal), diameter {radius * 2f:0.###} m");
+
+        var inWheel = new bool[p.Length];
+        int pieces = 0;
+        foreach (var g in parts)
+        {
+            bool inside = g.All(i =>
+            {
+                Vector3 d = p[i] - centre;
+                float along = Vector3.Dot(d, axis);
+                return Mathf.Abs(along) < 0.06f && (d - along * axis).magnitude < radius + 0.005f;
+            });
+            if (!inside) continue;
+            pieces++;
+            foreach (int i in g) inWheel[i] = true;
+        }
+        log.AppendLine($"Steering wheel: {pieces} pieces, {inWheel.Count(b => b)} of {p.Length} vertices");
+
+        // Pivot frame: SteeringColumn (fixed, Z = axis) > SteeringWheel (spins around local Z) > mesh.
+        var column = new GameObject("SteeringColumn").transform;
+        column.SetParent(root, false);
+        column.SetLocalPositionAndRotation(centre, frame);
+        var pivot = new GameObject("SteeringWheel").transform;
+        pivot.SetParent(column, false);
+
+        var mats = renderer.sharedMaterials;
+        Mesh rest = SubsetMesh(src, inWheel, false, null, mats, out Material[] restMats);
+        Mesh wheel = SubsetMesh(src, inWheel, true, v => pivot.InverseTransformPoint(interior.TransformPoint(v)), mats, out Material[] wheelMats,
+            n => pivot.InverseTransformDirection(interior.TransformDirection(n)));
+        rest.name = "CabInterior_NoWheel";
+        wheel.name = "SteeringWheel";
+        mf.sharedMesh = SaveMesh(rest, "CabInterior_NoWheel");
+        renderer.sharedMaterials = restMats;
+
+        var wheelGo = new GameObject("WheelMesh");
+        wheelGo.transform.SetParent(pivot, false);
+        wheelGo.AddComponent<MeshFilter>().sharedMesh = SaveMesh(wheel, "SteeringWheel");
+        wheelGo.AddComponent<MeshRenderer>().sharedMaterials = wheelMats;
+
+        // Instrument cluster: the glass piece just ahead of the wheel. The dials are drawn on a quad over it.
+        var glassIndex = System.Array.FindIndex(mats, m => m != null && m.name.Contains("Glass_windows"));
+        var subOf = SubmeshOfVertex(src);
+        var glass = parts.Where(g => subOf[g[0]] == glassIndex)
+            .OrderBy(g => Vector3.Distance(PartBounds(g).center, centre)).First();
+        Vector3 glassNormal = PlaneNormal(glass.Select(i => p[i]));
+        if (glassNormal.z < 0f) glassNormal = -glassNormal;   // away from the driver
+        Quaternion gFrame = Quaternion.LookRotation(glassNormal, Vector3.up);
+        FrameExtents(glass.Select(i => p[i]), gFrame, out Vector3 gCentre, out Vector3 gSize);
+        clusterPose = new Pose(gCentre, gFrame);
+        clusterSize = new Vector2(gSize.x, gSize.y);
+        log.AppendLine($"Instrument cluster glass: centre {gCentre:F3}, size {gSize.x:0.###} x {gSize.y:0.###} m, tilt {Vector3.Angle(glassNormal, Vector3.forward):0}°");
+        return pivot;
+    }
+
+    // Connected pieces of a mesh: vertices joined by triangles, plus vertices sharing a position (UV/normal seams).
+    static int[] MeshComponents(Mesh mesh)
+    {
+        var v = mesh.vertices;
+        var parent = Enumerable.Range(0, v.Length).ToArray();
+        int Find(int i) { while (parent[i] != i) i = parent[i] = parent[parent[i]]; return i; }
+        void Union(int a, int b) { a = Find(a); b = Find(b); if (a != b) parent[a] = b; }
+        var weld = new System.Collections.Generic.Dictionary<Vector3Int, int>();
+        for (int i = 0; i < v.Length; i++)
+        {
+            var key = Vector3Int.RoundToInt(v[i] * 10000f);
+            if (weld.TryGetValue(key, out int j)) Union(i, j); else weld[key] = i;
+        }
+        for (int s = 0; s < mesh.subMeshCount; s++)
+        {
+            var t = mesh.GetTriangles(s);
+            for (int i = 0; i < t.Length; i += 3) { Union(t[i], t[i + 1]); Union(t[i], t[i + 2]); }
+        }
+        return Enumerable.Range(0, v.Length).Select(Find).ToArray();
+    }
+
+    static int[] SubmeshOfVertex(Mesh mesh)
+    {
+        var sub = new int[mesh.vertexCount];
+        for (int s = 0; s < mesh.subMeshCount; s++)
+            foreach (int i in mesh.GetTriangles(s)) sub[i] = s;
+        return sub;
+    }
+
+    // Copies the triangles whose vertices are (keep == true) or aren't (keep == false) selected into a compact new mesh.
+    // Empty submeshes are dropped together with their materials.
+    static Mesh SubsetMesh(Mesh src, bool[] selected, bool keep, System.Func<Vector3, Vector3> mapPoint, Material[] mats, out Material[] outMats,
+        System.Func<Vector3, Vector3> mapDir = null)
+    {
+        var verts = src.vertices; var normals = src.normals; var tangents = src.tangents;
+        var uv0 = new System.Collections.Generic.List<Vector2>(); src.GetUVs(0, uv0);
+        var uv1 = new System.Collections.Generic.List<Vector2>(); src.GetUVs(1, uv1);
+        var colors = src.colors;
+        var remap = new int[verts.Length];
+        for (int i = 0; i < remap.Length; i++) remap[i] = -1;
+        var order = new System.Collections.Generic.List<int>();
+        var subs = new System.Collections.Generic.List<int[]>();
+        var subMats = new System.Collections.Generic.List<Material>();
+        for (int s = 0; s < src.subMeshCount; s++)
+        {
+            var tris = src.GetTriangles(s);
+            var outTris = new System.Collections.Generic.List<int>();
+            for (int i = 0; i < tris.Length; i += 3)
+            {
+                if (selected[tris[i]] != keep) continue;   // pieces are all-or-nothing, so one vertex decides
+                for (int k = 0; k < 3; k++)
+                {
+                    int vi = tris[i + k];
+                    if (remap[vi] < 0) { remap[vi] = order.Count; order.Add(vi); }
+                    outTris.Add(remap[vi]);
+                }
+            }
+            if (outTris.Count == 0) continue;
+            subs.Add(outTris.ToArray());
+            subMats.Add(s < mats.Length ? mats[s] : null);
+        }
+
+        var m = new Mesh { indexFormat = order.Count > 65000 ? IndexFormat.UInt32 : IndexFormat.UInt16 };
+        m.SetVertices(order.Select(i => mapPoint != null ? mapPoint(verts[i]) : verts[i]).ToArray());
+        if (normals.Length > 0) m.SetNormals(order.Select(i => mapDir != null ? mapDir(normals[i]).normalized : normals[i]).ToArray());
+        if (tangents.Length > 0) m.SetTangents(order.Select(i =>
+        {
+            Vector4 t = tangents[i];
+            Vector3 d = mapDir != null ? mapDir(t).normalized : (Vector3)t;
+            return new Vector4(d.x, d.y, d.z, t.w);
+        }).ToArray());
+        if (uv0.Count > 0) m.SetUVs(0, order.Select(i => uv0[i]).ToList());
+        if (uv1.Count > 0) m.SetUVs(1, order.Select(i => uv1[i]).ToList());
+        if (colors.Length > 0) m.SetColors(order.Select(i => colors[i]).ToArray());
+        m.subMeshCount = subs.Count;
+        for (int s = 0; s < subs.Count; s++) m.SetTriangles(subs[s], s);
+        m.RecalculateBounds();
+        outMats = subMats.ToArray();
+        return m;
+    }
+
+    static Mesh SaveMesh(Mesh m, string name)
+    {
+        string path = $"{GenDir}/{name}.asset";
+        AssetDatabase.DeleteAsset(path);
+        AssetDatabase.CreateAsset(m, path);
+        return m;
+    }
+
+    // Normal of the best-fit plane: the cross product of the two main axes of the point cloud (power iteration).
+    static Vector3 PlaneNormal(System.Collections.Generic.IEnumerable<Vector3> points)
+    {
+        var pts = points.ToArray();
+        Vector3 mean = Vector3.zero;
+        foreach (var q in pts) mean += q;
+        mean /= pts.Length;
+        var c = new float[3, 3];
+        foreach (var q in pts)
+        {
+            Vector3 d = q - mean;
+            for (int a = 0; a < 3; a++) for (int b = 0; b < 3; b++) c[a, b] += d[a] * d[b];
+        }
+        Vector3 Mul(Vector3 v) => new Vector3(
+            c[0, 0] * v.x + c[0, 1] * v.y + c[0, 2] * v.z,
+            c[1, 0] * v.x + c[1, 1] * v.y + c[1, 2] * v.z,
+            c[2, 0] * v.x + c[2, 1] * v.y + c[2, 2] * v.z);
+        Vector3 Top(Vector3 v, Vector3 exclude)
+        {
+            for (int k = 0; k < 100; k++) { v = Mul(v); v -= Vector3.Dot(v, exclude) * exclude; v.Normalize(); }
+            return v;
+        }
+        Vector3 e1 = Top(new Vector3(1f, 0.31f, 0.17f).normalized, Vector3.zero);
+        Vector3 e2 = Top(new Vector3(0.23f, 1f, 0.41f).normalized, e1);
+        return Vector3.Cross(e1, e2).normalized;
+    }
+
+    // Box around the points in a rotated frame: its centre (back in the original space) and size (in the frame).
+    static void FrameExtents(System.Collections.Generic.IEnumerable<Vector3> points, Quaternion frame, out Vector3 centre, out Vector3 size)
+    {
+        Quaternion inv = Quaternion.Inverse(frame);
+        var pts = points.Select(q => inv * q).ToArray();
+        var b = new Bounds(pts[0], Vector3.zero);
+        foreach (var q in pts) b.Encapsulate(q);
+        centre = frame * b.center;
+        size = b.size;
+    }
+
+    // Two dials (engine speed 0–3000 rpm, road speed 0–60 km/h) on a generated texture + needles + a digital line.
+    static void BuildDashboard(Transform root, Pose glass, Vector2 glassSize, TractorController ctrl, Drivetrain drivetrain, StringBuilder log)
+    {
+        float h = glassSize.y, w = Mathf.Max(glassSize.x, h * 2.2f);
+        var dash = new GameObject("Dashboard").transform;
+        dash.SetParent(root, false);
+        // A few millimetres towards the driver, in front of the glass.
+        dash.SetLocalPositionAndRotation(glass.position - glass.rotation * Vector3.forward * 0.004f, glass.rotation);
+
+        var unlit = Shader.Find("Universal Render Pipeline/Unlit");
+        var face = GameObject.CreatePrimitive(PrimitiveType.Quad);
+        Object.DestroyImmediate(face.GetComponent<Collider>());
+        face.name = "Face";
+        face.transform.SetParent(dash, false);
+        face.transform.localScale = new Vector3(w, h, 1f);
+        var faceMat = new Material(unlit);
+        faceMat.SetTexture("_BaseMap", DashTexture(w / h));
+        face.GetComponent<MeshRenderer>().sharedMaterial = SaveMat(faceMat, "DashFace");
+        face.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
+
+        var needleMat = SaveMat(new Material(unlit), "DashNeedle");
+        needleMat.SetColor("_BaseColor", new Color(1f, 0.45f, 0.1f));
+        float dialR = h * 0.45f;
+        Transform Needle(string name, float x)
+        {
+            var pivot = new GameObject(name).transform;
+            pivot.SetParent(dash, false);
+            pivot.localPosition = new Vector3(x, 0f, -0.001f);
+            var n = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            Object.DestroyImmediate(n.GetComponent<Collider>());
+            n.transform.SetParent(pivot, false);
+            n.transform.localPosition = new Vector3(0f, dialR * 0.4f, 0f);
+            n.transform.localScale = new Vector3(dialR * 0.06f, dialR * 0.9f, 1f);
+            n.GetComponent<MeshRenderer>().sharedMaterial = needleMat;
+            n.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
+            return pivot;
+        }
+        float dialX = w * 0.5f - h * 0.5f;
+        var board = dash.gameObject.AddComponent<Dashboard>();
+        board.tractor = ctrl;
+        board.drivetrain = drivetrain;
+        board.rpmNeedle = Needle("RpmNeedle", -dialX);
+        board.speedNeedle = Needle("SpeedNeedle", dialX);
+
+        var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        var textMat = new Material(Shader.Find("TractorVR/WorldText"));
+        textMat.mainTexture = font.material.mainTexture;   // for the preview renders; Dashboard re-assigns it at runtime
+        board.textMaterial = SaveMat(textMat, "DashText");
+        TextMesh Label(string text, Vector3 pos, float height, Color color)
+        {
+            var go = new GameObject("Label");
+            go.transform.SetParent(dash, false);
+            go.transform.localPosition = pos + new Vector3(0f, 0f, -0.0015f);
+            var tm = go.AddComponent<TextMesh>();
+            tm.font = font;
+            tm.fontSize = 48;
+            tm.characterSize = height / (tm.fontSize * 0.1f);   // TextMesh glyph height ≈ characterSize × fontSize / 10
+            tm.anchor = TextAnchor.MiddleCenter;
+            tm.alignment = TextAlignment.Center;
+            tm.color = color;
+            tm.text = text;
+            go.GetComponent<MeshRenderer>().sharedMaterial = board.textMaterial;
+            go.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
+            return tm;
+        }
+        // Scale numbers just inside the tick ring.
+        void Numbers(float x, int count, System.Func<int, string> text)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                float t = i / (float)(count - 1);
+                float a = (-135f + 270f * t) * Mathf.Deg2Rad;
+                Label(text(i), new Vector3(x + Mathf.Sin(a) * dialR * 0.62f, Mathf.Cos(a) * dialR * 0.62f, 0f), h * 0.075f, Color.white);
+            }
+        }
+        Numbers(-dialX, 4, i => i.ToString());              // ×1000 rpm
+        Numbers(dialX, 7, i => (i * 10).ToString());         // km/h
+        var caption = new Color(0.7f, 0.7f, 0.7f);
+        var digital = new Color(1f, 0.85f, 0.3f);
+        Label("x1000", new Vector3(-dialX, -dialR * 0.3f, 0f), h * 0.055f, caption);
+        Label("km/h", new Vector3(dialX, -dialR * 0.3f, 0f), h * 0.055f, caption);
+        // From the seat the column shroud hides the lower half of the dials, so the readouts go in the upper half:
+        // direction + gear in the rev counter, gearbox mode in the speedometer.
+        board.gearText = Label("N B2", new Vector3(-dialX, dialR * 0.36f, 0f), h * 0.12f, digital);
+        board.modeText = Label("AUTO", new Vector3(dialX, dialR * 0.36f, 0f), h * 0.09f, digital);
+        log.AppendLine($"Dashboard {w:0.###} x {h:0.###} m at {dash.localPosition:F3}");
+    }
+
+    // Black face with two tick rings. Angle convention matches Dashboard.Needle: 0 at -135° (lower left), full scale at +135°.
+    static Texture2D DashTexture(float aspect)
+    {
+        int th = 256, tw = Mathf.RoundToInt(th * aspect);
+        var tex = new Texture2D(tw, th, TextureFormat.RGBA32, true);
+        float r = th * 0.45f, cxL = th * 0.5f, cxR = tw - th * 0.5f, cy = th * 0.5f;
+        var px = new Color[tw * th];
+        Color bg = new Color(0.03f, 0.035f, 0.04f), tick = new Color(0.92f, 0.92f, 0.92f), red = new Color(0.9f, 0.12f, 0.08f);
+        float TickCover(float ang, float step, float halfWidthDeg)
+        {
+            float t = (ang + 135f) / step;
+            float d = Mathf.Abs(t - Mathf.Round(t)) * step;
+            return d < halfWidthDeg ? 1f : 0f;
+        }
+        for (int y = 0; y < th; y++)
+        for (int x = 0; x < tw; x++)
+        {
+            Color c = bg;
+            foreach (var (cx, majorStep, minorStep, redFrom) in new[] { (cxL, 90f, 22.5f, 2250f / 3000f), (cxR, 45f, 22.5f, 2f) })
+            {
+                float dx = x - cx, dy = y - cy, rr = Mathf.Sqrt(dx * dx + dy * dy) / r;
+                if (rr > 1.02f) continue;
+                float ang = Mathf.Atan2(dx, dy) * Mathf.Rad2Deg;   // clockwise from up
+                bool onArc = ang >= -136f && ang <= 136f;
+                if (rr > 0.97f && rr < 1.0f && onArc) c = tick * 0.6f;
+                if (onArc && rr > 0.78f && rr < 0.97f && TickCover(ang, majorStep, 1.6f) > 0f) c = tick;
+                else if (onArc && rr > 0.87f && rr < 0.97f && TickCover(ang, minorStep, 0.9f) > 0f) c = tick * 0.8f;
+                if (onArc && rr > 0.9f && rr < 0.97f && (ang + 135f) / 270f >= redFrom) c = red;
+                if (rr < 0.07f) c = new Color(0.25f, 0.25f, 0.25f);
+            }
+            px[y * tw + x] = c;
+        }
+        tex.SetPixels(px);
+        tex.Apply();
+        tex.wrapMode = TextureWrapMode.Clamp;
+        tex.anisoLevel = 4;
+        string path = GenDir + "/DashFace.asset";
+        AssetDatabase.DeleteAsset(path);
+        AssetDatabase.CreateAsset(tex, path);
+        return tex;
+    }
+
+    // ------------------------------------------------------------------ audio
+    // All clips are synthesised here and written as 16-bit WAVs to Assets/Generated/Audio (no third-party samples).
+    const int Rate = 44100;
+
+    static void BuildAudio(GameObject tractor, VRCameraRig rig)
+    {
+        Directory.CreateDirectory(GenDir + "/Audio");
+        var (light, heavy) = EngineClips();
+        var audio = tractor.AddComponent<TractorAudio>();
+        audio.drivetrain = tractor.GetComponent<Drivetrain>();
+        audio.input = tractor.GetComponent<TractorInput>();
+        audio.rig = rig;
+
+        AudioSource Source(string name, Vector3 pos, AudioClip clip, bool loop, float spatial)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(tractor.transform, false);
+            go.transform.localPosition = pos;
+            var s = go.AddComponent<AudioSource>();
+            s.clip = clip;
+            s.loop = loop;
+            s.playOnAwake = false;
+            s.spatialBlend = spatial;
+            s.dopplerLevel = 0f;
+            s.rolloffMode = AudioRolloffMode.Logarithmic;
+            s.minDistance = 4f;
+            s.maxDistance = 80f;
+            return s;
+        }
+        Vector3 engine = new Vector3(0f, 1.64f, 2.56f);
+        audio.engineLight = Source("EngineLight", engine, light, true, 1f);
+        audio.engineHeavy = Source("EngineHeavy", engine, heavy, true, 1f);
+        audio.lightFilter = audio.engineLight.gameObject.AddComponent<AudioLowPassFilter>();
+        audio.heavyFilter = audio.engineHeavy.gameObject.AddComponent<AudioLowPassFilter>();
+        audio.shift = Source("ShiftSound", new Vector3(0.35f, 1.9f, 0.6f), ShiftClip(), false, 0.6f);
+        audio.beeper = Source("ReverseBeeper", new Vector3(0f, 1.6f, -0.8f), BeeperClip(), true, 1f);
+        audio.beeper.volume = 0.35f;
+        audio.horn = Source("Horn", new Vector3(0f, 1.6f, 3.4f), HornClip(), true, 1f);
+    }
+
+    // Diesel engine recorded at 1000 rpm: a six-cylinder four-stroke fires 3× per revolution (50 Hz).
+    // Each firing excites exhaust/block resonances and a short clatter burst. The cylinders differ slightly in
+    // strength, which gives the uneven diesel beat. The loop is exactly 10 engine cycles (1.2 s), so it repeats seamlessly.
+    static (AudioClip light, AudioClip heavy) EngineClips()
+    {
+        const float rpm = 1000f;
+        float cycle = 120f / rpm;                       // s per four-stroke cycle
+        int n = Mathf.RoundToInt(Rate * cycle * 10f);   // 52920 samples
+        int firing = n / 60;                            // 882 samples between firings
+        float[] strength = { 1.0f, 0.86f, 1.08f, 0.93f, 1.12f, 0.9f };
+        var rnd = new System.Random(11);
+        var noise = new float[n];
+        for (int i = 0; i < n; i++) noise[i] = (float)rnd.NextDouble() * 2f - 1f;
+
+        float[] Synth(float heavy)
+        {
+            var exhaust = new Biquad(85f, 3f);
+            var body = new Biquad(240f, 5f);
+            var block = new Biquad(700f, 6f);
+            var clatter = new Biquad(3200f, 2.5f);
+            var breath = new Biquad(1400f, 1.2f);
+            var outp = new float[n];
+            for (int pass = 0; pass < 2; pass++)        // first pass settles the filters, the second is the loop
+            for (int i = 0; i < n; i++)
+            {
+                int k = i / firing;
+                float tau = (i - k * firing) / (float)Rate;
+                float a = strength[k % 6];
+                float pulse = a * Mathf.Exp(-tau / (heavy > 0.5f ? 0.0025f : 0.0015f));
+                float knock = a * noise[i] * Mathf.Exp(-tau / 0.0006f);
+                float hiss = noise[(i * 7) % n] * a * Mathf.Exp(-tau / 0.006f);
+                float turbo = Mathf.Sin(2f * Mathf.PI * 2500f * i / Rate);   // 3000 whole cycles per loop
+                float y = exhaust.Run(pulse) * 1.0f
+                        + body.Run(pulse) * (0.55f + 0.3f * heavy)
+                        + block.Run(pulse) * (0.25f + 0.35f * heavy)
+                        + clatter.Run(knock) * (1.4f + 0.4f * heavy)   // the diesel "clatter": carries on small speakers
+                        + breath.Run(hiss) * (0.12f + 0.4f * heavy)
+                        + turbo * 0.012f * heavy;
+                if (pass == 1) outp[i] = y;
+            }
+            return outp;
+        }
+        var lightS = Synth(0f);
+        var heavyS = Synth(1f);
+        // Normalised separately: the heavy loop is only a little louder. TractorAudio sets the overall level.
+        return (WriteClip("EngineLight", Normalize(lightS, 0.75f)), WriteClip("EngineHeavy", Normalize(heavyS, 0.9f)));
+    }
+
+    // Powershift clutch change: a dull thump, a click and a short hydraulic hiss.
+    static AudioClip ShiftClip()
+    {
+        int n = Rate * 3 / 10;
+        var rnd = new System.Random(3);
+        var click = new Biquad(2000f, 2f);
+        var hiss = new Biquad(4500f, 1.5f);
+        var s = new float[n];
+        for (int i = 0; i < n; i++)
+        {
+            float t = i / (float)Rate, wn = (float)rnd.NextDouble() * 2f - 1f;
+            float h = (t - 0.08f) / 0.05f;
+            s[i] = Mathf.Sin(2f * Mathf.PI * 55f * t) * Mathf.Exp(-t / 0.05f) * 0.8f
+                 + click.Run(wn * Mathf.Exp(-t / 0.004f)) * 1.5f
+                 + hiss.Run(wn) * 0.25f * Mathf.Exp(-h * h);
+        }
+        return WriteClip("Shift", Normalize(s, 0.8f));
+    }
+
+    // Reverse alarm: 1 kHz, half a second on, half off (the loop is one beep).
+    static AudioClip BeeperClip()
+    {
+        var s = new float[Rate];
+        for (int i = 0; i < Rate / 2; i++)
+        {
+            float t = i / (float)Rate;
+            float env = Mathf.Min(1f, Mathf.Min(t, 0.5f - t) / 0.005f);
+            float w = 2f * Mathf.PI * 1000f * t;
+            s[i] = env * (Mathf.Sin(w) + Mathf.Sin(3f * w) / 3f + Mathf.Sin(5f * w) / 5f);
+        }
+        return WriteClip("ReverseBeeper", Normalize(s, 0.7f));
+    }
+
+    // Two-tone electric horn (400 + 500 Hz, band-limited sawtooth). Whole cycles per second, so the 1 s clip loops.
+    static AudioClip HornClip()
+    {
+        var s = new float[Rate];
+        for (int i = 0; i < Rate; i++)
+        {
+            float t = i / (float)Rate, y = 0f;
+            foreach (float f in new[] { 400f, 500f })
+                for (int k = 1; k <= 7; k++) y += Mathf.Sin(2f * Mathf.PI * f * k * t) / Mathf.Pow(k, 1.3f);
+            s[i] = y;
+        }
+        return WriteClip("Horn", Normalize(s, 0.7f));
+    }
+
+    static float[] Normalize(float[] s, float peak)
+    {
+        float m = s.Max(Mathf.Abs);
+        for (int i = 0; i < s.Length; i++) s[i] *= peak / m;
+        return s;
+    }
+
+    static AudioClip WriteClip(string name, float[] samples)
+    {
+        string path = $"{GenDir}/Audio/{name}.wav";
+        using (var w = new BinaryWriter(File.Create(path)))
+        {
+            int bytes = samples.Length * 2;
+            w.Write(Encoding.ASCII.GetBytes("RIFF")); w.Write(36 + bytes); w.Write(Encoding.ASCII.GetBytes("WAVE"));
+            w.Write(Encoding.ASCII.GetBytes("fmt ")); w.Write(16); w.Write((short)1); w.Write((short)1);
+            w.Write(Rate); w.Write(Rate * 2); w.Write((short)2); w.Write((short)16);
+            w.Write(Encoding.ASCII.GetBytes("data")); w.Write(bytes);
+            foreach (float f in samples) w.Write((short)Mathf.RoundToInt(Mathf.Clamp(f, -1f, 1f) * 32767f));
+        }
+        AssetDatabase.ImportAsset(path);
+        var imp = (AudioImporter)AssetImporter.GetAtPath(path);
+        imp.forceToMono = true;
+        var settings = imp.defaultSampleSettings;
+        settings.loadType = AudioClipLoadType.DecompressOnLoad;
+        settings.compressionFormat = AudioCompressionFormat.PCM;   // short clips; PCM loops without encoder gaps
+        imp.defaultSampleSettings = settings;
+        imp.SaveAndReimport();
+        return AssetDatabase.LoadAssetAtPath<AudioClip>(path);
+    }
+
+    // RBJ band-pass (0 dB peak gain).
+    class Biquad
+    {
+        readonly float b0, b2, a1, a2;
+        float x1, x2, y1, y2;
+        public Biquad(float f, float q)
+        {
+            float w0 = 2f * Mathf.PI * f / Rate, alpha = Mathf.Sin(w0) / (2f * q), a0 = 1f + alpha;
+            b0 = alpha / a0; b2 = -alpha / a0; a1 = -2f * Mathf.Cos(w0) / a0; a2 = (1f - alpha) / a0;
+        }
+        public float Run(float x)
+        {
+            float y = b0 * x + b2 * x2 - a1 * y1 - a2 * y2;
+            x2 = x1; x1 = x; y2 = y1; y1 = y;
+            return y;
+        }
+    }
+
     // ------------------------------------------------------------------ XR rig + HUD
     static void BuildRig(GameObject tractor, StringBuilder log)
     {
@@ -481,11 +1008,13 @@ public static class ProjectSetup
         hud.rig = vr;
         hud.input = vr.input;
         hud.text = tm;
+        hud.drivetrain = tractor.GetComponent<Drivetrain>();
 
         hud.comfort = BuildVignette(camGo.transform, ctrl, vr);
         var controllerMat = ControllerMaterial();
         BuildController(offset, true, controllerMat);
         BuildController(offset, false, controllerMat);
+        BuildAudio(tractor, vr);
 
         log.AppendLine("Rig built.");
     }
@@ -615,6 +1144,18 @@ public static class ProjectSetup
         Shot("third.png", tractor.position + new Vector3(0f, 4.2f, -9.5f) + Vector3.up * 0f, Quaternion.Euler(15f, 0f, 0f));
         Shot("side.png", tractor.position + new Vector3(8f, 1.8f, 1.4f), Quaternion.Euler(5f, -90f, 0f));
         Shot("front.png", tractor.position + new Vector3(3f, 2f, 9f), Quaternion.Euler(8f, 200f, 0f));
+
+        // Instrument cluster from the seat: needles at 1500 rpm / 20 km/h, steering wheel turned 90° for a right turn.
+        var board = Object.FindAnyObjectByType<Dashboard>();
+        var wheel = tractor.GetComponent<TractorController>().steeringWheel;
+        board.rpmNeedle.localRotation = Quaternion.Euler(0f, 0f, 135f - 1500f / board.rpmMax * 270f);
+        board.speedNeedle.localRotation = Quaternion.Euler(0f, 0f, 135f - 20f / board.speedMax * 270f);
+        board.gearText.text = "F B3";
+        wheel.localRotation = Quaternion.Euler(0f, 0f, -90f);
+        cam.fieldOfView = 55f;
+        Shot("dash.png", seat.position, Quaternion.LookRotation(board.transform.position - seat.position));
+        cam.fieldOfView = 90f;
+        wheel.localRotation = Quaternion.identity;
 
         // Both controllers held in front of the driver, pointing forward and slightly down (aim pose).
         leftCtl.SetActive(true);

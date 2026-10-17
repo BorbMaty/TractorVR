@@ -1,15 +1,16 @@
 # Roadmap
 
-## ▶ Where we left off (2026-10-16)
-Phase 1 is done and runs on the Quest 2. The comfort pass and real controller models are tested in the headset.
-The latest APK is installed. The Unity editor is closed and the working tree is clean.
+## ▶ Where we left off (2026-10-17)
+Phase 1 is **closed** (accepted after the headset tests on 2026-10-16). Phase 2 has started with **cab realism + drivetrain**:
+the steering wheel turns, there's an instrument cluster, a 20F/20R gearbox (auto/manual), engine RPM and synthesised sounds.
+It builds and is installed on the Quest 2 but is **not headset-tested yet**.
 
-**Next session, suggested order:**
-1. Steering wheel: split it out of `SM2_..._Cab_Interier_01` (Blender or mesh split by vertex region) and turn it with `SteerAngle`
-2. Drivetrain: engine RPM + gears + engine sound
-3. Leftovers from phase 1: frame-rate check with OVR Metrics Tool, keyboard play test in the editor
+**Next session:**
+1. Headset test of the phase 2 build: wheel direction/ratio, sound levels and engine character, shift feel, readability of the dials
+2. Tune from the test (`TractorAudio` levels, `Drivetrain` shift points, engine synthesis in `ProjectSetup.EngineClips`)
+3. Then pick the next phase 2 block (physics + terrain, hydraulics/implements, or VR interaction)
 
-## Phase 1: flat world, general controls ✅ built / ✅ runs on Quest 2 / ✅ comfort tuned
+## Phase 1: flat world, general controls ✅ done (closed 2026-10-17)
 Goal: drive the John Deere 6195M on a flat world with the Quest 2 thumbsticks, from two viewpoints.
 
 Done:
@@ -22,8 +23,8 @@ Done:
 - [x] Recenter (B + automatic), seat calibration (hold left grip), speed HUD
 - [x] Scene generator + batch-mode preview renders + APK build script
 
-Still to do:
-- [ ] Play test in the editor (keyboard)
+Status at closing (the open items below were accepted as good enough after the headset tests):
+- [ ] Play test in the editor (keyboard): not done, not needed so far
 - [x] First successful APK build (`Tractor VR → Build Quest APK`), 2026-10-16
 - [x] Headset test on the Quest 2 (2026-10-16): app runs, wheels spin and steer correctly
   - [x] Controller bindings (sticks, A/B, left grip)
@@ -38,17 +39,20 @@ Still to do:
 - [x] Visible controllers: official Quest 2 Touch models (from the Meta XR Core SDK) with animated stick/buttons/trigger/grip ✅ headset-tested 2026-10-16
 - [ ] Optional: find the original TurboSquid `tex\` folder, put it in `Assets/Models/tex/`, and use it instead of the generated materials
 
-## Phase 2: "the specifications" (priority to be decided from the project brief)
+## Phase 2: "the specifications" (started 2026-10-17)
+First block, chosen 2026-10-17: **steering wheel + drivetrain** (biggest effect on how it feels in the headset).
 
 ### Cab realism
-- [ ] Split the steering wheel out of `Cab_Interier_01` (Blender) and rotate it with the steering input (~2.5–3 turns lock to lock)
-- [ ] Working dashboard: speed, RPM, gear, fuel/temperature
+- [x] Split the steering wheel out of `Cab_Interier_01` (done in code, no Blender needed) and rotate it with the steering input (ratio 13 → ~2.9 turns lock to lock). Built 2026-10-17, ⏳ headset test
+- [x] Instrument cluster: RPM + speed dials with needles, direction + gear, AUTO/MAN. Built 2026-10-17, ⏳ headset test
+- [ ] Dashboard extras: fuel/temperature, CommandCenter display on the right corner post
 - [ ] Opening doors (`Door_L/R` are already separate)
 
 ### Drivetrain
-- [ ] Engine model: idle/max RPM, torque curve (6195M: 195 hp rated, ~2100 rpm), hand throttle
-- [ ] Gearbox: forward/reverse shuttle, ranges (AutoQuad/AutoPowr-style), real top speed of 50 km/h
-- [ ] Sounds: engine (RPM-pitched loops), gear shifts, reverse beeper, horn
+- [x] Engine RPM: idle 850, rated 2100, high idle 2250; RPM follows the gear, clutch slip when pulling away; load estimate for sound. ⏳ headset test
+- [x] Gearbox: 20F/20R AutoQuad Plus-style (ranges A–E × 4 steps), auto + manual mode, F/N/R shuttle, 50 km/h top speed. ⏳ headset test
+- [x] Sounds (synthesised, no samples): engine (two RPM-pitched loops cross-faded by load, muffled in the cab), shift clunk, reverse beeper, horn. ⏳ headset test
+- [ ] Torque curve / real tractive force (needs the physics block), hand throttle
 
 ### Physics
 - [ ] Replace the kinematic model with real wheel physics (WheelColliders or a custom raycast suspension)
@@ -69,4 +73,4 @@ Still to do:
 - [ ] Grab the real steering wheel and the armrest joystick instead of using the thumbsticks
 - [ ] Menu (wrist or world-space) for settings: view distance, seat reset, speed units
 
-Suggested first step for phase 2: **drivetrain + turning steering wheel**. They make the biggest difference to how it feels in the headset.
+Done first in phase 2: **drivetrain + turning steering wheel** (see above).

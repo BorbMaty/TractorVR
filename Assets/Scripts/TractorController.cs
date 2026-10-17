@@ -25,7 +25,7 @@ public class TractorController : MonoBehaviour
     public Wheel[] wheels = new Wheel[0];
 
     [Header("Speed")]
-    public float maxForwardKmh = 40f;
+    public float maxForwardKmh = 50f;      // 6195M top speed
     public float maxReverseKmh = 15f;
     // Gentle values on purpose: changes in speed are a main cause of VR motion sickness.
     public float acceleration = 1.0f;  // m/s²
@@ -44,9 +44,19 @@ public class TractorController : MonoBehaviour
     public float SpeedKmh => SpeedMs * 3.6f;
     public float SteerAngle { get; private set; }
 
-    TractorInput input;
+    [Header("Cab")]
+    public Transform steeringWheel;        // pivot; spins around its local Z (the steering column)
+    [Tooltip("Steering wheel degrees per degree of road-wheel angle: 40° lock × 13 ≈ 1.45 turns each way.")]
+    public float steeringRatio = 13f;
 
-    void Awake() => input = GetComponent<TractorInput>();
+    TractorInput input;
+    Drivetrain drivetrain;
+
+    void Awake()
+    {
+        input = GetComponent<TractorInput>();
+        drivetrain = GetComponent<Drivetrain>();
+    }
 
     void Update()
     {
@@ -60,9 +70,11 @@ public class TractorController : MonoBehaviour
     void UpdateSpeed(float throttle, float dt)
     {
         const float dead = 0.08f;
+        float fwdKmh = drivetrain ? drivetrain.SpeedLimitKmh(true, maxForwardKmh, maxReverseKmh) : maxForwardKmh;
+        float revKmh = drivetrain ? drivetrain.SpeedLimitKmh(false, maxForwardKmh, maxReverseKmh) : maxReverseKmh;
         float target = 0f;
-        if (throttle > dead) target = (throttle - dead) / (1f - dead) * maxForwardKmh / 3.6f;
-        else if (throttle < -dead) target = (throttle + dead) / (1f - dead) * maxReverseKmh / 3.6f;
+        if (throttle > dead) target = (throttle - dead) / (1f - dead) * fwdKmh / 3.6f;
+        else if (throttle < -dead) target = (throttle + dead) / (1f - dead) * revKmh / 3.6f;
 
         float rate;
         bool opposite = Mathf.Abs(SpeedMs) > 0.05f && Mathf.Sign(target) != Mathf.Sign(SpeedMs) && target != 0f;
@@ -88,6 +100,10 @@ public class TractorController : MonoBehaviour
         }
         float target = steer * lockAngle;
         SteerAngle = Mathf.MoveTowards(SteerAngle, target, steerRate * dt);
+
+        // The pivot's Z points away from the driver, so a positive Z rotation looks counter-clockwise to them:
+        // a right turn (positive SteerAngle) needs a negative one.
+        if (steeringWheel) steeringWheel.localRotation = Quaternion.Euler(0f, 0f, -SteerAngle * steeringRatio);
     }
 
     void Move(float dt)

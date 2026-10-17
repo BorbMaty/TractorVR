@@ -18,7 +18,10 @@ See `README.md` for controls, `docs/ROADMAP.md` for what's next and `docs/DEVLOG
 | `Assets/Scripts/TractorInput.cs` | All input actions, created in code (Quest + keyboard/gamepad fallback) |
 | `Assets/Scripts/TractorController.cs` | Kinematic bicycle model, Ackermann steering, wheel spin/steer animation |
 | `Assets/Scripts/VRCameraRig.cs` | Cab / third-person views, recenter, seat calibration (PlayerPrefs) |
-| `Assets/Scripts/TractorHud.cs` | Rig-locked speed readout (TextMesh) |
+| `Assets/Scripts/Drivetrain.cs` | Engine RPM/load + 20F/20R gearbox (auto/manual), caps the controller's speed in manual |
+| `Assets/Scripts/TractorAudio.cs` | Engine loops (pitch = RPM/1000, cross-fade by load, low-pass in cab), shift, beeper, horn |
+| `Assets/Scripts/Dashboard.cs` + `Assets/Shaders/WorldText.shader` | Instrument cluster needles + gear/mode text (depth-tested TextMesh shader) |
+| `Assets/Scripts/TractorHud.cs` | Rig-locked speed / gear / rpm readout (TextMesh) |
 | `Assets/Scripts/ComfortVignette.cs` + `Assets/Shaders/ComfortVignette.shader` | Edge darkening while turning / changing speed; level on X (PlayerPrefs) |
 | `Assets/Scripts/ControllerVisual.cs` | Animates the bones of the official Quest 2 controller models (stick, buttons, trigger, grip; hidden when untracked) |
 | `Assets/Models/MetaControllers/` | Quest 2 Touch FBX + texture copied from the Meta XR Core SDK (Oculus SDK License, see README there) |
@@ -37,7 +40,7 @@ $u = "C:\Program Files\Unity\Hub\Editor\6000.6.3f1\Editor\Unity.exe"
 #   -executeMethod ProjectSetup.BuildSceneMenu | ProjectSetup.RenderPreviews | BuildQuest.Build
 ```
 - Setup writes a report to `Logs/TractorSetupReport.txt`: bounds, wheel pivots, seat position, every node with its materials.
-- Preview PNGs go to `Logs/Previews/` (cab, cab_down, third, side, front). Use them to check visual changes without a headset.
+- Preview PNGs go to `Logs/Previews/` (cab, cab_down, third, side, front, dash = cluster close-up with the wheel turned 90° right, controller, vignette). Use them to check visual changes without a headset.
 - In the editor, the same actions are under the **Tractor VR** menu.
 - `-openfile` does NOT open a scene when launching the editor. Open `Assets/Scenes/TractorFlat.unity` from the Project window.
 
@@ -47,7 +50,13 @@ $u = "C:\Program Files\Unity\Hub\Editor\6000.6.3f1\Editor\Unity.exe"
 - Wheels: `Front/Rear_Wheel_L/R` (rims) + `Front/Rear_Tire_L/R`. Radii: front 0.757 m, rear 0.955 m. Front track 1.89 m.
 - `rotater_01..03_L/R` = front hubs/knuckles. They are parented to the steer pivot (they steer but don't spin).
 - Generated pivots: `Wheel_XX` (steer, local Y) > `Spin` (local X) > meshes.
-- The **steering wheel is not a separate object**. It is part of `SM2_..._Cab_Interier_01` and must be split out (Blender, or a mesh split by vertex region) before it can turn.
+- The **steering wheel is baked into** `SM2_..._Cab_Interier_01`. `ProjectSetup.SplitSteeringWheel` cuts it out at setup time: the mesh is split into
+  connected pieces (vertices welded by position), the rim is the largest centred piece 0.3–0.5 m wide, and its PCA plane gives the column axis.
+  Pieces lying flat inside the rim (hub cap) go with it. Output: `Generated/CabInterior_NoWheel.asset` + `Generated/SteeringWheel.asset`,
+  hierarchy `Tractor/SteeringColumn` (Z = axis, away from the driver) > `SteeringWheel` (spins on local Z) > `WheelMesh`.
+  Wheel centre (0, 2.35, 1.09), Ø 0.397 m, rim 23° from horizontal. Right turn = negative local Z rotation.
+- Instrument cluster = the glass piece of the interior nearest the wheel (0.257 × 0.109 m). The generated dial face sits 4 mm in front of it.
+  From the seat, the hub hides the middle of the cluster and the column shroud hides its lower half, so the readouts live in the upper half of each dial.
 - Separate hydraulic parts that can be animated later: `Rear_Holder_*`, `Rear_Forcer_*`, `Front_Forcer_*`, `Front_Small_Forcer_*`, `Front_Main_Forcer_01`, `Door_L/R`.
 - **Textures are missing**: the FBX references `..\tex\*.tif` from the original TurboSquid package, which was not included.
   `ProjectSetup.ApplyMaterials` rebuilds the materials by name. `Body_paint` is shared by the body and the rims, so it is
@@ -62,6 +71,13 @@ $u = "C:\Program Files\Unity\Hub\Editor\6000.6.3f1\Editor\Unity.exe"
 - **Comfort is a requirement**: the first headset test caused motion sickness. Keep acceleration ≤ ~1 m/s², the yaw-rate cap (`maxYawRate`) and lateral limit (`maxLateralAccel`), and don't add camera motion the head didn't make (no bob, shake, pitch/roll on the rig).
 - The vignette is a head-locked quad 1 m in front of the camera (far enough that both eyes see it centred), ZTest Always, Overlay queue. Its shader needs the `UNITY_VERTEX_OUTPUT_STEREO` macros, or it renders in one eye only on Quest (multiview).
 - Controllers are Meta's Quest 2 models (only the FBX/texture, the SDK is not installed). They are authored in Meta's **pointer frame** (origin on the face plate, +Z along the laser), so they're driven by the OpenXR **aim** pose (`pointerPosition/pointerRotation`, not `devicePosition`) and offset so the model's `*_laser_begin` node sits on that pose. Bones: `b_thumbstick`, `b_button_a/b` (`x/y` on the left), `b_trigger_front`, `b_trigger_grip`. Press ranges come from Meta's animation curves (stick ±22°, buttons 1.78 mm, trigger 20°).
+- Built-in TextMesh font materials draw **on top of everything** (no depth test). That's fine for the HUD, but world-space text uses
+  `TractorVR/WorldText`. Its font atlas is assigned at runtime (`Dashboard.Awake` + `Font.textureRebuilt`).
+- Audio is **synthesised** in `ProjectSetup` (`EngineClips`, `ShiftClip`, `BeeperClip`, `HornClip`) → 16-bit WAVs in `Generated/Audio`, imported as PCM
+  (seamless loops). The engine loops are exactly 10 engine cycles at 1000 rpm (1.2 s). Quest speakers are weak below ~150 Hz, so the
+  "clatter" band (3.2 kHz) carries the diesel character.
+- Drivetrain does not change how fast the tractor accelerates. The comfort-limited `TractorController` still owns speed, and the drivetrain
+  derives gear/RPM/load from it (and caps the target speed in manual mode).
 - The first render in a batch-mode session comes out grey, so `RenderPreviews` throws a warm-up shot away.
 - If a preview PNG is open in a viewer, Windows locks it and `RenderPreviews` fails with `IOException ... 1224`. Delete or close the old images first.
 - Quest blocks a launch via adb with a "controllers required" dialog while the headset sleeps. That isn't a crash.

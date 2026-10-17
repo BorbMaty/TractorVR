@@ -119,3 +119,51 @@ What happened today, in order:
 
 Workflow lessons (also in CLAUDE.md): the editor must be closed for batch builds; closing it resets adb authorization unless
 *Always allow* is ticked; a launch via adb is blocked while the headset sleeps; preview PNGs open in a viewer get locked by Windows.
+
+## 2026-10-17: Phase 1 closed, phase 2 started (steering wheel + drivetrain)
+Phase 1 was accepted after the headset tests. For phase 2 the first block chosen was **steering wheel + drivetrain**, because those
+make the biggest difference to how the tractor feels in the headset.
+
+**Steering wheel, without Blender** (`ProjectSetup.SplitSteeringWheel`)
+- The wheel is baked into `Cab_Interier_01` (37 177 vertices, 11 submeshes). A temporary analysis split that mesh into connected pieces
+  (union-find over triangles, with vertices welded by position so UV seams don't break pieces apart). The largest piece turned out to be the rim:
+  centred at x = 0, 0.40 m across.
+- The setup script now does this automatically. Rim = largest centred piece 0.3–0.5 m wide. Its best-fit plane (PCA via power iteration)
+  gives the column axis (rim 23° from horizontal). Every piece lying flat inside the rim (the hub cap) goes with it. The interior is rebuilt
+  without those triangles, and the wheel becomes its own mesh in a pivot frame (`SteeringColumn` > `SteeringWheel` > `WheelMesh`).
+- `TractorController` turns it by `SteerAngle × 13` (40° lock → ±520°, ~2.9 turns lock to lock). Right turn = clockwise as seen by the driver.
+
+**Instrument cluster** (`Dashboard.cs`)
+- Placed on the glass piece nearest the wheel (0.257 × 0.109 m): a generated face texture with two tick rings (0–3000 rpm with a red zone
+  above 2250, 0–60 km/h), needles, scale numbers, direction + gear, AUTO/MAN.
+- The built-in TextMesh font shader ignores depth, so the text showed through the wheel hub. A small `TractorVR/WorldText` shader fixes it
+  (with stereo macros for Quest multiview).
+- From the seat the hub hides the middle of the cluster and the column shroud hides the lower half, so the readouts were moved to the upper half of the dials.
+  The HUD also shows speed, direction, gear and rpm now.
+
+**Drivetrain** (`Drivetrain.cs`), loosely after the 6195M's AutoQuad Plus 20/20
+- 20 forward / 20 reverse gears, named A1–E4 (5 ranges × 4 powershift steps), geometric from 2.4 to 50 km/h at the rated 2100 rpm.
+  Engine idle 850, high idle 2250 rpm.
+- **Auto**: pulls away in B2, shifts up above 1950 rpm and down below 1300 rpm, at least 0.5 s between shifts.
+  **Manual**: right stick flick → / ← shifts. The gear caps the speed (stick = share of the gear's top speed), and downshifts that would over-rev are refused.
+- RPM is locked to the wheels through the gear, with clutch slip (idle + up to 250 rpm) when pulling away. Load (for sound) = accelerating share + rolling resistance.
+- Design decision: the drivetrain does **not** change the acceleration. The comfort limits from phase 1 stay in charge, and the drivetrain is derived from the motion.
+  Top speed is raised from 40 to the real 50 km/h. The lateral/yaw limits still keep turns at speed gentle.
+
+**Sounds** (`TractorAudio.cs`, all synthesised by `ProjectSetup`, no third-party samples)
+- Engine: two loops at 1000 rpm (light/heavy load). Six-cylinder firing at 50 Hz excites exhaust/body/block resonances (85/240/700 Hz), plus a short
+  3.2 kHz clatter burst and some breath noise per firing. The cylinders differ slightly in strength for the uneven diesel beat. Each loop is exactly 10 engine cycles
+  (1.2 s), so it repeats seamlessly. The loops are pitched by RPM/1000 and cross-faded by load (equal power), and low-passed at 2.2 kHz in the cab view.
+- Spectrum check of the first version: 93 % of the energy was below 300 Hz and only 1 % in the clatter band. Quest speakers barely reproduce that,
+  so the clatter was boosted and the loops normalised separately.
+- Shift clunk (thump + click + hydraulic hiss), 1 kHz reverse beeper (whenever the shuttle is in R), two-tone 400/500 Hz horn on the right trigger.
+
+**New controls**: right stick flick → / ← = shift (switches to manual), Y = auto/manual (saved), right trigger = horn.
+Keyboard: X / Z, T, H.
+
+**Build**: setup + APK build in batch mode without errors (59.3 MB), installed over adb. The launch check was blocked by the
+"controllers required" dialog (headset asleep), so a **headset test is still to do**.
+
+| Cab | Cluster close-up (wheel turned 90° right) |
+|---|---|
+| ![cab](images/cab.png) | ![dash](images/dash.png) |
