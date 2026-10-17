@@ -1,15 +1,13 @@
 # Roadmap
 
-## ▶ Where we left off (2026-10-17, night)
-Phase 2 order: **1. physics + terrain ✅ → 2. hydraulics + implements ✅ → 3. VR interaction**.
-- Block 3 headset test: controllers ✅, cab panel ✅ (also with hand tracking). Hand tracking on the wheel / lever **shook and kept dropping the grab**.
-  Fixed (filter + grab debounce + tracking grace, replay test in `PhysicsTest` N). Hand-tracking grabs now visible: **the lever's button block stayed behind** when the lever moved.
-  Fixed (knob pieces cut out with the lever). Then: **the lever looked like it broke off its stem** (the rod into the gate stayed put).
-  Fixed (rod included, pivot moved down into the gate). Installed, ⏳ re-check. Hand-tracking grabs still feel fussy, see the proposals in the DEVLOG (2026-10-18).
+## ▶ Where we left off (2026-10-18)
+Phase 2 blocks 1–3 are built and headset-tested (hand-tracking grabs still a bit fussy, improvement ideas listed under VR interaction).
+Now: **cab visuals**. Interior textures + baked ambient occlusion are built and installed, ⏳ headset check.
 
 **Next session:**
-1. Headset re-check: hand tracking on the steering wheel and the speed lever (fist or pinch); the whole lever top moves
-2. Tune if needed (`VRHands.HandSignal`: minCutoff, beta, releaseDelay, lostGrace), then decide what comes after phase 2
+1. Headset check of the interior (grain strength, darkness of the AO, floor mat, seat fabric) and the lever (moves as one piece now)
+2. **Working mirrors** (planned next): a small render-texture camera per mirror, low resolution, short draw distance, no shadows,
+   every other frame, plus a MIRRORS on/off panel button; measure the frame rate on the Quest before keeping it
 
 ## Phase 1: flat world, general controls ✅ done (closed 2026-10-17)
 Goal: drive the John Deere 6195M on a flat world with the Quest 2 thumbsticks, from two viewpoints.
@@ -46,6 +44,9 @@ First block, chosen 2026-10-17: **steering wheel + drivetrain** (biggest effect 
 ### Cab realism
 - [x] Split the steering wheel out of `Cab_Interier_01` (done in code, no Blender needed) and rotate it with the steering input (ratio 13 → ~2.9 turns lock to lock). Built 2026-10-17, ✅ headset-tested 2026-10-17
 - [x] Instrument cluster: RPM + speed dials with needles, direction + gear, AUTO/MAN. Built 2026-10-17, ✅ headset-tested 2026-10-17
+- [x] Interior textures: generated tiling detail (fine plastic grain, seat fabric weave, ribbed floor mat, pedal tread) through a triplanar shader
+  (the cab plastics have no usable UVs), plus baked ambient occlusion on the cab interior, wheel and lever. Built 2026-10-18, ⏳ headset check
+- [ ] Working mirrors (render textures, on/off in the panel), next
 - [ ] Dashboard extras: fuel/temperature, CommandCenter display on the right corner post
 - [ ] Opening doors (`Door_L/R` are already separate)
 

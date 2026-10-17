@@ -406,6 +406,11 @@ public static class ProjectSetup
         var cabControls = root.AddComponent<CabControls>();
         cabControls.speedLever = speedLever;
         cabControls.knobLocal = speedLever.InverseTransformPoint(root.transform.TransformPoint(leverKnob));
+
+        // 7) Interior detail: baked ambient occlusion on the cab interior, wheel and lever, then textured materials.
+        var aoTargets = new[] { Part("Cab_Interier_01").GetComponent<MeshFilter>(), ctrl.steeringWheel.GetComponentInChildren<MeshFilter>(), speedLever.GetComponentInChildren<MeshFilter>() };
+        BakeAmbientOcclusion(root.transform, aoTargets, log);
+        ApplyDetailMaterials(root.transform, new System.Collections.Generic.HashSet<Mesh>(aoTargets.Select(t => t.sharedMesh)), log);
         var drivetrain = root.AddComponent<Drivetrain>();
         BuildLinkage(root.transform, Part, log);
         BuildDashboard(root.transform, clusterPose, clusterSize, ctrl, drivetrain, log);
@@ -1100,6 +1105,232 @@ public static class ProjectSetup
         }
     }
 
+    // ------------------------------------------------------------------ interior detail: textures + baked ambient occlusion
+    // The FBX's textures are missing and most cab plastics have degenerate UVs, so surfaces get generated tiling detail
+    // (grain, fabric weave, rubber mat ribs, pedal tread) through the TractorVR/TriplanarLit shader, which needs no UVs.
+    // Cab interior, steering wheel and speed lever also get baked ambient occlusion in their vertex colours.
+    const string TexDir = GenDir + "/Textures";
+
+    class DetailKind
+    {
+        public string name; public float tile; public float normal; public float smooth; public float brighten = 1.08f;
+        public System.Func<int, int, int, float> height;    // (x, y, size) → 0..1, tileable
+        public float bump = 6f;                              // normal-map slope scale
+        public float albedoContrast = 0.15f;
+    }
+
+    static float Hash(int x, int y, int seed)
+    {
+        unchecked
+        {
+            uint h = (uint)(x * 374761393 + y * 668265263 + seed * 2147483647);
+            h = (h ^ (h >> 13)) * 1274126177u;
+            return ((h ^ (h >> 16)) & 0xFFFFFF) / (float)0xFFFFFF;
+        }
+    }
+
+    // Value noise that tiles over the texture: `cells` lattice cells across, wrapped.
+    static float TileNoise(float u, float v, int cells, int seed)
+    {
+        float x = u * cells, y = v * cells;
+        int x0 = Mathf.FloorToInt(x), y0 = Mathf.FloorToInt(y);
+        float fx = x - x0, fy = y - y0;
+        fx = fx * fx * (3f - 2f * fx); fy = fy * fy * (3f - 2f * fy);
+        int W(int a) => ((a % cells) + cells) % cells;
+        float a00 = Hash(W(x0), W(y0), seed), a10 = Hash(W(x0 + 1), W(y0), seed);
+        float a01 = Hash(W(x0), W(y0 + 1), seed), a11 = Hash(W(x0 + 1), W(y0 + 1), seed);
+        return Mathf.Lerp(Mathf.Lerp(a00, a10, fx), Mathf.Lerp(a01, a11, fx), fy);
+    }
+
+    static readonly DetailKind[] DetailKinds =
+    {
+        new DetailKind { name = "Grain", tile = 0.06f, normal = 0.3f, smooth = 0.32f, bump = 4f, albedoContrast = 0.07f, height = (x, y, n) =>   // fine leather-like grain
+        {
+            float u = x / (float)n, v = y / (float)n;
+            float h = 0.55f * TileNoise(u, v, 40, 1) + 0.3f * TileNoise(u, v, 80, 2) + 0.15f * TileNoise(u, v, 160, 3);
+            return Mathf.Pow(h, 1.6f);
+        }},
+        new DetailKind { name = "Fabric", tile = 0.06f, normal = 1f, smooth = 0.08f, bump = 9f, albedoContrast = 0.3f, height = (x, y, n) =>
+        {
+            // Plain weave, 40 threads each way per tile: in alternate cells the warp or the weft lies on top.
+            float u = x * 40f / n, v = y * 40f / n;
+            int iu = Mathf.FloorToInt(u), iv = Mathf.FloorToInt(v);
+            float fu = u - iu, fv = v - iv;
+            float warp = Mathf.Sqrt(Mathf.Sin(Mathf.PI * fv)), weft = Mathf.Sqrt(Mathf.Sin(Mathf.PI * fu));
+            float h = ((iu + iv) & 1) == 0 ? 0.35f + 0.65f * warp * (0.6f + 0.4f * Mathf.Sin(Mathf.PI * fu)) : 0.35f + 0.65f * weft * (0.6f + 0.4f * Mathf.Sin(Mathf.PI * fv));
+            return h * (0.85f + 0.15f * TileNoise(x / (float)n, y / (float)n, 64, 4));
+        }},
+        new DetailKind { name = "Mat", tile = 0.24f, normal = 1f, smooth = 0.2f, bump = 7f, albedoContrast = 0.25f, height = (x, y, n) =>
+        {
+            // Rubber floor mat: 16 rounded ribs per tile with a fine grain on top.
+            float v = y * 16f / n, f = v - Mathf.Floor(v);
+            float rib = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((0.42f - Mathf.Abs(f - 0.5f)) * 8f));
+            return 0.8f * rib + 0.2f * TileNoise(x / (float)n, y / (float)n, 96, 5);
+        }},
+        new DetailKind { name = "Tread", tile = 0.05f, normal = 1f, smooth = 0.25f, bump = 8f, albedoContrast = 0.25f, height = (x, y, n) =>
+        {
+            // Pedal pads: 6 × 6 raised blocks per tile.
+            float u = x * 6f / n, v = y * 6f / n;
+            float fu = u - Mathf.Floor(u), fv = v - Mathf.Floor(v);
+            float e = Mathf.Min(Mathf.Min(fu, 1f - fu), Mathf.Min(fv, 1f - fv));
+            return Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((e - 0.08f) * 12f));
+        }},
+    };
+
+    // Which rebuilt material gets which detail (base colours stay as ApplyMaterials made them; the floor mat goes darker).
+    static readonly System.Collections.Generic.Dictionary<string, string> DetailFor = new System.Collections.Generic.Dictionary<string, string>
+    {
+        { "Tractor_color_plastics", "Grain" }, { "Tractor_Plastic_black", "Grain" }, { "Tractor_Dashboard", "Grain" },
+        { "Tractor_Rubber_black", "Grain" }, { "Tractor_Seat_cloth01", "Fabric" }, { "Tractor_Seat_cloth02", "Fabric" },
+        { "Tractor_cloth", "Fabric" }, { "Tractor_Cabin_floor", "Mat" }, { "Tractor_pedal", "Tread" },
+    };
+
+    static (Texture2D detail, Texture2D normal) DetailTextures(DetailKind k)
+    {
+        const int n = 512;
+        Directory.CreateDirectory(TexDir);
+        var h = new float[n, n];
+        for (int y = 0; y < n; y++) for (int x = 0; x < n; x++) h[x, y] = k.height(x, y, n);
+        var albedo = new Texture2D(n, n, TextureFormat.RGB24, false);
+        var normal = new Texture2D(n, n, TextureFormat.RGB24, false);
+        for (int y = 0; y < n; y++)
+        for (int x = 0; x < n; x++)
+        {
+            float a = Mathf.Lerp(1f - k.albedoContrast, 1f, h[x, y]);
+            albedo.SetPixel(x, y, new Color(a, a, a));
+            float dx = h[(x + 1) % n, y] - h[(x + n - 1) % n, y];
+            float dy = h[x, (y + 1) % n] - h[x, (y + n - 1) % n];
+            Vector3 nn = new Vector3(-dx * k.bump, -dy * k.bump, 1f).normalized;
+            normal.SetPixel(x, y, new Color(nn.x * 0.5f + 0.5f, nn.y * 0.5f + 0.5f, nn.z * 0.5f + 0.5f));
+        }
+        Texture2D Write(Texture2D t, string file, bool isNormal)
+        {
+            string path = $"{TexDir}/{file}.png";
+            File.WriteAllBytes(path, t.EncodeToPNG());
+            AssetDatabase.ImportAsset(path);
+            var imp = (TextureImporter)AssetImporter.GetAtPath(path);
+            imp.textureType = isNormal ? TextureImporterType.NormalMap : TextureImporterType.Default;
+            imp.sRGBTexture = !isNormal;
+            imp.wrapMode = TextureWrapMode.Repeat;
+            imp.mipmapEnabled = true;
+            imp.anisoLevel = 4;
+            imp.maxTextureSize = 512;
+            imp.SaveAndReimport();
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+        }
+        return (Write(albedo, "Detail_" + k.name, false), Write(normal, "Normal_" + k.name, true));
+    }
+
+    // Swaps the plain rebuilt materials for TriplanarLit versions with detail; "_ao" variants on meshes with baked AO.
+    static void ApplyDetailMaterials(Transform root, System.Collections.Generic.HashSet<Mesh> withAO, StringBuilder log)
+    {
+        var shader = Shader.Find("TractorVR/TriplanarLit");
+        var textures = DetailKinds.ToDictionary(k => k.name, k => (kind: k, tex: DetailTextures(k)));
+        var cache = new System.Collections.Generic.Dictionary<string, Material>();
+        int swapped = 0;
+        foreach (var r in root.GetComponentsInChildren<MeshRenderer>(true))
+        {
+            var mf = r.GetComponent<MeshFilter>();
+            bool ao = mf != null && withAO.Contains(mf.sharedMesh);
+            r.sharedMaterials = r.sharedMaterials.Select(m =>
+            {
+                if (m == null || !DetailFor.TryGetValue(m.name, out string kindName)) return m;
+                string key = m.name + (ao ? "_ao" : "");
+                if (cache.TryGetValue(key, out var done)) return done;
+                var (kind, tex) = textures[kindName];
+                var t = new Material(shader) { name = key + "_detail" };
+                Color c = m.GetColor("_BaseColor");
+                if (m.name == "Tractor_Cabin_floor") c = new Color(0.16f, 0.16f, 0.16f);
+                t.SetColor("_BaseColor", new Color(c.r * kind.brighten, c.g * kind.brighten, c.b * kind.brighten, 1f));
+                t.SetTexture("_DetailMap", tex.detail);
+                t.SetTexture("_NormalMap", tex.normal);
+                t.SetFloat("_NormalStrength", kind.normal);
+                t.SetFloat("_Tiling", 1f / kind.tile);
+                t.SetFloat("_Smoothness", kind.smooth);
+                t.SetFloat("_Metallic", 0f);
+                t.SetFloat("_AOStrength", ao ? 1f : 0f);
+                swapped++;
+                return cache[key] = SaveMat(t, key + "_detail");
+            }).ToArray();
+        }
+        log.AppendLine($"Detail materials: {cache.Count} ({string.Join(", ", cache.Keys)})");
+    }
+
+    // Ambient occlusion per vertex: 32 cosine-weighted rays up to 35 cm against the tractor's opaque geometry (temporary
+    // mesh colliders without the glass), stored in the vertex colour (red). Darkens corners, gaps, the footwell and under the dash.
+    static void BakeAmbientOcclusion(Transform root, MeshFilter[] targets, StringBuilder log)
+    {
+        var temp = new System.Collections.Generic.List<GameObject>();
+        Bounds cab = WorldBounds(targets.Select(t => t.transform).ToArray());
+        cab.Expand(0.8f);
+        foreach (var r in root.GetComponentsInChildren<MeshRenderer>(true))
+        {
+            var mf = r.GetComponent<MeshFilter>();
+            if (mf == null || mf.sharedMesh == null || !r.bounds.Intersects(cab)) continue;
+            var src = mf.sharedMesh;
+            var tris = new System.Collections.Generic.List<int>();
+            for (int s = 0; s < src.subMeshCount && s < r.sharedMaterials.Length; s++)
+            {
+                var m = r.sharedMaterials[s];
+                if (m == null || m.renderQueue >= (int)RenderQueue.Transparent || m.name.Contains("Glass")) continue;
+                tris.AddRange(src.GetTriangles(s));
+            }
+            if (tris.Count == 0) continue;
+            // World-space copy at the scene root: the tractor is a non-kinematic Rigidbody, which can't own non-convex mesh colliders.
+            var cm = new Mesh { indexFormat = IndexFormat.UInt32, vertices = src.vertices.Select(x => r.transform.TransformPoint(x)).ToArray() };
+            cm.SetTriangles(tris, 0);
+            var go = new GameObject("AO collider");
+            go.AddComponent<MeshCollider>().sharedMesh = cm;
+            temp.Add(go);
+        }
+        Physics.SyncTransforms();
+
+        // Fixed cosine-weighted hemisphere directions (around +Z).
+        const int rays = 32;
+        var dirs = new Vector3[rays];
+        for (int i = 0; i < rays; i++)
+        {
+            float u = (i + 0.5f) / rays, phi = i * 2.39996323f;   // golden angle
+            float rr = Mathf.Sqrt(u);
+            dirs[i] = new Vector3(rr * Mathf.Cos(phi), rr * Mathf.Sin(phi), Mathf.Sqrt(1f - u));
+        }
+        const float maxDist = 0.35f;
+        int total = 0; float sum = 0f;
+        foreach (var mf in targets)
+        {
+            var mesh = mf.sharedMesh;
+            var v = mesh.vertices; var nrm = mesh.normals;
+            var colors = new Color[v.Length];
+            var cacheAo = new System.Collections.Generic.Dictionary<(Vector3Int, Vector3Int), float>();
+            for (int i = 0; i < v.Length; i++)
+            {
+                Vector3 p = mf.transform.TransformPoint(v[i]);
+                Vector3 n = mf.transform.TransformDirection(nrm[i]).normalized;
+                var key = (Vector3Int.RoundToInt(p * 2000f), Vector3Int.RoundToInt(n * 50f));
+                if (!cacheAo.TryGetValue(key, out float ao))
+                {
+                    Quaternion frame = Quaternion.FromToRotation(Vector3.forward, n);
+                    float occ = 0f;
+                    for (int r = 0; r < rays; r++)
+                        if (Physics.Raycast(p + n * 0.003f, frame * dirs[r], out RaycastHit hit, maxDist, 1 << 0, QueryTriggerInteraction.Ignore))
+                        {
+                            float f = 1f - hit.distance / maxDist;
+                            occ += f * f;
+                        }
+                    ao = Mathf.Clamp(1f - 1.4f * occ / rays, 0.2f, 1f);
+                    cacheAo[key] = ao;
+                }
+                colors[i] = new Color(ao, ao, ao, 1f);
+                sum += ao; total++;
+            }
+            mesh.colors = colors;
+            EditorUtility.SetDirty(mesh);
+        }
+        foreach (var go in temp) Object.DestroyImmediate(go);
+        AssetDatabase.SaveAssets();
+        log.AppendLine($"Ambient occlusion baked: {total} vertices on {targets.Length} meshes, {temp.Count} occluder meshes, mean AO {sum / Mathf.Max(1, total):0.00}");
+    }
+
     // ------------------------------------------------------------------ hydraulics: linkage hinges
     // The model's linkage parts have their pivots on the real hinge points (rockshaft, lower link pins, arm tips).
     // Each moving part gets a tractor-aligned hinge at its pivot, so Hitch only has to turn hinges around X.
@@ -1686,6 +1917,8 @@ public static class ProjectSetup
         }
         cam.fieldOfView = 90f;
         cabCtl.speedLever.localRotation = Quaternion.identity;
+
+        panelComp.gameObject.SetActive(false);   // keep it out of the other shots
 
         // Instrument cluster from the seat: needles at 1500 rpm / 20 km/h, steering wheel turned 90° for a right turn.
         var board = Object.FindAnyObjectByType<Dashboard>();

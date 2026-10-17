@@ -24,6 +24,7 @@ See `README.md` for controls, `docs/ROADMAP.md` for what's next and `docs/DEVLOG
 | `Assets/Scripts/CabControls.cs` | Grab the wheel (rim angle in `SteeringColumn` space → `TractorController.HoldSteer`) and the speed lever (→ `TractorInput.leverThrottle`) |
 | `Assets/Scripts/CabPanel.cs` | Rig-locked touch panel (built at runtime from materials set by setup); also sets `CabPanel.Mph` |
 | `Assets/Scripts/Editor/QuestManifest.cs` | Gradle post-process: HAND_TRACKING permission + handtracking feature in the Quest manifest |
+| `Assets/Shaders/TriplanarLit.shader` | URP lit with triplanar detail + normal map in object space (metres), vertex-colour AO; UsePass Lit shadow/depth |
 | `Assets/Scripts/TerrainGenerator.cs` | Hills built at runtime from `Height(x,z)` (8×8 chunks, 5 m grid, MeshColliders) |
 | `Assets/Scripts/Editor/PhysicsTest.cs` | Offline driving test (scripted sticks, manual `Physics.Simulate`) → `Logs/PhysicsTest.txt` |
 | `Assets/Scripts/VRCameraRig.cs` | Cab / third-person views, recenter, seat calibration (PlayerPrefs) |
@@ -69,6 +70,11 @@ $u = "C:\Program Files\Unity\Hub\Editor\6000.6.3f1\Editor\Unity.exe"
   **plus the stem** (thin rod into the gate, separate piece just below the stalk). The pivot is the bottom of the stem, inside the gate (0.403, 2.189, 0.696).
   Cut out like the wheel, hinge `Tractor/SpeedLever`, knob (0.257, 2.417, 0.606), tilts ±25° around X (+ = forward).
   The right console also has three hydraulic remote levers (knobs at x 0.42/0.47/0.52, z 0.50) and the H-gate plate. They're still static.
+- **UVs:** the cab plastics / dashboard have degenerate UVs (median 0.04–0.09 UV units per metre, many zero-area triangles: made for plain colours).
+  Only seat cloth (4.6 UV/m), pedals and floor have real UVs. Hence `TractorVR/TriplanarLit` for detail (`ProjectSetup.ApplyDetailMaterials`,
+  textures written as PNGs to `Generated/Textures`, normal maps imported as NormalMap). `_ao` material variants are used on meshes with baked AO.
+- **Baked AO** (`BakeAmbientOcclusion`): 32 cosine-weighted rays per vertex up to 35 cm against temporary world-space mesh colliders at the scene root
+  (the tractor is a non-kinematic Rigidbody, which can't own non-convex mesh colliders), glass excluded. Stored in the vertex colour (red). Mean AO 0.61.
 - Instrument cluster = the glass piece of the interior nearest the wheel (0.257 × 0.109 m). The generated dial face sits 4 mm in front of it.
   From the seat, the hub hides the middle of the cluster and the column shroud hides its lower half, so the readouts live in the upper half of each dial.
 - Linkage parts have their **pivots on the real hinge points** (verified with tinted renders): `Rear_Holder_Ruler_01` lift arms (rockshaft y 1.588 z −0.119),

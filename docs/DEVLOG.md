@@ -377,3 +377,22 @@ whole handle tilting together. Tests unchanged, APK installed, ⏳ re-check.
 | ![rest](images/lever_side_rest.png) | ![forward](images/lever_side_fwd.png) |
 - Neutral with hand controls: only by bringing the speed lever back into its ±8 % neutral zone (about ±2°, under 1 cm at the knob), which is fiddly with
   hand tracking. A wider notchy neutral and a NEUTRAL/STOP panel button were added to the ROADMAP as possible improvements, together with the three grab proposals.
+
+## 2026-10-18: Interior textures + baked ambient occlusion
+The model's textures are missing, so the cab was plain grey. A UV check per material showed why simple tiling textures can't fix that:
+the plastics and dashboard (most of the cab) have **degenerate UVs** (median 0.04–0.09 UV units per metre, thousands of zero-area triangles). They were
+made for plain colours. Only the seat cloth, pedals and floor are properly mapped.
+
+- **`TractorVR/TriplanarLit`** (new shader): URP lighting (`UniversalFragmentPBR`, main-light shadows, SH ambient, fog, stereo) with a detail texture and
+  normal map projected from three directions in the object's own space, scaled to metres, so nothing slides when the tractor moves.
+  Normal blending: whiteout. Shadow and depth passes are reused from URP Lit (`UsePass`).
+- **Generated tiling textures** (512², PNG + normal map, by the setup script): fine leather-like plastic grain (6 cm tile, kept subtle after a first
+  version looked like plaster), plain-weave seat fabric (40 threads per 6 cm), ribbed rubber floor mat (16 ribs per 24 cm, floor darkened),
+  pedal tread blocks. 12 materials (plastics, dashboard, rubber, seat cloth, floor, pedals; `_ao` variants inside the cab).
+- **Baked ambient occlusion** on the cab interior, steering wheel and speed lever (37,177 vertices): 32 rays per vertex, up to 35 cm, against the tractor's
+  opaque geometry (glass left out), stored in the vertex colours. Corners, gaps, the cup holder, the footwell and under the dash now have depth. It costs nothing at runtime.
+- APK 61.4 MB (+2 MB). All `PhysicsTest` scenarios unchanged. ⏳ Headset check.
+
+| Interior | Console and lever |
+|---|---|
+| ![interior](images/interior.png) | ![lever](images/lever.png) |
