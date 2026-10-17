@@ -49,6 +49,7 @@ public class TractorController : MonoBehaviour
 
     [Header("Engine")]
     public float enginePowerKW = 145f;          // 195 hp
+    [System.NonSerialized] public float towedMass;   // trailer on the drawbar (set by Hitch): the drive force accelerates it too
     public float speedTracking = 2.5f;          // 1/s, how hard the drive force pulls the speed onto the command
 
     [Header("Speed")]
@@ -84,6 +85,7 @@ public class TractorController : MonoBehaviour
 
     TractorInput input;
     Drivetrain drivetrain;
+    Hitch hitch;
     Rigidbody rb;
     float speedCmd;
     Vector3 spawnPos;
@@ -96,6 +98,7 @@ public class TractorController : MonoBehaviour
     {
         input = GetComponent<TractorInput>();
         drivetrain = GetComponent<Drivetrain>();
+        hitch = GetComponent<Hitch>();
         rb = GetComponent<Rigidbody>();
         rb.isKinematic = false;
         rb.mass = mass;
@@ -245,13 +248,17 @@ public class TractorController : MonoBehaviour
             float drift = Vector3.Dot(rb.position - holdPos, transform.forward);
             wanted = -SpeedMs / dt * 0.5f - 20f * drift;
         }
-        float force = rb.mass * (wanted - slope) + rb.mass * roll;               // ...which the drive force overcomes
+        float m = rb.mass + towedMass;
+        float force = m * (wanted - slope) + m * roll;               // ...which the drive force overcomes
+        // Implement draft (plough) is known, so pull against it directly instead of leaving it to the speed error.
+        if (hitch && Mathf.Abs(SpeedMs) > 0.05f) force += Mathf.Sign(SpeedMs) * hitch.DraftForce;
 
         // Engine power limit while driving (not while braking).
         bool driving = !holding && force * (Mathf.Abs(SpeedMs) > 0.1f ? SpeedMs : speedCmd) > 0f;
         if (driving)
         {
-            float maxForce = enginePowerKW * 1000f / Mathf.Max(Mathf.Abs(SpeedMs), 2f);
+            float available = Mathf.Max(10f, enginePowerKW - (hitch ? hitch.PtoPowerKW : 0f));   // the PTO takes its share first
+            float maxForce = available * 1000f / Mathf.Max(Mathf.Abs(SpeedMs), 2f);
             force = Mathf.Clamp(force, -maxForce, maxForce);
         }
         PowerFraction = driving ? Mathf.Clamp01(Mathf.Abs(force * SpeedMs) / (enginePowerKW * 1000f)) : 0f;

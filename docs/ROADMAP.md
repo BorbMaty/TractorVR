@@ -1,15 +1,15 @@
 # Roadmap
 
-## ▶ Where we left off (2026-10-17, evening)
-Phase 2 order agreed on 2026-10-17: **1. physics + terrain → 2. hydraulics + implements → 3. VR interaction**.
-- Block 0 (steering wheel, cluster, gearbox, sounds): ✅ headset-tested.
-- Block 1 (**physics + terrain**): ✅ headset-tested 2026-10-17 (hills, cab pitch/roll, bales all fine; no tuning needed).
-- Block 2 (**hydraulics + implements**): in progress.
+## ▶ Where we left off (2026-10-17, late evening)
+Phase 2 order: **1. physics + terrain ✅ → 2. hydraulics + implements → 3. VR interaction**.
+- Block 2 (**hydraulics + implements**): built, passes the offline test (scenarios I–L in `PhysicsTest`), installed on the Quest 2,
+  **not headset-tested yet**.
 
 **Next session:**
-1. Headset test of the physics build: comfort on the hills (the cab view now pitches and rolls with the tractor), driving feel, pushing bales, frame rate
-2. Tune from the test. If the cab pitch/roll is uncomfortable, options: horizon-levelled cab view, flatter hills, stronger vignette on pitch/roll
-3. Then block 2: hydraulics + implements
+1. Headset test: hitch/front linkage controls (left stick ↑↓, left trigger), attaching (left stick click) the plough, mower and trailer,
+   ploughing (furrows, engine load), mowing with the PTO (right stick click), towing and reversing with the trailer
+2. Tune from the test (attach reach/angle, lift speed, draft, trail look)
+3. Then block 3: VR interaction (grab the steering wheel and joystick, hands, settings menu)
 
 ## Phase 1: flat world, general controls ✅ done (closed 2026-10-17)
 Goal: drive the John Deere 6195M on a flat world with the Quest 2 thumbsticks, from two viewpoints.
@@ -61,10 +61,13 @@ First block, chosen 2026-10-17: **steering wheel + drivetrain** (biggest effect 
 - [x] Offline physics test in the editor (`PhysicsTest`): settle, acceleration, turns, steepest hill, parking, bale push
 - [ ] Wheel slip / spin visuals, soil types, ballast settings
 
-### Hydraulics and implements
-- [ ] Animate the 3-point hitch (`Rear_Holder_*`, `Rear_Forcer_*`) and front linkage (`Front_Forcer_*`)
-- [ ] PTO
-- [ ] Attach implements: plough, trailer, mower
+### Hydraulics and implements (block 2)
+- [x] Rear 3-point hitch animated as a real four-bar linkage from the model's pivots (lift arms, lift rods, lower links, stabilisers, lift cylinders); link ends 0.43–1.27 m. Built 2026-10-17, ⏳ headset test
+- [x] Front linkage: lower links fold from stowed down to working position. Built 2026-10-17, ⏳ headset test
+- [x] PTO on/off (1000 rpm at 1900 engine rpm; AUTO holds the engine at PTO speed; PTO power reduces drive power). ⏳ headset test
+- [x] Implements (built from primitives): 3-furrow plough (rear, 30 kN draft, depth control, furrow trail), 3 m front disc mower (PTO, spinning discs, mown strip), single-axle trailer (drawbar ball joint, own raycast wheels, jack). ⏳ headset test
+- [x] Attach/detach with reach/alignment/height checks and HUD guidance; mounted mass moves the centre of mass
+- [ ] Top link visual for mounted implements, front cylinders, trailer tipping, better implement models
 
 ### Environment
 - [x] Terrain with gentle hills (2 × 2 km, generated at runtime, slopes up to ~11°, flat start area), haze, lower sun. Built 2026-10-17, ✅ headset-tested 2026-10-17

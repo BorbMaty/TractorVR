@@ -24,6 +24,10 @@ Docs: [Roadmap](docs/ROADMAP.md) · [Development log](docs/DEVLOG.md) · [CLAUDE
 - **Terrain**: 2 × 2 km of gentle hills (flat around the start), round hay bales to push
 
 ![hills](docs/images/hills.png)
+- **Hydraulics**: rear three-point hitch (real linkage motion) and front linkage, PTO
+- **Implements**: plough (rear hitch, leaves furrows, pulls 30 kN), front disc mower (PTO), tipping trailer (drawbar). Back up / drive up to one and press attach
+
+![plough](docs/images/plough_attached.png)
 
 ![dashboard](docs/images/dash.png)
 
@@ -42,12 +46,19 @@ Docs: [Roadmap](docs/ROADMAP.md) · [Development log](docs/DEVLOG.md) · [CLAUDE
 | Right stick flick → / ← | X / Z | Shift up / down (switches the gearbox to manual) |
 | **Y** (left) | T | Gearbox: automatic ↔ manual (saved) |
 | Right trigger | H | Horn |
+| Left stick ↑ / ↓ | Q / E | Raise / lower the rear hitch |
+| Hold left trigger + left stick ↑ / ↓ | Left Ctrl + Q / E | Raise / lower the front linkage |
+| Right stick click | P | PTO on / off |
+| Left stick click | J | Attach the implement in reach / detach (lower it first) |
 
 ## Project layout
 ```
 Assets/Scripts/TractorInput.cs        input bindings (Quest + keyboard/gamepad fallback)
 Assets/Scripts/TractorController.cs   driving physics (Rigidbody + raycast suspension, tyre forces, Ackermann, wheel animation)
 Assets/Scripts/TerrainGenerator.cs    rolling hills, generated at startup
+Assets/Scripts/Hitch.cs               rear hitch + front linkage + drawbar, PTO, attach / detach
+Assets/Scripts/Implement.cs           coupling, depth, draft, PTO parts, work trails
+Assets/Scripts/SimpleWheels.cs        trailer wheels
 Assets/Scripts/Editor/PhysicsTest.cs  offline driving test         (menu: Tractor VR > Run Physics Test)
 Assets/Scripts/VRCameraRig.cs         cab / third-person views, recenter, seat calibration
 Assets/Scripts/Drivetrain.cs          engine RPM + 20F/20R gearbox (auto / manual)
@@ -88,4 +99,4 @@ With Quest Link / Air Link, Play mode runs in the headset (Standalone OpenXR is 
 ## Next phase ideas
 - Front loader / 3-point hitch / PTO with the hydraulic parts that are already separate in the model
   (`Rear_Holder_*`, `Rear_Forcer_*`, `Front_Forcer_*`)
-- Implements, field work, crop rows, roads, a farmyard
+- Crop rows, roads, a farmyard, better implement models

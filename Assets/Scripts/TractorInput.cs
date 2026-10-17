@@ -14,6 +14,9 @@ using UnityEngine.InputSystem;
 ///   Right stick flick → / ← ... shift up / down (switches the gearbox to manual)
 ///   Y (left) ............ gearbox mode: auto / manual
 ///   Right trigger ....... horn
+///   Left stick ↑ / ↓ .... raise / lower the rear hitch (hold left trigger: front linkage)
+///   Right stick click ... PTO on / off
+///   Left stick click .... attach / detach implement
 /// Runs before the other tractor scripts so the per-frame flick events are ready when they read them.
 /// </summary>
 [DefaultExecutionOrder(-100)]
@@ -27,6 +30,7 @@ public class TractorInput : MonoBehaviour
     InputAction comfortAction;
     InputAction modeAction;
     InputAction hornAction;
+    InputAction frontLinkageAction, ptoAction, attachAction;
     int flick;          // -1 / 0 / +1: where the right stick X was held last frame
 
     public Vector2 LeftStick => steerAction.ReadValue<Vector2>();
@@ -36,13 +40,29 @@ public class TractorInput : MonoBehaviour
 
     /// <summary>Test autopilot (editor physics test): replaces the sticks for steering and throttle.</summary>
     [System.NonSerialized] public bool scripted;
-    [System.NonSerialized] public float scriptedSteer, scriptedThrottle;
+    [System.NonSerialized] public float scriptedSteer, scriptedThrottle, scriptedHitch;
+    [System.NonSerialized] public bool scriptedFront;
     public bool SwitchViewPressed => switchViewAction.WasPressedThisFrame();
     public bool RecenterPressed => recenterAction.WasPressedThisFrame();
     public bool Calibrating => calibrateAction.IsPressed();
     public bool ComfortCyclePressed => comfortAction.WasPressedThisFrame();
     public bool TransmissionModePressed => modeAction.WasPressedThisFrame();
     public bool Horn => hornAction.IsPressed();
+    /// <summary>Hitch lever from the left stick's vertical axis (-1 lower .. +1 raise), only when it's clearly up/down, not steering.</summary>
+    public float HitchLever
+    {
+        get
+        {
+            if (scripted) return scriptedHitch;
+            if (Calibrating) return 0f;
+            Vector2 s = LeftStick;
+            if (Mathf.Abs(s.y) < 0.6f || Mathf.Abs(s.y) < Mathf.Abs(s.x)) return 0f;
+            return Mathf.Sign(s.y) * Mathf.InverseLerp(0.6f, 0.95f, Mathf.Abs(s.y));
+        }
+    }
+    public bool FrontLinkageHeld => scripted ? scriptedFront : frontLinkageAction.IsPressed();
+    public bool PtoPressed => !scripted && ptoAction.WasPressedThisFrame();
+    public bool AttachPressed => !scripted && attachAction.WasPressedThisFrame();
     public bool ShiftUpPressed { get; private set; }
     public bool ShiftDownPressed { get; private set; }
 
@@ -91,6 +111,21 @@ public class TractorInput : MonoBehaviour
         hornAction.AddBinding("<XRController>{RightHand}/{TriggerButton}");
         hornAction.AddBinding("<Gamepad>/rightTrigger");
         hornAction.AddBinding("<Keyboard>/h");
+
+        frontLinkageAction = new InputAction("FrontLinkage", InputActionType.Button);
+        frontLinkageAction.AddBinding("<XRController>{LeftHand}/{TriggerButton}");
+        frontLinkageAction.AddBinding("<Gamepad>/leftTrigger");
+        frontLinkageAction.AddBinding("<Keyboard>/leftCtrl");
+
+        ptoAction = new InputAction("Pto", InputActionType.Button);
+        ptoAction.AddBinding("<XRController>{RightHand}/{Primary2DAxisClick}");
+        ptoAction.AddBinding("<Gamepad>/rightStickPress");
+        ptoAction.AddBinding("<Keyboard>/p");
+
+        attachAction = new InputAction("Attach", InputActionType.Button);
+        attachAction.AddBinding("<XRController>{LeftHand}/{Primary2DAxisClick}");
+        attachAction.AddBinding("<Gamepad>/leftStickPress");
+        attachAction.AddBinding("<Keyboard>/j");
     }
 
     void Update()
@@ -115,6 +150,9 @@ public class TractorInput : MonoBehaviour
         comfortAction.Enable();
         modeAction.Enable();
         hornAction.Enable();
+        frontLinkageAction.Enable();
+        ptoAction.Enable();
+        attachAction.Enable();
     }
 
     void OnDisable()
@@ -127,5 +165,8 @@ public class TractorInput : MonoBehaviour
         comfortAction.Disable();
         modeAction.Disable();
         hornAction.Disable();
+        frontLinkageAction.Disable();
+        ptoAction.Disable();
+        attachAction.Disable();
     }
 }

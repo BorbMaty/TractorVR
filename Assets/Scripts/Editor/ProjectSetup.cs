@@ -196,6 +196,7 @@ public static class ProjectSetup
 
         BuildGround();
         var tractor = BuildTractor(log);
+        BuildImplements(tractor.GetComponent<Hitch>(), log);
         BuildRig(tractor, log);
 
         EditorSceneManager.SaveScene(scene, ScenePath);
@@ -395,6 +396,7 @@ public static class ProjectSetup
         // 6) Steering wheel cut out of the cab interior mesh, instrument cluster on the column, drivetrain.
         ctrl.steeringWheel = SplitSteeringWheel(root.transform, Part("Cab_Interier_01"), log, out Pose clusterPose, out Vector2 clusterSize);
         var drivetrain = root.AddComponent<Drivetrain>();
+        BuildLinkage(root.transform, Part, log);
         BuildDashboard(root.transform, clusterPose, clusterSize, ctrl, drivetrain, log);
 
         log.AppendLine("Nodes:");
@@ -1021,6 +1023,268 @@ public static class ProjectSetup
         }
     }
 
+    // ------------------------------------------------------------------ hydraulics: linkage hinges
+    // The model's linkage parts have their pivots on the real hinge points (rockshaft, lower link pins, arm tips).
+    // Each moving part gets a tractor-aligned hinge at its pivot, so Hitch only has to turn hinges around X.
+    static Hitch BuildLinkage(Transform root, System.Func<string, Transform> part, StringBuilder log)
+    {
+        var hitch = root.gameObject.AddComponent<Hitch>();
+        Vector3 Piv(Transform t) => root.InverseTransformPoint(t.position);
+        Vector3 NoX(Vector3 v) => new Vector3(0f, v.y, v.z);
+        Transform Hinge(string name, Transform t)
+        {
+            var h = new GameObject("Hinge_" + name).transform;
+            h.SetParent(root, false);
+            h.localPosition = Piv(t);
+            t.SetParent(h, true);
+            return h;
+        }
+        // Mesh vertex (tractor space, side view) farthest from a point: the far end of a link or rod.
+        Vector3 FarEnd(Transform t, Vector3 from)
+        {
+            var mf = t.GetComponent<MeshFilter>();
+            Vector3 best = from; float bd = 0f;
+            foreach (var v in mf.sharedMesh.vertices)
+            {
+                Vector3 p = root.InverseTransformPoint(t.TransformPoint(v));
+                float d = Vector2.Distance(new Vector2(p.y, p.z), new Vector2(from.y, from.z));
+                if (d > bd) { bd = d; best = p; }
+            }
+            return best;
+        }
+
+        var arms = part("Rear_Holder_Ruler_01");
+        var links = part("Rear_Holder_02");
+        var rodL = part("Rear_Holder_Ruler_02_L");
+        var rodR = part("Rear_Holder_Ruler_02_R");
+        var barrel = part("Rear_Forcer_01");
+        var cylRod = part("Rear_Forcer_02");
+
+        hitch.rockshaftPivot = Piv(arms);
+        hitch.armTip = NoX(Piv(rodL));
+        hitch.rodBottom = NoX(FarEnd(rodL, Piv(rodL)));
+        hitch.lowerPivot = Piv(links);
+        hitch.linkEnd = NoX(FarEnd(links, Piv(links)));
+        hitch.cylinderBase = Piv(barrel);
+        hitch.cylinderTop = Piv(cylRod);
+
+        hitch.liftArms = Hinge("LiftArms", arms);
+        hitch.lowerLinks = Hinge("LowerLinks", links);
+        hitch.liftRods = new[] { Hinge("LiftRod_L", rodL), Hinge("LiftRod_R", rodR) };
+        hitch.stabilisers = new[] { Hinge("Stabiliser_L", part("Rear_Holder_Ruler_03_L")), Hinge("Stabiliser_R", part("Rear_Holder_Ruler_03_R")) };
+        hitch.cylinderBarrel = Hinge("LiftCylinders", barrel);
+        hitch.cylinderRod = Hinge("LiftCylinderRods", cylRod);
+        hitch.rearMount = new GameObject("RearMount").transform;
+        hitch.rearMount.SetParent(root, false);
+        hitch.rearMount.localPosition = hitch.linkEnd;
+        log.AppendLine($"Rear linkage: rockshaft {hitch.rockshaftPivot:F3}, arm tip {hitch.armTip:F3}, rod bottom {hitch.rodBottom:F3}, " +
+                       $"lower pivot {hitch.lowerPivot:F3}, link end {hitch.linkEnd:F3}, cylinder {hitch.cylinderBase:F3} → {hitch.cylinderTop:F3}");
+
+        var fl = part("Front_Holder_02_L");
+        var fr = part("Front_Holder_02_R");
+        hitch.frontPivot = NoX(Piv(fl));
+        hitch.frontTip = NoX(FarEnd(fl, Piv(fl)));
+        hitch.frontLinks = new[] { Hinge("FrontLink_L", fl), Hinge("FrontLink_R", fr) };
+        hitch.frontMount = new GameObject("FrontMount").transform;
+        hitch.frontMount.SetParent(root, false);
+        hitch.frontMount.localPosition = hitch.frontTip;
+        log.AppendLine($"Front linkage: pivot {hitch.frontPivot:F3}, tip {hitch.frontTip:F3}");
+
+        // Drawbar: the rearmost point of the rear frame near the centre line, low down (the pick-up hitch).
+        var frame = part("Rear_Frame");
+        Vector3 bar = new Vector3(0f, 0f, float.MaxValue);
+        foreach (var v in frame.GetComponent<MeshFilter>().sharedMesh.vertices)
+        {
+            Vector3 p = root.InverseTransformPoint(frame.TransformPoint(v));
+            if (Mathf.Abs(p.x) < 0.12f && p.y < 0.75f && p.z < bar.z) bar = p;
+        }
+        hitch.drawbarMount = new GameObject("DrawbarMount").transform;
+        hitch.drawbarMount.SetParent(root, false);
+        hitch.drawbarMount.localPosition = new Vector3(0f, bar.y, bar.z - 0.05f);
+        log.AppendLine($"Drawbar at {hitch.drawbarMount.localPosition:F3}");
+        return hitch;
+    }
+
+    // ------------------------------------------------------------------ implements (built from primitives; no models came with the tractor)
+    // Implement space: +Z points to the tractor (it is the tractor's forward when coupled), Y up, ground at y = 0 when parked.
+    static void BuildImplements(Hitch hitch, StringBuilder log)
+    {
+        var frameBlue = SaveMat(new Material(LitShader) { color = new Color(0.12f, 0.22f, 0.5f) }, "Impl_FrameBlue");
+        var steel = SaveMat(new Material(LitShader) { color = new Color(0.62f, 0.64f, 0.66f) }, "Impl_Steel");
+        steel.SetFloat("_Metallic", 0.8f); steel.SetFloat("_Smoothness", 0.7f);
+        var red = SaveMat(new Material(LitShader) { color = new Color(0.72f, 0.1f, 0.08f) }, "Impl_Red");
+        var dark = SaveMat(new Material(LitShader) { color = new Color(0.08f, 0.08f, 0.08f) }, "Impl_Rubber");
+        var green = SaveMat(new Material(LitShader) { color = new Color(0.21f, 0.49f, 0.17f) }, "Impl_Green");
+        var unlit = Shader.Find("Universal Render Pipeline/Unlit");
+        var soil = SaveMat(new Material(unlit), "Trail_Soil"); soil.SetColor("_BaseColor", new Color(0.33f, 0.22f, 0.13f));
+        var mown = SaveMat(new Material(unlit), "Trail_Mown"); mown.SetColor("_BaseColor", new Color(0.5f, 0.62f, 0.27f));
+        var parent = new GameObject("Implements").transform;
+
+        // ---- 3-furrow mounted plough on the rear linkage
+        {
+            var go = NewImplement(parent, "Plough", new Vector3(-6f, 0f, -6.2f), 0f);
+            var imp = go.AddComponent<Implement>();
+            imp.displayName = "PLOUGH"; imp.mount = Implement.Mount.Rear;
+            imp.mass = 1200f; imp.centreOfMassOffset = new Vector3(0.3f, -0.1f, -1.4f);
+            imp.workingDepth = 0.25f; imp.draftKN = 30f;
+            var t = go.transform;
+            imp.hitchPoint = Point(t, "HitchPoint", new Vector3(0f, 0.75f, 0f));   // lower link pins (this linkage reaches down to 0.43 m)
+            Part(t, "LowerPins", PrimitiveType.Cube, new Vector3(0f, 0.75f, 0f), new Vector3(0.95f, 0.1f, 0.1f), frameBlue);
+            Part(t, "Headstock_L", PrimitiveType.Cube, new Vector3(-0.3f, 1.05f, -0.08f), new Vector3(0.08f, 0.75f, 0.12f), frameBlue, new Vector3(-12f, 0f, -18f));
+            Part(t, "Headstock_R", PrimitiveType.Cube, new Vector3(0.3f, 1.05f, -0.08f), new Vector3(0.08f, 0.75f, 0.12f), frameBlue, new Vector3(-12f, 0f, 18f));
+            Part(t, "TopPin", PrimitiveType.Cube, new Vector3(0f, 1.4f, -0.15f), new Vector3(0.2f, 0.1f, 0.1f), frameBlue);
+            Part(t, "Beam", PrimitiveType.Cube, new Vector3(0.45f, 0.72f, -1.7f), new Vector3(0.16f, 0.16f, 3.1f), frameBlue, new Vector3(0f, 9f, 0f));
+            var grounds = new System.Collections.Generic.List<Transform>();
+            for (int i = 0; i < 3; i++)
+            {
+                float z = -0.95f - i * 0.9f, x = 0.25f + i * 0.36f;
+                Part(t, "Leg" + i, PrimitiveType.Cube, new Vector3(x, 0.42f, z), new Vector3(0.08f, 0.62f, 0.12f), frameBlue);
+                Part(t, "Share" + i, PrimitiveType.Cube, new Vector3(x - 0.05f, 0.05f, z + 0.18f), new Vector3(0.42f, 0.03f, 0.22f), steel, new Vector3(0f, -35f, 0f));
+                Part(t, "Mouldboard" + i, PrimitiveType.Cube, new Vector3(x + 0.12f, 0.24f, z - 0.08f), new Vector3(0.55f, 0.36f, 0.03f), steel, new Vector3(-10f, 40f, -20f));
+                grounds.Add(Point(t, "ShareTip" + i, new Vector3(x - 0.12f, 0.02f, z + 0.25f)));
+            }
+            Part(t, "DepthWheel", PrimitiveType.Cylinder, new Vector3(1.15f, 0.55f, -2.85f)   /* rides on the surface at working depth */, new Vector3(0.6f, 0.06f, 0.6f), dark, new Vector3(0f, 0f, 90f));
+            imp.groundPoints = grounds.ToArray();
+            // Physics: frame + bodies box (rests on the shares), a stand under the headstock.
+            Box(go, new Vector3(0.5f, 0.45f, -1.8f), new Vector3(1.4f, 0.85f, 2.4f));
+            Box(go, new Vector3(0f, 0.37f, 0f), new Vector3(0.9f, 0.74f, 0.25f));   // stand under the headstock
+            imp.trail = Trail(t, new Vector3(0.55f, 0f, -2.2f), 1.05f, soil);
+            Body(go, imp.mass, new Vector3(0.3f, 0.45f, -1.4f));
+        }
+
+        // ---- 3 m front disc mower on the front linkage (PTO)
+        {
+            var go = NewImplement(parent, "Mower", new Vector3(-14f, 0f, 6f), 0f);
+            var imp = go.AddComponent<Implement>();
+            imp.displayName = "MOWER"; imp.mount = Implement.Mount.Front;
+            imp.mass = 900f; imp.centreOfMassOffset = new Vector3(0f, -0.2f, 0.8f);
+            imp.workingDepth = 0f; imp.ptoKW = 30f; imp.spinRatio = 3f;
+            var t = go.transform;
+            imp.hitchPoint = Point(t, "HitchPoint", new Vector3(0f, 0.45f, 0f));
+            Part(t, "Headstock", PrimitiveType.Cube, new Vector3(0f, 0.6f, 0.12f), new Vector3(0.75f, 0.55f, 0.1f), red);
+            Part(t, "Arm", PrimitiveType.Cube, new Vector3(0f, 0.5f, 0.5f), new Vector3(0.2f, 0.15f, 0.8f), red);
+            Part(t, "Cover", PrimitiveType.Cube, new Vector3(0f, 0.35f, 1.0f), new Vector3(3.0f, 0.3f, 0.9f), red);
+            Part(t, "CutterBar", PrimitiveType.Cube, new Vector3(0f, 0.06f, 1.15f), new Vector3(3.0f, 0.06f, 0.55f), steel);
+            var discs = new System.Collections.Generic.List<Transform>();
+            for (int i = 0; i < 6; i++)
+            {
+                var hub = Point(t, "Disc" + i, new Vector3(-1.25f + i * 0.5f, 0.11f, 1.15f));
+                Part(hub, "Blade", PrimitiveType.Cube, Vector3.zero, new Vector3(0.44f, 0.02f, 0.08f), steel);
+                Part(hub, "Plate", PrimitiveType.Cylinder, Vector3.zero, new Vector3(0.3f, 0.015f, 0.3f), red);
+                discs.Add(hub);
+            }
+            imp.spinners = discs.ToArray();
+            imp.groundPoints = new[] { Point(t, "Skid_L", new Vector3(-1.45f, 0.03f, 1.15f)), Point(t, "Skid_R", new Vector3(1.45f, 0.03f, 1.15f)) };
+            Box(go, new Vector3(0f, 0.25f, 1.05f), new Vector3(3.0f, 0.5f, 1.0f));
+            Box(go, new Vector3(0f, 0.22f, 0.1f), new Vector3(0.6f, 0.44f, 0.15f));
+            imp.trail = Trail(t, new Vector3(0f, 0f, 1.0f), 2.8f, mown);
+            Body(go, imp.mass, new Vector3(0f, 0.3f, 0.8f));
+        }
+
+        // ---- Single-axle tipping trailer on the drawbar
+        {
+            float eyeY = hitch.drawbarMount.localPosition.y;
+            var go = NewImplement(parent, "Trailer", new Vector3(9f, 0f, -6f), 0f);
+            var imp = go.AddComponent<Implement>();
+            imp.displayName = "TRAILER"; imp.mount = Implement.Mount.Drawbar;
+            imp.mass = 2500f;
+            var t = go.transform;
+            imp.hitchPoint = Point(t, "Eye", new Vector3(0f, eyeY, 0f));
+            Part(t, "Drawbar", PrimitiveType.Cube, new Vector3(0f, (eyeY + 0.85f) * 0.5f, -0.7f), new Vector3(0.14f, 0.12f, 1.5f), green,
+                 new Vector3(-Mathf.Atan2(0.85f - eyeY, 1.4f) * Mathf.Rad2Deg, 0f, 0f));
+            Part(t, "Chassis_L", PrimitiveType.Cube, new Vector3(-0.55f, 0.9f, -2.9f), new Vector3(0.14f, 0.18f, 4.4f), green);
+            Part(t, "Chassis_R", PrimitiveType.Cube, new Vector3(0.55f, 0.9f, -2.9f), new Vector3(0.14f, 0.18f, 4.4f), green);
+            Part(t, "Floor", PrimitiveType.Cube, new Vector3(0f, 1.04f, -2.9f), new Vector3(2.3f, 0.08f, 4.6f), green);
+            Part(t, "Side_L", PrimitiveType.Cube, new Vector3(-1.12f, 1.43f, -2.9f), new Vector3(0.06f, 0.7f, 4.6f), green);
+            Part(t, "Side_R", PrimitiveType.Cube, new Vector3(1.12f, 1.43f, -2.9f), new Vector3(0.06f, 0.7f, 4.6f), green);
+            Part(t, "Front", PrimitiveType.Cube, new Vector3(0f, 1.43f, -0.63f), new Vector3(2.3f, 0.7f, 0.06f), green);
+            Part(t, "Rear", PrimitiveType.Cube, new Vector3(0f, 1.43f, -5.17f), new Vector3(2.3f, 0.7f, 0.06f), green);
+            Part(t, "Axle", PrimitiveType.Cube, new Vector3(0f, 0.5f, -3.2f), new Vector3(1.9f, 0.1f, 0.1f), dark);
+            Part(t, "Jack", PrimitiveType.Cube, new Vector3(0f, 0.3f, -0.55f), new Vector3(0.1f, 0.6f, 0.1f), dark);
+            var wheels = new System.Collections.Generic.List<SimpleWheels.Wheel>();
+            foreach (float x in new[] { -0.95f, 0.95f })
+            {
+                var pivot = Point(t, x < 0f ? "Wheel_L" : "Wheel_R", new Vector3(x, 0.5f, -3.2f));
+                var spin = Point(pivot, "Spin", Vector3.zero);
+                Part(spin, "Tyre", PrimitiveType.Cylinder, Vector3.zero, new Vector3(1.0f, 0.2f, 1.0f), dark, new Vector3(0f, 0f, 90f));
+                Part(spin, "Rim", PrimitiveType.Cylinder, Vector3.zero, new Vector3(0.6f, 0.21f, 0.6f), green, new Vector3(0f, 0f, 90f));
+                wheels.Add(new SimpleWheels.Wheel { pivot = pivot, radius = 0.5f });
+            }
+            Box(go, new Vector3(0f, 1.42f, -2.9f), new Vector3(2.3f, 0.8f, 4.6f));
+            imp.stands = new[] { Box(go, new Vector3(0f, 0.3f, -0.55f), new Vector3(0.12f, 0.6f, 0.12f)) };   // jack: only while parked
+            var rb = Body(go, imp.mass, new Vector3(0f, 1.0f, -2.85f));
+            var sw = go.AddComponent<SimpleWheels>();
+            sw.wheels = wheels.ToArray();
+            sw.implement = imp;
+            sw.staticShare = 0.46f;
+        }
+        log.AppendLine("Implements: plough (rear), mower (front), trailer (drawbar)");
+    }
+
+    static GameObject NewImplement(Transform parent, string name, Vector3 pos, float yaw)
+    {
+        var go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        go.transform.SetPositionAndRotation(new Vector3(pos.x, TerrainGenerator.Height(pos.x, pos.z) + 0.02f, pos.z), Quaternion.Euler(0f, yaw, 0f));
+        return go;
+    }
+
+    static Transform Point(Transform parent, string name, Vector3 local)
+    {
+        var t = new GameObject(name).transform;
+        t.SetParent(parent, false);
+        t.localPosition = local;
+        return t;
+    }
+
+    static Transform Part(Transform parent, string name, PrimitiveType type, Vector3 pos, Vector3 size, Material mat, Vector3 euler = default)
+    {
+        var go = GameObject.CreatePrimitive(type);
+        go.name = name;
+        Object.DestroyImmediate(go.GetComponent<Collider>());
+        go.transform.SetParent(parent, false);
+        go.transform.localPosition = pos;
+        go.transform.localRotation = Quaternion.Euler(euler);
+        go.transform.localScale = size;
+        go.GetComponent<Renderer>().sharedMaterial = mat;
+        return go.transform;
+    }
+
+    static Collider Box(GameObject go, Vector3 centre, Vector3 size)
+    {
+        var b = go.AddComponent<BoxCollider>();
+        b.center = centre;
+        b.size = size;
+        return b;
+    }
+
+    static Rigidbody Body(GameObject go, float mass, Vector3 com)
+    {
+        var rb = go.AddComponent<Rigidbody>();
+        rb.mass = mass;
+        rb.centerOfMass = com;
+        rb.interpolation = RigidbodyInterpolation.Interpolate;
+        rb.angularDamping = 0.5f;
+        return rb;
+    }
+
+    // Flat strip left on the ground while working (TrailRenderer facing up; Implement keeps it at ground height).
+    static TrailRenderer Trail(Transform parent, Vector3 local, float width, Material mat)
+    {
+        var t = Point(parent, "Trail", local);
+        var tr = t.gameObject.AddComponent<TrailRenderer>();
+        tr.time = 1200f;
+        tr.minVertexDistance = 0.5f;
+        tr.widthMultiplier = width;
+        tr.alignment = LineAlignment.TransformZ;
+        tr.sharedMaterial = mat;
+        tr.shadowCastingMode = ShadowCastingMode.Off;
+        tr.receiveShadows = false;
+        tr.emitting = false;
+        tr.autodestruct = false;
+        return tr;
+    }
+
     // ------------------------------------------------------------------ XR rig + HUD
     static void BuildRig(GameObject tractor, StringBuilder log)
     {
@@ -1069,6 +1333,7 @@ public static class ProjectSetup
         hud.input = vr.input;
         hud.text = tm;
         hud.drivetrain = tractor.GetComponent<Drivetrain>();
+        hud.hitch = tractor.GetComponent<Hitch>();
 
         hud.comfort = BuildVignette(camGo.transform, ctrl, vr);
         var controllerMat = ControllerMaterial();
@@ -1208,6 +1473,29 @@ public static class ProjectSetup
         Shot("front.png", tractor.position + new Vector3(3f, 2f, 9f), Quaternion.Euler(8f, 200f, 0f));
         // Overview of the hills and the hay bales from behind and above the start.
         Shot("hills.png", new Vector3(-25f, 22f, -45f), Quaternion.Euler(12f, 25f, 0f));
+
+        // Linkages and implements.
+        var hitch = tractor.GetComponent<Hitch>();
+        Vector3 rearCam = tractor.TransformPoint(new Vector3(2.6f, 1.6f, -4.2f));
+        Quaternion rearLook = Quaternion.LookRotation(tractor.TransformPoint(new Vector3(0f, 0.9f, -0.8f)) - rearCam);
+        hitch.PreviewPose(0f, 1f);
+        Shot("hitch_low.png", rearCam, rearLook);
+        hitch.PreviewPose(1f, 0f);
+        Shot("hitch_high.png", rearCam, rearLook);
+        Vector3 frontCam = tractor.TransformPoint(new Vector3(2.4f, 1.5f, 6.5f));
+        Shot("front_linkage_down.png", frontCam, Quaternion.LookRotation(tractor.TransformPoint(new Vector3(0f, 0.8f, 3.4f)) - frontCam));
+        Shot("implements.png", new Vector3(0f, 9f, -22f), Quaternion.LookRotation(new Vector3(-3f, 0f, -3f) - new Vector3(0f, 9f, -22f)));
+        // Plough on the hitch at working depth (posed by hand, like Implement does when coupled).
+        var plough = GameObject.Find("Plough").transform;
+        var ploughImp = plough.GetComponent<Implement>();
+        Vector3 ploughHome = plough.position; Quaternion ploughRot = plough.rotation;
+        hitch.PreviewPose(0.17f, 1f);
+        plough.rotation = hitch.rearMount.rotation;
+        plough.position = hitch.rearMount.position - plough.rotation * ploughImp.hitchPoint.localPosition;
+        Vector3 pc = tractor.TransformPoint(new Vector3(4.5f, 2.2f, -5.5f));
+        Shot("plough_attached.png", pc, Quaternion.LookRotation(tractor.TransformPoint(new Vector3(0.3f, 0.4f, -2.2f)) - pc));
+        plough.SetPositionAndRotation(ploughHome, ploughRot);
+        hitch.PreviewPose(1f, 1f);
 
         // Instrument cluster from the seat: needles at 1500 rpm / 20 km/h, steering wheel turned 90° for a right turn.
         var board = Object.FindAnyObjectByType<Dashboard>();

@@ -11,6 +11,7 @@ public class TractorHud : MonoBehaviour
     public TextMesh text;
     public ComfortVignette comfort;
     public Drivetrain drivetrain;
+    public Hitch hitch;
 
     float messageUntil;
     string message;
@@ -19,6 +20,19 @@ public class TractorHud : MonoBehaviour
     {
         comfort.LevelChanged += level => Show("COMFORT " + level.ToString().ToUpperInvariant());
         drivetrain.Message += Show;
+        hitch.Message += Show;
+    }
+
+    // Coupled implements with their linkage position, the PTO, or the distance to the nearest implement while lining up.
+    string Implements()
+    {
+        var s = new System.Text.StringBuilder();
+        if (hitch.Front) s.Append($"{hitch.Front.displayName} {hitch.FrontPosition * 100f:0}%  ");
+        if (hitch.Rear) s.Append($"{hitch.Rear.displayName} {hitch.RearPosition * 100f:0}%{(hitch.Rear.Working ? " WORK" : "")}  ");
+        if (hitch.Towed) s.Append($"{hitch.Towed.displayName}  ");
+        if (hitch.Pto) s.Append($"PTO {hitch.PtoSpeed:0}");
+        if (hitch.Nearest && hitch.NearestDistance < 6f) s.Append($"  {hitch.Nearest.displayName} {hitch.NearestDistance:0.0} m");
+        return s.ToString().Trim();
     }
 
     void Show(string msg)
@@ -33,6 +47,8 @@ public class TractorHud : MonoBehaviour
         string dir = drivetrain.Direction == Drivetrain.Dir.Forward ? "F" : drivetrain.Direction == Drivetrain.Dir.Reverse ? "R" : "N";
         string line = $"{Mathf.Abs(kmh):0} km/h  {dir} {drivetrain.GearName}  {drivetrain.Rpm:0} rpm";
         if (input.Calibrating && rig.view == VRCameraRig.View.Cab) line += "\nSEAT ADJUST";
+        string work = Implements();
+        if (work.Length > 0) line += "\n" + work;
         if (Time.time < messageUntil) line += "\n" + message;
         text.text = line;
     }

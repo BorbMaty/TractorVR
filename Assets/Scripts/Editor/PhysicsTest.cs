@@ -9,7 +9,8 @@ using UnityEngine;
 /// <summary>
 /// Drives the tractor without a headset: steps TractorController + Unity physics by hand in the editor (batch mode works)
 /// with scripted stick input, and writes what happened to Logs/PhysicsTest.txt.
-/// Scenarios: settle, full throttle, coast + hold, steady turn, steepest hill (climb + park), pushing a hay bale.
+/// Scenarios: settle, full throttle, coast + hold, steady turn, steepest hill (climb + park), pushing a hay bale,
+/// hitch sweep, ploughing, mowing (front linkage + PTO), towing the trailer.
 ///   Menu: Tractor VR > Run Physics Test
 ///   CLI : Unity.exe -batchmode -quit -projectPath . -executeMethod PhysicsTest.Run
 /// The scene is not saved.
@@ -21,6 +22,13 @@ public static class PhysicsTest
     static Rigidbody rb;
     static StringBuilder log;
     static float time;
+    static Hitch hitch;
+    static Implement[] implements;
+    static SimpleWheels[] wheelSets;
+    static System.Func<string> extra;
+
+    static void CallAwake(Object o) =>
+        o.GetType().GetMethod("Awake", BindingFlags.NonPublic | BindingFlags.Instance)?.Invoke(o, null);
 
     [MenuItem("Tractor VR/Run Physics Test")]
     public static void Run()
@@ -36,7 +44,15 @@ public static class PhysicsTest
             input = ctrl.GetComponent<TractorInput>();
             rb = ctrl.GetComponent<Rigidbody>();
             input.scripted = true;
-            typeof(TractorController).GetMethod("Awake", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(ctrl, null);
+            CallAwake(ctrl);
+            hitch = ctrl.GetComponent<Hitch>();
+            implements = Object.FindObjectsByType<Implement>(FindObjectsSortMode.None);
+            wheelSets = Object.FindObjectsByType<SimpleWheels>(FindObjectsSortMode.None);
+            CallAwake(hitch);
+            foreach (var i in implements) CallAwake(i);
+            foreach (var w in wheelSets) CallAwake(w);
+            hitch.Init();
+            hitch.Message += m => log.AppendLine("   [HUD] " + m);
             float dt = Time.fixedDeltaTime;
             log.AppendLine($"Physics step {dt * 1000f:0.##} ms ({1f / dt:0} Hz), mass {rb.mass} kg, CoM {rb.centerOfMass}");
 
@@ -94,6 +110,7 @@ public static class PhysicsTest
             log.AppendLine($"   bale moved {Vector3.Distance(baleStart, bale.position):0.00} m, now at {bale.position:F2}");
             log.AppendLine($"   wheels (grounded/load kN): {string.Join("  ", ctrl.wheels.Select(w => $"{w.grounded}/{w.load / 1000f:0.0}"))}, sleeping {rb.IsSleeping()}, " +
                            $"speed command {typeof(TractorController).GetField("speedCmd", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(ctrl)}");
+            RunImplementScenarios();
         }
         catch (System.Exception e)
         {
@@ -135,8 +152,12 @@ public static class PhysicsTest
         input.scriptedSteer = steer;
         for (float t = 0f; t < seconds; t += dt)
         {
+            hitch.FrameUpdate(dt);
+            foreach (var i in implements) i.FrameUpdate(dt);
             ctrl.FrameUpdate(dt);
             ctrl.PhysicsStep();
+            foreach (var i in implements) i.PhysicsStep();
+            foreach (var w in wheelSets) w.PhysicsStep();
             Physics.Simulate(dt);
             time += dt;
             if (t >= next)
@@ -145,9 +166,87 @@ public static class PhysicsTest
                 Vector3 e = ctrl.transform.eulerAngles;
                 float yawRate = rb.angularVelocity.y * Mathf.Rad2Deg;
                 float lat = Vector3.Dot(Vector3.Cross(rb.angularVelocity, rb.linearVelocity), ctrl.transform.right);
-                log.AppendLine($"   {t,6:0.0} {ctrl.SpeedKmh,6:0.0} {ctrl.Acceleration,7:0.00} {yawRate,7:0.0} {lat,9:0.00} {Mathf.DeltaAngle(0f, e.x),7:0.0} {Mathf.DeltaAngle(0f, e.z),6:0.0} {ctrl.PowerFraction,6:0.00} {ctrl.transform.position.y,7:0.00}");
+                log.AppendLine($"   {t,6:0.0} {ctrl.SpeedKmh,6:0.0} {ctrl.Acceleration,7:0.00} {yawRate,7:0.0} {lat,9:0.00} {Mathf.DeltaAngle(0f, e.x),7:0.0} {Mathf.DeltaAngle(0f, e.z),6:0.0} {ctrl.PowerFraction,6:0.00} {ctrl.transform.position.y,7:0.00}{(extra != null ? "  " + extra() : "")}");
             }
         }
+    }
+
+    static Implement Find(string name) => implements.First(i => i.name == name);
+
+    // Put the tractor (heading +Z) so that the given mount sits right over a coupling point.
+    static void PlaceAt(Transform mount, Vector3 target)
+    {
+        Vector3 local = ctrl.transform.InverseTransformPoint(mount.position);
+        Place(new Vector3(target.x - local.x, 0f, target.z - local.z), 0f);
+    }
+
+    static void RunImplementScenarios()
+    {
+        Section("I. Rear hitch: lower fully (5 s), raise fully (5 s)");
+        Place(new Vector3(30f, 0f, 0f), 0f);
+        extra = () => $"rear {hitch.RearPosition:0.00}  link ends y {hitch.rearMount.localPosition.y:0.00} z {hitch.rearMount.localPosition.z:0.00}  " +
+                      $"lift arm {hitch.liftArms.localEulerAngles.x:0}° lower links {hitch.lowerLinks.localEulerAngles.x:0}°";
+        input.scriptedHitch = -1f; Simulate(5f, 0f, 0f, 1f);
+        input.scriptedHitch = 1f; Simulate(5f, 0f, 0f, 1f);
+        input.scriptedHitch = 0f;
+
+        var plough = Find("Plough");
+        Section("J. Plough: line up, attach, lower into work, 7 km/h for 20 s, raise, 5 s");
+        input.scriptedHitch = -1f; Simulate(2.5f, 0f, 0f, 10f); input.scriptedHitch = 0f;   // links down to the pins' height
+        PlaceAt(hitch.rearMount, plough.hitchPoint.position);
+        Simulate(0.5f, 0f, 0f, 10f);
+        hitch.ToggleAttach();
+        Simulate(1.5f, 0f, 0f, 10f);
+        extra = () => $"rear {hitch.RearPosition:0.00}  depth {plough.Depth:0.00}  draft {plough.DraftForce / 1000f:0.0} kN  {(plough.Working ? "WORK" : "")}  mass {rb.mass:0} CoM z {rb.centerOfMass.z:0.00}";
+        input.scriptedHitch = -1f; Simulate(6f, 0f, 0f, 2f);
+        Simulate(20f, 0.21f, 0f, 2f);
+        input.scriptedHitch = 1f; Simulate(5f, 0.21f, 0f, 1f);
+        input.scriptedHitch = 0f;
+        log.AppendLine($"   front axle loads {ctrl.wheels[0].load / 1000f:0.0} / {ctrl.wheels[1].load / 1000f:0.0} kN with the plough raised");
+        Simulate(1f, 0f, 0f, 10f);
+        input.scriptedHitch = -1f; Simulate(6f, 0f, 0f, 10f); input.scriptedHitch = 0f;
+        hitch.ToggleAttach();   // detach
+        Simulate(2f, 0f, 0f, 10f);
+        log.AppendLine($"   plough parked at {plough.transform.position:F2}, upright {Vector3.Angle(plough.transform.up, Vector3.up):0}°, mass back to {rb.mass:0}");
+
+        var mower = Find("Mower");
+        Section("K. Mower: lower the front linkage, line up, attach, PTO on, 10 km/h for 15 s");
+        input.scriptedFront = true; input.scriptedHitch = -1f;
+        Place(new Vector3(30f, 0f, 40f), 0f);
+        Simulate(6f, 0f, 0f, 10f);
+        input.scriptedHitch = 0f;
+        PlaceAt(hitch.frontMount, mower.hitchPoint.position);
+        Simulate(0.5f, 0f, 0f, 10f);
+        hitch.ToggleAttach();
+        Simulate(1.5f, 0f, 0f, 10f);
+        hitch.SetPto(true);
+        extra = () => $"front {hitch.FrontPosition:0.00}  depth {mower.Depth:0.00}  {(mower.Working ? "WORK" : "")}  PTO {hitch.PtoPowerKW:0} kW";
+        input.scriptedHitch = -1f; Simulate(3f, 0f, 0f, 1f); input.scriptedHitch = 0f;
+        Simulate(15f, 0.25f, 0f, 3f);
+        hitch.SetPto(false);
+        input.scriptedHitch = 1f; Simulate(4f, 0f, 0f, 2f);
+        input.scriptedHitch = -1f; Simulate(5f, 0f, 0f, 10f); input.scriptedHitch = 0f;
+        input.scriptedFront = false;
+        Simulate(3f, 0f, 0f, 10f);
+        hitch.ToggleAttach();
+        Simulate(2f, 0f, 0f, 10f);
+
+        var trailer = Find("Trailer");
+        var trb = trailer.GetComponent<Rigidbody>();
+        Section("L. Trailer: settle, line up, attach, 30 km/h, full right lock, brake to a stop");
+        Simulate(2f, 0f, 0f, 10f);
+        log.AppendLine($"   parked trailer at {trailer.transform.position:F2}, eye height {trailer.hitchPoint.position.y:0.00} (drawbar {hitch.drawbarMount.position.y:0.00})");
+        PlaceAt(hitch.drawbarMount, trailer.hitchPoint.position);
+        Simulate(0.5f, 0f, 0f, 10f);
+        hitch.ToggleAttach();
+        Simulate(2f, 0f, 0f, 10f);
+        extra = () => $"trailer angle {Vector3.SignedAngle(ctrl.transform.forward, trailer.transform.forward, Vector3.up):0.0}°  " +
+                      $"coupling gap {Vector3.Distance(trailer.hitchPoint.position, hitch.drawbarMount.position) * 100f:0.0} cm  trailer {Vector3.Dot(trb.linearVelocity, trailer.transform.forward) * 3.6f:0.0} km/h";
+        Simulate(16f, 0.62f, 0f, 2f);
+        Simulate(8f, 0.62f, 1f, 1f);
+        Simulate(4f, 0.62f, 0f, 1f);
+        Simulate(14f, -0.3f, 0f, 2f);
+        extra = null;
     }
 
     static float SlopeUnder()

@@ -19,6 +19,8 @@ public class Drivetrain : MonoBehaviour
     public float ratedRpm = 2100f;
     public float maxRpm = 2250f;            // high idle; manual downshifts that would exceed it are refused
     public float rpmResponse = 0.15f;       // s, engine speed smoothing
+    [Tooltip("Engine speed for 1000 rpm at the PTO. With the PTO on, AUTO keeps the engine near it.")]
+    public float ptoEngineRpm = 1900f;
 
     [Header("Gearbox")]
     [Tooltip("Road speed (km/h) of each gear at rated engine speed. Generated geometrically when empty.")]
@@ -45,12 +47,14 @@ public class Drivetrain : MonoBehaviour
 
     TractorController tractor;
     TractorInput input;
+    Hitch hitch;
     float rpmVel, lastShift = -10f;
 
     void Awake()
     {
         tractor = GetComponent<TractorController>();
         input = GetComponent<TractorInput>();
+        hitch = GetComponent<Hitch>();
         if (gearKmh == null || gearKmh.Length == 0)
         {
             gearKmh = new float[gearCount];
@@ -102,11 +106,14 @@ public class Drivetrain : MonoBehaviour
         float demand = Mathf.Abs(throttle) > 0.08f && sameDir ? Mathf.Abs(throttle) : 0f;
         float geared = GearedRpm(kmh, Gear);
         float target = Direction == Dir.Neutral ? idleRpm : Mathf.Max(geared, idleRpm + demand * 250f);
+        bool pto = hitch && hitch.Pto;
+        if (pto) target = Mathf.Max(target, ptoEngineRpm);   // PTO work: the engine is held at PTO speed (clutch slips below)
         target = Mathf.Min(target, maxRpm);
         Rpm = Mathf.SmoothDamp(Rpm, target, ref rpmVel, rpmResponse);
 
         // Load = share of engine power the wheels are using (physics), with a floor while the throttle is open.
         float loadTarget = demand > 0f ? Mathf.Max(0.15f, tractor.PowerFraction) : 0.05f;
+        if (pto) loadTarget = Mathf.Max(loadTarget, 0.1f) + hitch.PtoPowerKW / tractor.enginePowerKW;
         Load = Mathf.MoveTowards(Load, Mathf.Clamp01(loadTarget), 2f * dt);
     }
 
@@ -116,8 +123,11 @@ public class Drivetrain : MonoBehaviour
         if (kmh < 0.5f) { if (Gear != startGear) SetGear(startGear, silent: true); return; }
 
         float rpm = GearedRpm(kmh, Gear);
-        if (rpm > upshiftRpm && Gear < gearKmh.Length - 1) SetGear(Gear + 1);
-        else if (rpm < downshiftRpm && Gear > startGear) SetGear(Gear - 1);
+        // With the PTO on the engine must stay near PTO speed, so shift to keep it there (higher band).
+        bool pto = hitch && hitch.Pto;
+        float up = pto ? ptoEngineRpm + 150f : upshiftRpm, down = pto ? ptoEngineRpm - 200f : downshiftRpm;
+        if (rpm > up && Gear < gearKmh.Length - 1) SetGear(Gear + 1);
+        else if (rpm < down && Gear > (pto ? 0 : startGear)) SetGear(Gear - 1);
     }
 
     void SetGear(int g, bool silent = false)
