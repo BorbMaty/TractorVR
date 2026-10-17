@@ -329,3 +329,26 @@ Open with the left menu button (M) or the MENU tab. Buttons highlight while touc
 All earlier scenarios unchanged. **Build**: setup + APK without errors, installed. **Not headset-tested yet** (controllers and hand tracking).
 
 ![panel](images/panel.png)
+
+## 2026-10-17: Block 3 headset check + hand-tracking grab fix
+Headset test: controllers on the wheel and lever fine, cab panel fine (controllers and fingertips). **With hand tracking the wheel and the lever
+shook (looked doubled) and the grab kept dropping.**
+
+Cause: a fist hides the fingers from the Quest's cameras. The palm position then jitters by millimetres every frame, the fist measurement
+flickers between closed and open, and tracking drops out for a few frames. The first version used all three raw: every jitter moved the wheel,
+and every flicker or dropout counted as letting go.
+
+Fix (`VRHands.HandSignal`, hand tracking only; controllers unchanged):
+- Grab point = midpoint of palm and middle knuckle (steadier in a fist), through a **one-euro filter** (1 Hz cutoff while still, +4 Hz per m/s of hand speed).
+- **Pinch** (thumb to index tip, < 2.5 cm / > 4.5 cm) grabs too, as well as the fist. It is much more reliable on Quest.
+- **Release debounce**: let go only after 0.2 s open. The point is frozen meanwhile, so opening the hand doesn't drag the wheel or lever.
+- **Tracking grace**: a dropout under 0.4 s while holding keeps the grab.
+
+Replay test (`PhysicsTest` N: 60° wheel turn with 4 mm noise, 12 % grab flicker, two 5-frame dropouts):
+
+| | Grab drops | Wheel shake (2nd difference, °/frame²) | Final steer (expected 4.62°) |
+|---|---|---|---|
+| Raw (before) | 24 | 1.54 | 3.62° |
+| Filtered (after) | **0** | **0.28** | **4.68°** |
+
+APK built and installed. ⏳ Re-check in the headset.

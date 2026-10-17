@@ -2,13 +2,12 @@
 
 ## ▶ Where we left off (2026-10-17, night)
 Phase 2 order: **1. physics + terrain ✅ → 2. hydraulics + implements ✅ → 3. VR interaction**.
-- Block 3 (**VR interaction**): built, cab-control maths checked offline (`PhysicsTest` scenario N), installed on the Quest 2,
-  **not headset-tested yet**.
+- Block 3 headset test: controllers ✅, cab panel ✅ (also with hand tracking). Hand tracking on the wheel / lever **shook and kept dropping the grab**.
+  Fixed (filter + grab debounce + tracking grace, replay test in `PhysicsTest` N), installed, ⏳ re-check in the headset.
 
 **Next session:**
-1. Headset test with controllers: grab the steering wheel (grip), turn hand over hand; grab the speed lever and set a speed; cab panel (left menu button), touch the buttons
-2. Headset test with hand tracking (put the controllers down): hands visible, fist to grab the wheel / lever, fingertip on the panel buttons
-3. Tune (grab reach, fist thresholds, panel position/size), then decide what comes after phase 2
+1. Headset re-check: hand tracking on the steering wheel and the speed lever (fist or pinch)
+2. Tune if needed (`VRHands.HandSignal`: minCutoff, beta, releaseDelay, lostGrace), then decide what comes after phase 2
 
 ## Phase 1: flat world, general controls ✅ done (closed 2026-10-17)
 Goal: drive the John Deere 6195M on a flat world with the Quest 2 thumbsticks, from two viewpoints.
@@ -75,10 +74,10 @@ First block, chosen 2026-10-17: **steering wheel + drivetrain** (biggest effect 
 
 ### VR interaction (block 3)
 - [x] Real Quest 2 controller models
-- [x] Hand tracking (XR Hands 1.9, bundled): sample hand meshes driven by `XRHandSkeletonDriver`, shown while tracked; HAND_TRACKING in the manifest. ⏳ headset test
-- [x] Grab the steering wheel (grip button or fist), one or two hands, hand over hand; stays put when let go. ⏳ headset test
-- [x] Grab the speed lever on the armrest (the shift lever, cut out of the cab mesh): forward = drive, back = reverse, stays set (cruise). ⏳ headset test
-- [x] Cab panel at the right front corner (touch buttons): view, recenter, comfort, gearbox, hitch/front up/down, PTO, attach, seat adjust/reset, units, reset tractor. ⏳ headset test
+- [x] Hand tracking (XR Hands 1.9, bundled): sample hand meshes driven by `XRHandSkeletonDriver`, shown while tracked; HAND_TRACKING in the manifest. ✅ hands show and press panel buttons
+- [x] Grab the steering wheel (grip button, fist or pinch), one or two hands, hand over hand; stays put when let go. Controllers ✅; hand tracking fixed (shake/drops), ⏳ re-check
+- [x] Grab the speed lever on the armrest (the shift lever, cut out of the cab mesh): forward = drive, back = reverse, stays set (cruise). Controllers ✅; hand tracking fixed, ⏳ re-check
+- [x] Cab panel at the right front corner (touch buttons): view, recenter, comfort, gearbox, hitch/front up/down, PTO, attach, seat adjust/reset, units, reset tractor. ✅ headset-tested 2026-10-17
 - [ ] Grab the hydraulic remote levers / hitch control on the armrest
 
 Done first in phase 2: **drivetrain + turning steering wheel** (see above).

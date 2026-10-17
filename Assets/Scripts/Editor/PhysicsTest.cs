@@ -315,6 +315,46 @@ public static class PhysicsTest
         log.AppendLine($"   lever pushed 15° forward → lever throttle {input.leverThrottle:0.00} (expected +{15f / cab.leverTilt:0.00}), knob moved {(cab.speedLever.TransformPoint(cab.knobLocal) - knob).z * 100f:0.0} cm forward");
         h.Grabbing = false; h.GrabEnded = true; Step();
         log.AppendLine($"   released → lever stays at {input.leverThrottle:0.00}");
+
+        // Hand-tracking replay: turn the wheel 60° clockwise over 2 s, hold 1 s, with tracking noise (~4 mm), the fist reading
+        // "open" on 12 % of the frames, and two 5-frame tracking dropouts. Raw (the first version) vs through VRHands.HandSignal.
+        log.AppendLine("   hand tracking replay (noise 4 mm, 12 % grab flicker, 2 dropouts), 60° turn:");
+        foreach (bool filtered in new[] { false, true })
+        {
+            var rnd = new System.Random(5);
+            float Noise() => ((float)rnd.NextDouble() + (float)rnd.NextDouble() + (float)rnd.NextDouble() - 1.5f) * 0.0047f;
+            input.scriptedSteer = -1f; Step(30); input.scriptedSteer = 0f; Step(200);   // straight ahead, stick control
+            var sig = new VRHands.HandSignal();
+            VRHands.Apply(h, false, Rim(90f), false); Step();
+            int drops = 0; float last = 0f, lastD = 0f, shake = 0f; int shakeN = 0;
+            int frames = (int)(3f / dt);
+            for (int i = 0; i < frames; i++)
+            {
+                float t = i * dt;
+                float deg = 90f - 60f * Mathf.Clamp01(t / 2f);
+                Vector3 raw = Rim(deg) + new Vector3(Noise(), Noise(), Noise());
+                bool tracked = !((i >= 70 && i < 75) || (i >= 140 && i < 145));
+                bool grab = rnd.NextDouble() > 0.12;
+                if (filtered)
+                {
+                    sig.Step(tracked, raw, grab, dt);
+                    if (tracked) VRHands.Apply(h, true, sig.Point, sig.Grabbing);
+                    else VRHands.Apply(h, sig.Active, sig.Point, sig.Active);
+                }
+                else VRHands.Apply(h, tracked, raw, tracked && grab);
+                update.Invoke(cab, null);
+                ctrl.FrameUpdate(dt);
+                if (h.GrabEnded) drops++;
+                // Shake = frame-to-frame changes of the turning speed of the steering wheel (2nd difference), in wheel degrees.
+                float w = -ctrl.SteerAngle * ctrl.steeringRatio;
+                float d = w - last;
+                if (i > 2) { shake += (d - lastD) * (d - lastD); shakeN++; }
+                lastD = d; last = w;
+            }
+            VRHands.Apply(h, true, h.GrabPoint, false); update.Invoke(cab, null);
+            log.AppendLine($"     {(filtered ? "filtered" : "raw     ")}: grab drops {drops}, wheel shake {Mathf.Sqrt(shake / Mathf.Max(1, shakeN)):0.00}°/frame², " +
+                           $"steer {ctrl.SteerAngle:0.00}° (expected {60f / ctrl.steeringRatio:0.00})");
+        }
     }
 
     // Deepest intersection between the implement's colliders and the tractor's (contacts sit within a few mm).
