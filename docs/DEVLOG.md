@@ -396,3 +396,7 @@ made for plain colours. Only the seat cloth, pedals and floor are properly mappe
 | Interior | Console and lever |
 |---|---|
 | ![interior](images/interior.png) | ![lever](images/lever.png) |
+
+## 2026-10-18: Interior checked, roadmap tidy-up
+- Interior textures + AO approved in the headset. ROADMAP: everything built so far ticked off. Mirrors moved to a new "Future ideas / reference" section
+  with the plan and its expected cost. Next focus chosen: more physics, the terrain, and working buttons in the cab.

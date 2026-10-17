@@ -1,13 +1,10 @@
 # Roadmap
 
 ## ▶ Where we left off (2026-10-18)
-Phase 2 blocks 1–3 are built and headset-tested (hand-tracking grabs still a bit fussy, improvement ideas listed under VR interaction).
-Now: **cab visuals**. Interior textures + baked ambient occlusion are built and installed, ⏳ headset check.
+Phase 2 blocks 1–3 (physics + terrain, hydraulics + implements, VR interaction) and the cab visuals (interior textures + AO) are done and
+headset-checked. Mirrors moved to the future ideas below.
 
-**Next session:**
-1. Headset check of the interior (grain strength, darkness of the AO, floor mat, seat fabric) and the lever (moves as one piece now)
-2. **Working mirrors** (planned next): a small render-texture camera per mirror, low resolution, short draw distance, no shadows,
-   every other frame, plus a MIRRORS on/off panel button; measure the frame rate on the Quest before keeping it
+**Next focus (chosen 2026-10-18):** more physics, the terrain, and working buttons in the cab. Scope being decided.
 
 ## Phase 1: flat world, general controls ✅ done (closed 2026-10-17)
 Goal: drive the John Deere 6195M on a flat world with the Quest 2 thumbsticks, from two viewpoints.
@@ -45,8 +42,7 @@ First block, chosen 2026-10-17: **steering wheel + drivetrain** (biggest effect 
 - [x] Split the steering wheel out of `Cab_Interier_01` (done in code, no Blender needed) and rotate it with the steering input (ratio 13 → ~2.9 turns lock to lock). Built 2026-10-17, ✅ headset-tested 2026-10-17
 - [x] Instrument cluster: RPM + speed dials with needles, direction + gear, AUTO/MAN. Built 2026-10-17, ✅ headset-tested 2026-10-17
 - [x] Interior textures: generated tiling detail (fine plastic grain, seat fabric weave, ribbed floor mat, pedal tread) through a triplanar shader
-  (the cab plastics have no usable UVs), plus baked ambient occlusion on the cab interior, wheel and lever. Built 2026-10-18, ⏳ headset check
-- [ ] Working mirrors (render textures, on/off in the panel), next
+  (the cab plastics have no usable UVs), plus baked ambient occlusion on the cab interior, wheel and lever. Built 2026-10-18, ✅ headset-checked 2026-10-18
 - [ ] Dashboard extras: fuel/temperature, CommandCenter display on the right corner post
 - [ ] Opening doors (`Door_L/R` are already separate)
 
@@ -78,8 +74,8 @@ First block, chosen 2026-10-17: **steering wheel + drivetrain** (biggest effect 
 ### VR interaction (block 3)
 - [x] Real Quest 2 controller models
 - [x] Hand tracking (XR Hands 1.9, bundled): sample hand meshes driven by `XRHandSkeletonDriver`, shown while tracked; HAND_TRACKING in the manifest. ✅ hands show and press panel buttons
-- [x] Grab the steering wheel (grip button, fist or pinch), one or two hands, hand over hand; stays put when let go. Controllers ✅; hand tracking fixed (shake/drops), ⏳ re-check
-- [x] Grab the speed lever on the armrest (the shift lever, cut out of the cab mesh): forward = drive, back = reverse, stays set (cruise). Controllers ✅; hand tracking fixed, ⏳ re-check
+- [x] Grab the steering wheel (grip button, fist or pinch), one or two hands, hand over hand; stays put when let go. ✅ Controllers; hand tracking works (shake/drops fixed) but still a bit fussy, see the improvements below
+- [x] Grab the speed lever on the armrest (the shift lever + knob pieces + stem, cut out of the cab mesh, pivot inside the gate): forward = drive, back = reverse, stays set (cruise). ✅ Controllers; hand tracking as for the wheel
 - [x] Cab panel at the right front corner (touch buttons): view, recenter, comfort, gearbox, hitch/front up/down, PTO, attach, seat adjust/reset, units, reset tractor. ✅ headset-tested 2026-10-17
 - [ ] Grab the hydraulic remote levers / hitch control on the armrest
 
@@ -91,3 +87,10 @@ Possible improvements (from the hand-tracking tests, 2026-10-18; not scheduled y
 - [ ] NEUTRAL / STOP button on the cab panel (lever to neutral, tractor stops and holds)
 
 Done first in phase 2: **drivetrain + turning steering wheel** (see above).
+
+## Future ideas / reference (not scheduled)
+- **Working mirrors**: the model has three parts with the `mirror` material. One small render-texture camera per mirror (mono, from the reflected
+  eye position), ~256², short draw distance, no shadows, updated every other frame, shown on the mirror glass; a MIRRORS on/off panel button.
+  Expected cost ~1–2 ms per frame on the Quest 2, so measure the frame rate (OVR Metrics Tool) before keeping it.
+- Original TurboSquid textures: if the `tex\` folder turns up, put it in `Assets/Models/tex/` and use it instead of the generated materials.
+- Hand-control improvements listed under VR interaction.
