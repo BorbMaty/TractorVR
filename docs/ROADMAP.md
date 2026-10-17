@@ -4,7 +4,7 @@
 Phase 2 blocks 1–3 (physics + terrain, hydraulics + implements, VR interaction) and the cab visuals (interior textures + AO) are done and
 headset-checked. Mirrors moved to the future ideas below.
 
-**Next focus (chosen 2026-10-18):** more physics, the terrain, and working buttons in the cab. Scope being decided.
+**Now: phase 3** (chosen 2026-10-18): physics, terrain, working cab buttons. Step 1 (ground + layout) in progress.
 
 ## Phase 1: flat world, general controls ✅ done (closed 2026-10-17)
 Goal: drive the John Deere 6195M on a flat world with the Quest 2 thumbsticks, from two viewpoints.
@@ -87,6 +87,30 @@ Possible improvements (from the hand-tracking tests, 2026-10-18; not scheduled y
 - [ ] NEUTRAL / STOP button on the cab panel (lever to neutral, tractor stops and holds)
 
 Done first in phase 2: **drivetrain + turning steering wheel** (see above).
+
+## Phase 3: physics, terrain, cab buttons (started 2026-10-18)
+Chosen 2026-10-18 from a list: soil + wheel slip, brakes + diff lock + 4WD; fields + crop rows, roads + farmyard, varied ground;
+hydraulic levers, pressable switches, lights, and keep the cab panel. Order (each step needs the one before):
+
+### Step 1: ground + layout
+- [ ] Ground map: surface type per square metre (grass, field soil, ploughed, mud, gravel, asphalt, concrete) with grip and rolling resistance
+- [ ] Terrain shader blending natural ground textures (grass / soil / mud) from a control map; generated textures
+- [ ] Farmyard at the start (concrete yard, barn, machine shed), gravel farm tracks, an asphalt road, fields on the hills, mud patches
+- [ ] Physics per surface: tyre grip and rolling resistance from the ground under each wheel (tractor and trailer), plough draft by soil
+
+### Step 2: traction
+- [ ] Wheel slip: driven wheels spin when the ground can't take the force (slip % on the dash), wheel spin visuals
+- [ ] Brakes (rear / all-wheel), 4WD (front axle drive) on/off, diff lock
+
+### Step 3: fields + crops
+- [ ] Standing crop rows on the crop field, cut by the mower
+- [ ] Ploughing turns the ground to "ploughed" (grip, draft, look)
+
+### Step 4: cab buttons
+- [ ] The three hydraulic remote levers on the armrest: grabbable, move the hitch / front linkage / trailer tipping
+- [ ] Pressable switches and knobs on the console and corner post: lights, PTO, 4WD, diff lock, hazards, beacon
+- [ ] Working lights (headlights, work lights, beacon, indicators), day / dusk option
+- [ ] Keep the cab panel as the easy way to reach everything
 
 ## Future ideas / reference (not scheduled)
 - **Working mirrors**: the model has three parts with the `mirror` material. One small render-texture camera per mirror (mono, from the reflected

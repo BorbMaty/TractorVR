@@ -400,3 +400,5 @@ made for plain colours. Only the seat cloth, pedals and floor are properly mappe
 ## 2026-10-18: Interior checked, roadmap tidy-up
 - Interior textures + AO approved in the headset. ROADMAP: everything built so far ticked off. Mirrors moved to a new "Future ideas / reference" section
   with the plan and its expected cost. Next focus chosen: more physics, the terrain, and working buttons in the cab.
+- Phase 3 scope chosen: soil + wheel slip, brakes + diff lock + 4WD; fields + crop rows, roads + farmyard, varied ground; hydraulic levers,
+  pressable switches, lights, keep the panel. Order: ground + layout → traction → fields + crops → cab buttons.
