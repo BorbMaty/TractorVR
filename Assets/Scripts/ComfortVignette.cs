@@ -44,15 +44,14 @@ public class ComfortVignette : MonoBehaviour
     static readonly int TanHalfId = Shader.PropertyToID("_TanHalf");
 
     Material mat;
-    float lastYaw, lastSpeed;
+    Quaternion lastRot;
 
     void Start()
     {
         CurrentLevel = (Level)PlayerPrefs.GetInt(PrefKey, (int)Level.High);
         mat = quad.material;
         mat.SetFloat(TanHalfId, quadTanHalf);
-        lastYaw = rig.eulerAngles.y;
-        lastSpeed = tractor.SpeedMs;
+        lastRot = rig.rotation;
         quad.enabled = false;
     }
 
@@ -70,11 +69,10 @@ public class ComfortVignette : MonoBehaviour
         float dt = Time.deltaTime;
         if (dt <= 0f) return;
 
-        float yaw = rig.eulerAngles.y;
-        float yawRate = Mathf.Abs(Mathf.DeltaAngle(lastYaw, yaw)) / dt;
-        float accel = Mathf.Abs(tractor.SpeedMs - lastSpeed) / dt;
-        lastYaw = yaw;
-        lastSpeed = tractor.SpeedMs;
+        // All rotation of the viewpoint (yaw, and on hills pitch and roll in the cab) + the tractor's smoothed acceleration.
+        float yawRate = Quaternion.Angle(lastRot, rig.rotation) / dt;
+        float accel = Mathf.Abs(tractor.Acceleration);
+        lastRot = rig.rotation;
 
         float target = 0f;
         Profile p = CurrentLevel == Level.High ? high : low;

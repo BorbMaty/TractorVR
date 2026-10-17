@@ -31,8 +31,12 @@ public class TractorInput : MonoBehaviour
 
     public Vector2 LeftStick => steerAction.ReadValue<Vector2>();
     public Vector2 RightStick => throttleAction.ReadValue<Vector2>();
-    public float Steer => Calibrating ? 0f : LeftStick.x;
-    public float Throttle => Calibrating ? 0f : RightStick.y;
+    public float Steer => scripted ? scriptedSteer : Calibrating ? 0f : LeftStick.x;
+    public float Throttle => scripted ? scriptedThrottle : Calibrating ? 0f : RightStick.y;
+
+    /// <summary>Test autopilot (editor physics test): replaces the sticks for steering and throttle.</summary>
+    [System.NonSerialized] public bool scripted;
+    [System.NonSerialized] public float scriptedSteer, scriptedThrottle;
     public bool SwitchViewPressed => switchViewAction.WasPressedThisFrame();
     public bool RecenterPressed => recenterAction.WasPressedThisFrame();
     public bool Calibrating => calibrateAction.IsPressed();

@@ -20,6 +20,10 @@ Docs: [Roadmap](docs/ROADMAP.md) · [Development log](docs/DEVLOG.md) · [CLAUDE
 - **Instrument cluster** on the steering column: rev counter, speedometer, direction + gear, AUTO/MAN
 - **Gearbox** like the 6195M's AutoQuad Plus 20/20: ranges A–E × 4 powershift steps, automatic or manual, top speed 50 km/h
 - **Sounds** (all synthesised by the setup script): diesel engine following RPM and load, shift clunk, reverse beeper, horn
+- **Physics**: 7.5 t body on four raycast wheels with suspension and tyre grip, engine power limit on climbs, parking brake that holds on slopes
+- **Terrain**: 2 × 2 km of gentle hills (flat around the start), round hay bales to push
+
+![hills](docs/images/hills.png)
 
 ![dashboard](docs/images/dash.png)
 
@@ -42,7 +46,9 @@ Docs: [Roadmap](docs/ROADMAP.md) · [Development log](docs/DEVLOG.md) · [CLAUDE
 ## Project layout
 ```
 Assets/Scripts/TractorInput.cs        input bindings (Quest + keyboard/gamepad fallback)
-Assets/Scripts/TractorController.cs   driving model (kinematic bicycle model, Ackermann, wheel animation)
+Assets/Scripts/TractorController.cs   driving physics (Rigidbody + raycast suspension, tyre forces, Ackermann, wheel animation)
+Assets/Scripts/TerrainGenerator.cs    rolling hills, generated at startup
+Assets/Scripts/Editor/PhysicsTest.cs  offline driving test         (menu: Tractor VR > Run Physics Test)
 Assets/Scripts/VRCameraRig.cs         cab / third-person views, recenter, seat calibration
 Assets/Scripts/Drivetrain.cs          engine RPM + 20F/20R gearbox (auto / manual)
 Assets/Scripts/TractorAudio.cs        engine, shift, reverse beeper and horn sounds
@@ -74,11 +80,12 @@ With Quest Link / Air Link, Play mode runs in the headset (Standalone OpenXR is 
 - The FBX references external textures (`tex\*.tif`) that weren't included with the model.
   The setup script rebuilds the look from the material names instead (green paint, yellow rims, clear glass).
   If the original texture folder turns up, put it in `Assets/Models/tex/` and re-run the setup.
-- Phase 1 physics is kinematic: there are no collisions, and the tractor drives on the flat plane.
+- Since phase 2 the tractor is a physics body (7.5 t) on rolling hills. The round hay bales near the start can be pushed around.
+  In the cab view the view pitches and rolls with the tractor on slopes. If it ever ends up on its side, it resets to the start after 3 s.
 - Turning is deliberately limited for comfort (max 25°/s yaw, 2.5 m/s² lateral). At speed the tractor turns wide, so slow down for tight turns.
 - If you feel motion sick: set the vignette to high (X), prefer the cab view, keep sessions short.
 
 ## Next phase ideas
 - Front loader / 3-point hitch / PTO with the hydraulic parts that are already separate in the model
   (`Rear_Holder_*`, `Rear_Forcer_*`, `Front_Forcer_*`)
-- Terrain, physics (WheelColliders), implements, field work
+- Implements, field work, crop rows, roads, a farmyard

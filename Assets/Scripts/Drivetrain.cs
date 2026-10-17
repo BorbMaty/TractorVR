@@ -4,7 +4,7 @@ using UnityEngine;
 /// Engine + gearbox on top of the kinematic driving model, loosely after the 6195M's AutoQuad Plus 20/20:
 /// 5 ranges (A–E) × 4 powershift steps = 20 forward / 20 reverse gears, 50 km/h top speed at rated engine speed.
 ///
-/// The speed itself still comes from <see cref="TractorController"/> (comfort-limited acceleration). The drivetrain
+/// The speed itself still comes from <see cref="TractorController"/> (comfort-limited speed command + physics). The drivetrain
 /// decides which gear is in, what the engine is doing (RPM, load) and, in manual mode, how fast the selected gear can go.
 ///   Auto ..... shifts up and down by engine speed, like AutoQuad's automatic mode.
 ///   Manual ... right stick flick right/left = shift up/down; the gear caps the speed (stick = share of the gear's top speed).
@@ -45,7 +45,7 @@ public class Drivetrain : MonoBehaviour
 
     TractorController tractor;
     TractorInput input;
-    float rpmVel, lastShift = -10f, lastSpeed;
+    float rpmVel, lastShift = -10f;
 
     void Awake()
     {
@@ -98,8 +98,6 @@ public class Drivetrain : MonoBehaviour
         if (Automatic) AutoShift(kmh);
 
         // Engine speed: locked to the wheels when the clutch is in, idling (+ a bit of slip) otherwise.
-        float accel = (Mathf.Abs(tractor.SpeedMs) - Mathf.Abs(lastSpeed)) / Mathf.Max(dt, 1e-4f);
-        lastSpeed = tractor.SpeedMs;
         bool sameDir = Mathf.Abs(tractor.SpeedMs) < 0.05f || Mathf.Sign(throttle) == Mathf.Sign(tractor.SpeedMs);
         float demand = Mathf.Abs(throttle) > 0.08f && sameDir ? Mathf.Abs(throttle) : 0f;
         float geared = GearedRpm(kmh, Gear);
@@ -107,10 +105,9 @@ public class Drivetrain : MonoBehaviour
         target = Mathf.Min(target, maxRpm);
         Rpm = Mathf.SmoothDamp(Rpm, target, ref rpmVel, rpmResponse);
 
-        // Load: pulling (accelerating) + rolling resistance growing with speed; near zero when coasting or braking.
-        float pulling = accel > 0.05f ? Mathf.Clamp01(accel / Mathf.Max(0.1f, tractor.acceleration)) : 0f;
-        float rolling = demand > 0f ? 0.15f + 0.35f * kmh / 50f : 0.05f;
-        Load = Mathf.MoveTowards(Load, Mathf.Clamp01(rolling + 0.6f * pulling), 2f * dt);
+        // Load = share of engine power the wheels are using (physics), with a floor while the throttle is open.
+        float loadTarget = demand > 0f ? Mathf.Max(0.15f, tractor.PowerFraction) : 0.05f;
+        Load = Mathf.MoveTowards(Load, Mathf.Clamp01(loadTarget), 2f * dt);
     }
 
     void AutoShift(float kmh)

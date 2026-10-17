@@ -1,10 +1,15 @@
 # Roadmap
 
-## ▶ Where we left off (2026-10-17)
-Phase 1 is **closed**. The first phase 2 block (**steering wheel, instrument cluster, 20F/20R gearbox, engine RPM, sounds**) is
-built and **headset-tested OK** (2026-10-17). The latest APK is installed and the working tree is clean.
+## ▶ Where we left off (2026-10-17, evening)
+Phase 2 order agreed on 2026-10-17: **1. physics + terrain → 2. hydraulics + implements → 3. VR interaction**.
+- Block 0 (steering wheel, cluster, gearbox, sounds): ✅ headset-tested.
+- Block 1 (**physics + terrain**): built, passes the offline physics test (`Tractor VR → Run Physics Test`), installed on the Quest 2,
+  **not headset-tested yet**.
 
-**Next session:** pick the next phase 2 block: physics + terrain, hydraulics/implements, or VR interaction.
+**Next session:**
+1. Headset test of the physics build: comfort on the hills (the cab view now pitches and rolls with the tractor), driving feel, pushing bales, frame rate
+2. Tune from the test. If the cab pitch/roll is uncomfortable, options: horizon-levelled cab view, flatter hills, stronger vignette on pitch/roll
+3. Then block 2: hydraulics + implements
 
 ## Phase 1: flat world, general controls ✅ done (closed 2026-10-17)
 Goal: drive the John Deere 6195M on a flat world with the Quest 2 thumbsticks, from two viewpoints.
@@ -50,9 +55,11 @@ First block, chosen 2026-10-17: **steering wheel + drivetrain** (biggest effect 
 - [x] Sounds (synthesised, no samples): engine (two RPM-pitched loops cross-faded by load, muffled in the cab), shift clunk, reverse beeper, horn. ✅ headset-tested 2026-10-17
 - [ ] Torque curve / real tractive force (needs the physics block), hand throttle
 
-### Physics
-- [ ] Replace the kinematic model with real wheel physics (WheelColliders or a custom raycast suspension)
-- [ ] Mass (~7.5 t), centre of gravity, grip, slopes, collisions with obstacles
+### Physics (block 1)
+- [x] Replace the kinematic model with real wheel physics: Rigidbody + custom raycast suspension (spring-damper per wheel), tyre forces with a friction circle, 90 Hz physics + interpolation. Built 2026-10-17, ⏳ headset test
+- [x] Mass 7.5 t, centre of gravity (40 % front), grip μ 0.8, slopes (195 hp power limit on climbs), parking brake that holds on a slope, collisions (pushable hay bales). Built 2026-10-17, ⏳ headset test
+- [x] Offline physics test in the editor (`PhysicsTest`): settle, acceleration, turns, steepest hill, parking, bale push
+- [ ] Wheel slip / spin visuals, soil types, ballast settings
 
 ### Hydraulics and implements
 - [ ] Animate the 3-point hitch (`Rear_Holder_*`, `Rear_Forcer_*`) and front linkage (`Front_Forcer_*`)
@@ -60,7 +67,7 @@ First block, chosen 2026-10-17: **steering wheel + drivetrain** (biggest effect 
 - [ ] Attach implements: plough, trailer, mower
 
 ### Environment
-- [ ] Terrain with gentle hills
+- [x] Terrain with gentle hills (2 × 2 km, generated at runtime, slopes up to ~11°, flat start area), haze, lower sun. Built 2026-10-17, ⏳ headset test
 - [ ] Field with crop rows, roads, a farmyard
 
 ### VR interaction

@@ -57,6 +57,12 @@ public static class ProjectSetup
         PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
         PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel32;
         PlayerSettings.colorSpace = ColorSpace.Linear;
+        // Physics at 90 Hz (vehicle stability); the tractor body is interpolated, so the camera stays smooth at 72/90 Hz.
+        // Fixed Timestep is stored as a rational (count / rate); Time.fixedDeltaTime set from the editor doesn't persist.
+        var time = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/TimeManager.asset")[0]);
+        var rate = time.FindProperty("Fixed Timestep.m_Rate.m_Numerator").longValue / (double)time.FindProperty("Fixed Timestep.m_Rate.m_Denominator").longValue;
+        time.FindProperty("Fixed Timestep.m_Count").longValue = (long)System.Math.Round(rate / 90.0);
+        time.ApplyModifiedProperties();
         PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.Android, false);
         PlayerSettings.SetGraphicsAPIs(BuildTarget.Android, new[] { GraphicsDeviceType.Vulkan });
         EditorUserBuildSettings.androidBuildSubtarget = MobileTextureSubtarget.ASTC;
@@ -168,7 +174,13 @@ public static class ProjectSetup
         sun.type = LightType.Directional;
         sun.intensity = 1.3f;
         sun.shadows = LightShadows.Soft;
-        sun.transform.rotation = Quaternion.Euler(50f, -35f, 0f);
+        sun.transform.rotation = Quaternion.Euler(35f, -35f, 0f);   // lowish sun: slopes show light and shade
+        // Light haze: far hills fade into the sky, which shows depth and hides the world edge (fog is cheap on Quest).
+        RenderSettings.fog = true;
+        RenderSettings.fogMode = FogMode.Linear;
+        RenderSettings.fogStartDistance = 250f;
+        RenderSettings.fogEndDistance = 1300f;
+        RenderSettings.fogColor = new Color(0.72f, 0.8f, 0.88f);
         RenderSettings.sun = sun;
         RenderSettings.ambientMode = AmbientMode.Trilight;
         RenderSettings.ambientSkyColor = new Color(0.62f, 0.72f, 0.85f);
@@ -202,6 +214,7 @@ public static class ProjectSetup
         return m;
     }
 
+    // Rolling terrain (built at runtime by TerrainGenerator from its height function), marker posts and hay bales.
     static void BuildGround()
     {
         // Procedural field texture: grass tone with a faint 1 m grid and stronger 10 m lines,
@@ -228,16 +241,13 @@ public static class ProjectSetup
         AssetDatabase.CreateAsset(tex, texPath);
 
         var mat = new Material(LitShader);
-        mat.SetTexture("_BaseMap", tex);
-        mat.SetTextureScale("_BaseMap", new Vector2(200f, 200f)); // 2000 m / 200 = one tile per 10 m
+        mat.SetTexture("_BaseMap", tex);   // terrain UVs are world XZ / 10 → one tile per 10 m
         mat.SetFloat("_Smoothness", 0.05f);
         SaveMat(mat, "Ground");
 
-        var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
-        ground.name = "Ground";
-        ground.transform.localScale = new Vector3(200f, 1f, 200f); // 2 km x 2 km
-        ground.GetComponent<Renderer>().sharedMaterial = mat;
-        ground.isStatic = true;
+        var terrain = new GameObject("Terrain").AddComponent<TerrainGenerator>();
+        terrain.material = mat;
+        terrain.gameObject.isStatic = true;
 
         // Marker posts every 25 m along a few lines — reference points for speed and steering.
         var postMat = SaveMat(new Material(LitShader) { color = new Color(0.95f, 0.55f, 0.1f) }, "Post");
@@ -249,11 +259,37 @@ public static class ProjectSetup
             var post = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             post.name = "Post";
             post.transform.SetParent(parent);
-            post.transform.position = new Vector3(j * 30f, 0.75f, i * 25f);
+            float x = j * 30f, z = i * 25f;
+            post.transform.position = new Vector3(x, TerrainGenerator.Height(x, z) + 0.7f, z);
             post.transform.localScale = new Vector3(0.15f, 0.75f, 0.15f);
             post.GetComponent<Renderer>().sharedMaterial = postMat;
             Object.DestroyImmediate(post.GetComponent<Collider>());
             post.isStatic = true;
+        }
+
+        // Round hay bales (Ø 1.5 m × 1.2 m, 350 kg) on the flat start area: things to push around.
+        var baleMat = SaveMat(new Material(LitShader) { color = new Color(0.82f, 0.7f, 0.38f) }, "HayBale");
+        baleMat.SetFloat("_Smoothness", 0.05f);
+        var bales = new GameObject("HayBales").transform;
+        var spots = new[] { new Vector3(6f, 0f, 22f), new Vector3(7.6f, 0f, 22.3f), new Vector3(6.8f, 0f, 24f),
+                            new Vector3(-9f, 0f, 35f), new Vector3(-12f, 0f, 41f), new Vector3(4f, 0f, 48f) };
+        for (int i = 0; i < spots.Length; i++)
+        {
+            var bale = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            bale.name = "HayBale";
+            bale.transform.SetParent(bales);
+            Object.DestroyImmediate(bale.GetComponent<Collider>());
+            var mc = bale.AddComponent<MeshCollider>();
+            mc.convex = true;
+            // Lying on its side: cylinder axis (local Y) horizontal, diameter 1.5 m (X/Z), length 1.2 m (Y = half height).
+            bale.transform.localScale = new Vector3(1.5f, 0.6f, 1.5f);
+            bale.transform.rotation = Quaternion.Euler(0f, 30f * i, 90f);
+            bale.transform.position = spots[i] + Vector3.up * (TerrainGenerator.Height(spots[i].x, spots[i].z) + 0.77f);
+            bale.GetComponent<Renderer>().sharedMaterial = baleMat;
+            var rb = bale.AddComponent<Rigidbody>();
+            rb.mass = 350f;
+            rb.angularDamping = 0.5f;
+            rb.interpolation = RigidbodyInterpolation.Interpolate;
         }
     }
 
@@ -313,11 +349,35 @@ public static class ProjectSetup
         ctrl.trackWidth = Mathf.Abs(wheels[1].steerPivot.localPosition.x - wheels[0].steerPivot.localPosition.x);
         log.AppendLine($"Controller wheelbase {ctrl.wheelbase:0.###} m, front track {ctrl.trackWidth:0.###} m");
 
-        var rb = root.AddComponent<Rigidbody>();
-        rb.isKinematic = true;
+        // Physics body (mass, centre of mass and interpolation are set by TractorController.Awake).
+        // The collider starts 0.45 m above the ground so only the raycast wheels touch it; it's on the Ignore Raycast
+        // layer so those rays don't hit the tractor itself.
+        var rb = root.GetComponent<Rigidbody>();   // added with TractorController (RequireComponent)
+        rb.isKinematic = false;
+        rb.interpolation = RigidbodyInterpolation.Interpolate;
         var box = root.AddComponent<BoxCollider>();
-        box.center = root.transform.InverseTransformPoint(all.center);
-        box.size = all.size;
+        const float clearance = 0.45f;
+        box.center = root.transform.InverseTransformPoint(all.center) + Vector3.up * clearance * 0.5f;
+        box.size = all.size - Vector3.up * clearance;
+        // Wheel blocks for bumping into things (the wheel rays only see static ground): tyre-sized boxes that stop 0.1 m above it.
+        foreach (var w in wheels)
+        {
+            var wheelBox = root.AddComponent<BoxCollider>();
+            float width = w.steers ? 0.5f : 0.65f;
+            wheelBox.center = w.steerPivot.localPosition + Vector3.up * 0.05f;
+            wheelBox.size = new Vector3(width, 2f * w.radius - 0.1f, 2f * w.radius);
+        }
+        // Slippery body: a round bale rolling against a grippy flat front drags the nose up onto it (seen in PhysicsTest).
+        var slick = new PhysicsMaterial("TractorBody")
+        {
+            dynamicFriction = 0.1f, staticFriction = 0.15f,
+            frictionCombine = PhysicsMaterialCombine.Minimum, bounceCombine = PhysicsMaterialCombine.Minimum
+        };
+        string slickPath = GenDir + "/TractorBody.physicMaterial";
+        AssetDatabase.DeleteAsset(slickPath);
+        AssetDatabase.CreateAsset(slick, slickPath);
+        foreach (var col in root.GetComponents<Collider>()) col.sharedMaterial = slick;
+        root.layer = 2; // Ignore Raycast
 
         // 5) Driver seat (eye point) estimated from the cab geometry; fine-tune in VR (hold left grip).
         Bounds cab = WorldBounds(Part("Cab"));
@@ -1114,8 +1174,10 @@ public static class ProjectSetup
         ShaderUtil.allowAsyncCompilation = false; // otherwise first renders show placeholder shaders
         var tractor = GameObject.Find("Tractor").transform;
         var seat = tractor.Find("DriverEye");
+        Object.FindAnyObjectByType<TerrainGenerator>().Build();   // normally built at runtime (not saved in the scene)
         var cam = Camera.main;
         cam.fieldOfView = 90f;
+        cam.farClipPlane = 1500f;
         Directory.CreateDirectory("Logs/Previews");
         void Shot(string file, Vector3 pos, Quaternion rot)
         {
@@ -1144,6 +1206,8 @@ public static class ProjectSetup
         Shot("third.png", tractor.position + new Vector3(0f, 4.2f, -9.5f) + Vector3.up * 0f, Quaternion.Euler(15f, 0f, 0f));
         Shot("side.png", tractor.position + new Vector3(8f, 1.8f, 1.4f), Quaternion.Euler(5f, -90f, 0f));
         Shot("front.png", tractor.position + new Vector3(3f, 2f, 9f), Quaternion.Euler(8f, 200f, 0f));
+        // Overview of the hills and the hay bales from behind and above the start.
+        Shot("hills.png", new Vector3(-25f, 22f, -45f), Quaternion.Euler(12f, 25f, 0f));
 
         // Instrument cluster from the seat: needles at 1500 rpm / 20 km/h, steering wheel turned 90° for a right turn.
         var board = Object.FindAnyObjectByType<Dashboard>();

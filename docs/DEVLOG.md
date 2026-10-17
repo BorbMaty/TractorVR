@@ -170,3 +170,55 @@ Keyboard: X / Z, T, H.
 
 ## 2026-10-17: Phase 2 headset check
 - Steering wheel (direction and ratio), instrument cluster, gearbox (auto/manual, shifting), engine/shift/beeper/horn sounds were tested on the Quest 2: all OK, no tuning needed.
+
+## 2026-10-17: Phase 2 block 1, physics + terrain
+Order for the rest of phase 2, agreed today: **physics + terrain → hydraulics + implements → VR interaction**.
+
+**Driving physics** (`TractorController`, rewritten)
+- Rigidbody, 7.5 t, centre of mass (0, 1.05, 1.12): 40 % on the front axle, like the unballasted 6195M.
+- **Raycast suspension** instead of WheelColliders (more control, cheaper on Quest). Per wheel, a ray runs from 0.15 m above the wheel centre.
+  A preloaded spring-damper makes the body sit exactly at the model's height at rest (front 300 kN/m for axle suspension + tyre, rear 500 kN/m tyre only,
+  damping ratio 0.45). Wheel meshes move with the spring.
+- **Tyres**: the drive force is shared by wheel load (MFWD). The lateral force cancels the wheel's sideways sliding. Both are limited by a friction circle (μ 0.8 × load).
+- **Comfort kept**: the phase 1 rules (1 m/s² acceleration, yaw ≤ 25°/s, lateral ≤ 2.5 m/s²) now make a speed *command*. A controller turns it into a
+  drive force, compensating slope and rolling resistance, limited by engine power (145 kW) and grip.
+  On a steep climb the tractor runs out of power and slows down. The command waits for it (anti wind-up).
+- **Parking brake**: at standstill the tractor is anchored to the spot where it stopped, both along and across.
+- Physics at **90 Hz** with interpolation, and the camera rig follows in LateUpdate. The cab view now pitches and rolls with the tractor on slopes.
+  The comfort vignette now reacts to all view rotation (not just yaw) and uses a smoothed acceleration.
+- The drivetrain's load (engine sound) is now the real share of engine power in use, so the engine labours on climbs.
+- Rolled over or fallen off the world: it resets to the start after 3 s.
+
+**Terrain** (`TerrainGenerator`): 2 × 2 km built at startup from a height function (two octaves of Perlin noise), 8 × 8 chunks with a 5 m grid,
+mesh colliders, and normals from the height function. Flat within 60 m of the start, blending into the hills by 160 m. Nothing is stored in the repo.
+The first version (±9 m, max 5.7°) looked flat in the renders, so the hills were raised (max 10.6°), the sun lowered to 35° and light haze added (250–1300 m).
+Six round hay bales (350 kg) near the start can be pushed.
+
+**Offline physics test** (`Tractor VR → Run Physics Test`, `PhysicsTest.cs`): steps the controller and `Physics.Simulate` by hand in batch mode with scripted sticks.
+It found three bugs before any headset test:
+
+| Found | Cause | Fix |
+|---|---|---|
+| Physics ran at 50 Hz | `Time.fixedDeltaTime` set from the editor isn't saved | Write `TimeManager` Fixed Timestep (rational count/rate) via SerializedObject |
+| Driving into a bale flipped the tractor (pitch −56°, roll 49°) | Wheel rays hit the bale, and the bump stop launched the front | Wheel rays ignore rigidbodies, wheel box colliders push obstacles, load capped at 6× static |
+| Then the front climbed onto the bale and got stuck | Friction between the flat front and the rolling bale surface pulled the nose up | Low-friction physics material on the tractor colliders |
+| Parked tractor crept ~2 cm / 5 s | Velocity-only brake, and sideways only velocity damping | Hold anchored to the stop position, along and across |
+
+Final test results:
+
+| Scenario | Result |
+|---|---|
+| Settle | Rest height −3 mm, all springs at their static point |
+| Full throttle | 1.00 m/s² up to 50 km/h at 14 s, pitch −0.3° |
+| Full lock at 16 km/h | Yaw 24.7°/s (cap 25), lateral 1.95 m/s² |
+| Full lock at 29 km/h | Yaw 17.4°/s, lateral 2.48 m/s² (cap 2.5) |
+| Steepest slope 10.6° | Power-limited at ~28 km/h (0.23 m/s²), pitch −11° → +4° over the crest at ~1°/s |
+| Park on 4.9° | 0.0 cm creep in 5 s |
+| Hay bale at 6.5 km/h | Bale pushed 9 m aside, speed dip < 0.3 km/h, pitch unchanged |
+
+**Build**: setup + APK without errors (59.6 MB), installed. The launch was blocked by the "controllers required" dialog (headset asleep), so it is **not headset-tested yet**.
+Main open question: whether the cab pitching/rolling on the hills is comfortable.
+
+| Hills (start area is flat on purpose) | Cab |
+|---|---|
+| ![hills](images/hills.png) | ![cab](images/cab.png) |

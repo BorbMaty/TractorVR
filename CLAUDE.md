@@ -16,7 +16,9 @@ See `README.md` for controls, `docs/ROADMAP.md` for what's next and `docs/DEVLOG
 | File | Role |
 |---|---|
 | `Assets/Scripts/TractorInput.cs` | All input actions, created in code (Quest + keyboard/gamepad fallback) |
-| `Assets/Scripts/TractorController.cs` | Kinematic bicycle model, Ackermann steering, wheel spin/steer animation |
+| `Assets/Scripts/TractorController.cs` | Physics driving: Rigidbody + 4 raycast wheels (suspension, tyre friction circle), comfort-limited speed command → drive force, Ackermann, wheel visuals |
+| `Assets/Scripts/TerrainGenerator.cs` | Hills built at runtime from `Height(x,z)` (8×8 chunks, 5 m grid, MeshColliders) |
+| `Assets/Scripts/Editor/PhysicsTest.cs` | Offline driving test (scripted sticks, manual `Physics.Simulate`) → `Logs/PhysicsTest.txt` |
 | `Assets/Scripts/VRCameraRig.cs` | Cab / third-person views, recenter, seat calibration (PlayerPrefs) |
 | `Assets/Scripts/Drivetrain.cs` | Engine RPM/load + 20F/20R gearbox (auto/manual), caps the controller's speed in manual |
 | `Assets/Scripts/TractorAudio.cs` | Engine loops (pitch = RPM/1000, cross-fade by load, low-pass in cab), shift, beeper, horn |
@@ -64,7 +66,14 @@ $u = "C:\Program Files\Unity\Hub\Editor\6000.6.3f1\Editor\Unity.exe"
 - Driver eye point (`Tractor/DriverEye`) = interior floor + 1.20 m, rear window + 0.45 m → (0, ~2.75, ~0.54). It can be adjusted in VR (hold left grip).
 
 ## Conventions and gotchas
-- Vehicle motion runs in **Update, not FixedUpdate**, and the rig follows in LateUpdate. This avoids camera judder in VR. The Rigidbody is kinematic and only exists for future triggers.
+- Vehicle motion is **physics** (phase 2): forces in `FixedUpdate` at **90 Hz** (`TimeManager` Fixed Timestep; set via SerializedObject in setup,
+  because `Time.fixedDeltaTime` set in the editor doesn't persist). The Rigidbody uses **interpolation**, and the rig follows in LateUpdate, so the camera is smooth.
+  Steering + wheel visuals stay in `Update`. `SpeedMs` is measured, and `Acceleration` is smoothed (use that, not per-frame speed differences).
+- Speed control: the phase 1 comfort rules make a speed *command*. The drive force tracks it, compensating slope + rolling resistance, limited by
+  engine power (145 kW) and grip. The command is clamped to ±1.5 m/s of the real speed (anti wind-up). Parking brake = anchor at the stop position (no creep).
+- Wheel rays ignore anything with a Rigidbody (`GroundRay`). Movable objects meet the body/wheel **box colliders** instead. A ray riding up a bale launched
+  the tractor in the first test. The tractor colliders are on layer 2 (Ignore Raycast) with a low-friction material, because a grippy flat front climbed onto rolling bales.
+- Run `PhysicsTest` after changing the vehicle. It has caught every physics bug so far, without a headset.
 - The rig is yaw-only in third person (no pitch/roll), for comfort. Head tracking supplies the rest.
 - Recenter = the `Camera Offset` transform cancels the head's local pose, so floor/device tracking origin doesn't matter. It also re-runs on the OS recenter (`trackingOriginUpdated`).
 - In batch-mode previews, set `ShaderUtil.allowAsyncCompilation = false`. Otherwise uncompiled transparent variants render as grey placeholder haze, which looks like broken glass but isn't.
