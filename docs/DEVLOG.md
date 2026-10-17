@@ -361,3 +361,17 @@ it takes 4 knob pieces (801 vertices with the stalk), and nothing is left near t
 whole handle tilting together. Tests unchanged, APK installed, ⏳ re-check.
 
 ![lever](images/lever.png)
+
+## 2026-10-18: Speed lever stem fix + how the hand controls work
+- Headset: the lever **looked like it broke off its stem**. The thin rod that goes down into the gate is another separate piece, just below the stalk.
+  The lever pivoted at the top of that rod, so the stalk bent away from a rod that stayed put. The rod is now part of the lever, and the pivot is its
+  bottom, inside the gate (6 cm lower). Side renders at rest / fully forward (`lever_side_rest.png`, `lever_side_fwd.png`) show the whole lever
+  swinging in the gate slot. With the longer lever, 15° moves the knob 6.2 cm (was 4.5 cm).
+- The user asked how the hand controls work exactly. Wheel: palm on the rim (within 7 cm), fist or pinch, move the hand *around* the wheel's centre
+  (wrist twist and in/out movement do nothing); open the hand to let go, and the wheel stays. Lever: palm on the knob, fist or pinch, move forward/back; it stays set.
+- Still open: hand-tracking grabs feel fussy. Proposed: (1) highlight the rim/knob when in reach and while held, (2) gear the lever down so ~20 cm of
+  hand travel covers the full range, (3) snap the visible hand to the rim/knob while holding.
+
+| Lever at rest | Fully forward |
+|---|---|
+| ![rest](images/lever_side_rest.png) | ![forward](images/lever_side_fwd.png) |

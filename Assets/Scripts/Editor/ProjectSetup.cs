@@ -567,11 +567,21 @@ public static class ProjectSetup
         foreach (int i in leverPart) inLever[i] = true;
         float minY = leverPart.Min(i => p[i].y), maxY = leverPart.Max(i => p[i].y);
         Vector3 Centroid(System.Func<int, bool> f) { var sel = leverPart.Where(f).ToArray(); var c = Vector3.zero; foreach (int i in sel) c += p[i]; return c / sel.Length; }
-        Vector3 leverPivot = Centroid(i => p[i].y < minY + 0.012f);
         leverKnob = Centroid(i => p[i].y > maxY - 0.04f);
+        // The thin rod that goes down into the gate is a separate piece just below the stalk. Take it too and pivot at
+        // its bottom (inside the gate), otherwise the stalk bends away from a rod that stays put.
+        Vector3 stalkBottom = Centroid(i => p[i].y < minY + 0.012f);
+        var stem = parts.Where(g => g != leverPart && PartBounds(g).size.magnitude < 0.1f && Vector3.Distance(PartBounds(g).center, stalkBottom) < 0.05f).ToList();
+        foreach (var g in stem) foreach (int i in g) inLever[i] = true;
+        var leverAll = leverPart.Concat(stem.SelectMany(g => g)).ToArray();
+        float stemBottom = leverAll.Min(i => p[i].y);
+        Vector3 leverPivot = Vector3.zero; int pivotN = 0;
+        foreach (int i in leverAll) if (p[i].y < stemBottom + 0.012f) { leverPivot += p[i]; pivotN++; }
+        leverPivot /= pivotN;
+        log.AppendLine($"Speed lever stem: {stem.Count} piece(s), {stem.Sum(g => g.Length)} vertices, bottom {stemBottom:0.000} (stalk bottom {minY:0.000})");
         // The knob's button block and its buttons are separate pieces: take every small piece centred around the knob.
         Vector3 knobCentre = leverKnob;
-        int knobPieces = 0, leverVerts = leverPart.Length;
+        int knobPieces = 0, leverVerts = leverAll.Length;
         foreach (var g in parts)
         {
             if (g == leverPart || PartBounds(g).size.magnitude > 0.15f) continue;
@@ -583,6 +593,10 @@ public static class ProjectSetup
         foreach (var g in parts)
             if (!inLever[g[0]] && g.Any(i => Vector3.Distance(p[i], knobCentre) < 0.1f))
                 log.AppendLine($"   left in the cab near the knob: {g.Length} vertices, bounds {PartBounds(g).center:F3} size {PartBounds(g).size:F3}");
+        foreach (var g in parts)
+            if (!inLever[g[0]] && g.Any(i => Vector3.Distance(p[i], leverPivot) < 0.08f))
+                log.AppendLine($"   left in the cab near the stalk bottom: {g.Length} vertices, bounds {PartBounds(g).center:F3} size {PartBounds(g).size:F3}");
+        log.AppendLine($"   lever piece bounds {PartBounds(leverPart).center:F3} size {PartBounds(leverPart).size:F3}");
         lever = new GameObject("SpeedLever").transform;
         lever.SetParent(root, false);
         lever.localPosition = leverPivot;
@@ -1661,6 +1675,15 @@ public static class ProjectSetup
         Vector3 knobW = cabCtl.speedLever.TransformPoint(cabCtl.knobLocal);
         Vector3 leverCam = tractor.TransformPoint(new Vector3(0.05f, 2.62f, 0.85f));   // inside the cab, front left of the lever
         Shot("lever.png", leverCam, Quaternion.LookRotation(knobW + tractor.up * -0.06f - leverCam));
+        // Side views of the stalk at rest and fully forward / back (does anything stay behind at the gate?).
+        Vector3 pivotW = cabCtl.speedLever.position;
+        Vector3 sideCam = tractor.TransformPoint(cabCtl.speedLever.localPosition + new Vector3(-0.32f, 0.12f, 0f));
+        Quaternion sideLook = Quaternion.LookRotation(pivotW + tractor.up * 0.08f - sideCam);
+        foreach (var (file, tilt) in new[] { ("lever_side_rest.png", 0f), ("lever_side_fwd.png", 1f), ("lever_side_back.png", -1f) })
+        {
+            cabCtl.speedLever.localRotation = Quaternion.AngleAxis(tilt * cabCtl.leverTilt, Vector3.right);
+            Shot(file, sideCam, sideLook);
+        }
         cam.fieldOfView = 90f;
         cabCtl.speedLever.localRotation = Quaternion.identity;
 
