@@ -387,15 +387,48 @@ public static class PhysicsTest
         input.scriptedSteer = -0.6f; Step(90); input.scriptedSteer = 0f; Step(180);
         log.AppendLine($"   stick used → steer {ctrl.SteerAngle:0.00}° (back under stick control)");
 
-        // Speed lever: grab the knob and push it 15° forward.
+        // Speed lever: the hand swings around the lever's pivot (side view); the lever follows, speed is 0 in the middle.
         Vector3 knob = cab.speedLever.TransformPoint(cab.knobLocal);
+        Vector3 pivot = cab.speedLever.position;
+        Vector3 Swing(float deg) => pivot + Quaternion.AngleAxis(deg, ctrl.transform.right) * (knob - pivot);
+        float Expected(float deg) { float l = Mathf.Clamp(deg / cab.leverTilt, -1f, 1f); return Mathf.Abs(l) <= cab.neutralNotch ? 0f : Mathf.Sign(l) * (Mathf.Abs(l) - cab.neutralNotch) / (1f - cab.neutralNotch); }
         h.GrabPoint = knob; h.Grabbing = h.GrabStarted = true; Step();
-        h.GrabPoint = knob + ctrl.transform.forward * 0.025f; Step();
-        log.AppendLine($"   hand 2.5 cm forward → lever {input.leverThrottle:0.00} (inside the ±{cab.neutralNotch:0.0} neutral notch: expected 0.00)");
-        h.GrabPoint = knob + ctrl.transform.forward * 0.072f; Step();
-        log.AppendLine($"   hand 7.2 cm forward → lever throttle {input.leverThrottle:0.00} (expected +{0.072f / cab.leverTravel:0.00}), knob moved {(cab.speedLever.TransformPoint(cab.knobLocal) - knob).z * 100f:0.0} cm forward");
+        foreach (float deg in new[] { 5f, 15f, 25f, 0f, -15f })
+        {
+            h.GrabPoint = Swing(deg); Step();
+            log.AppendLine($"   hand swung {deg,4:0}° → lever {cab.Lever:0.00}, speed command {input.leverThrottle:0.00} (expected {Expected(deg):0.00}), " +
+                           $"knob {Vector3.Distance(cab.speedLever.TransformPoint(cab.knobLocal), h.GrabPoint) * 100f:0.0} cm from the hand, status \"{cab.LeverStatus}\"");
+        }
         h.Grabbing = false; h.GrabEnded = true; Step();
-        log.AppendLine($"   released → lever stays at {input.leverThrottle:0.00}");
+        log.AppendLine($"   released at -15° → speed command stays {input.leverThrottle:0.00}");
+        // Grab again (no jump), swing back into the neutral zone and let go: snaps upright.
+        h.GrabPoint = Swing(-15f); h.Grabbing = h.GrabStarted = true; Step();
+        log.AppendLine($"   grabbed again → lever {cab.Lever:0.00} (no jump)");
+        h.GrabPoint = Swing(-3f); Step();
+        h.Grabbing = false; h.GrabEnded = true; Step();
+        log.AppendLine($"   let go at -3° (neutral zone) → lever {cab.Lever:0.00}, speed command {input.leverThrottle:0.00}");
+
+        // Hand-tracking replay on the lever: forward to +20°, back to -20°, 4 s, 4 mm noise, through VRHands.HandSignal.
+        {
+            var rnd = new System.Random(9);
+            float N() => ((float)rnd.NextDouble() + (float)rnd.NextDouble() + (float)rnd.NextDouble() - 1.5f) * 0.0047f;
+            var sig = new VRHands.HandSignal();
+            int frames = (int)(4f / dt), wrong = 0;
+            var marks = new System.Text.StringBuilder();
+            for (int i = 0; i < frames; i++)
+            {
+                float t = i * dt;
+                float deg = t < 1f ? 20f * t : t < 3f ? 20f - 20f * (t - 1f) : -20f;
+                sig.Step(true, Swing(deg) + new Vector3(N(), N(), N()), true, dt);
+                VRHands.Apply(h, true, sig.Point, sig.Grabbing);
+                update.Invoke(cab, null);
+                ctrl.FrameUpdate(dt);
+                if (Mathf.Abs(Expected(deg)) > 0.15f && Mathf.Sign(input.leverThrottle) != Mathf.Sign(Expected(deg))) wrong++;
+                if (i % (int)(0.5f / dt) == 0) marks.Append($"{deg:0}°→{input.leverThrottle:0.00}  ");
+            }
+            VRHands.Apply(h, true, h.GrabPoint, false); update.Invoke(cab, null);
+            log.AppendLine($"   noisy hand replay: {marks}| frames with the wrong direction: {wrong}");
+        }
 
         // Hand-tracking replay: turn the wheel 60° clockwise over 2 s, hold 1 s, with tracking noise (~4 mm), the fist reading
         // "open" on 12 % of the frames, and two 5-frame tracking dropouts. Raw (the first version) vs through VRHands.HandSignal.

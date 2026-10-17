@@ -1826,6 +1826,7 @@ public static class ProjectSetup
         hud.text = tm;
         hud.drivetrain = tractor.GetComponent<Drivetrain>();
         hud.hitch = tractor.GetComponent<Hitch>();
+        hud.cab = tractor.GetComponent<CabControls>();
 
         hud.comfort = BuildVignette(camGo.transform, ctrl, vr);
         var controllerMat = ControllerMaterial();

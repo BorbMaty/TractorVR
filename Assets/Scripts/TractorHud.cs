@@ -12,6 +12,7 @@ public class TractorHud : MonoBehaviour
     public ComfortVignette comfort;
     public Drivetrain drivetrain;
     public Hitch hitch;
+    public CabControls cab;
 
     /// <summary>Frame-time readout (cab panel), remembered.</summary>
     public static bool ShowPerf
@@ -58,6 +59,8 @@ public class TractorHud : MonoBehaviour
         if (input.Calibrating && rig.view == VRCameraRig.View.Cab) line += "\nSEAT ADJUST";
         string work = Implements();
         if (work.Length > 0) line += "\n" + work;
+        string lever = cab ? cab.LeverStatus : "";
+        if (lever.Length > 0) line += "\n" + lever;
         if (Time.time < messageUntil) line += "\n" + message;
         if (ShowPerf)
         {

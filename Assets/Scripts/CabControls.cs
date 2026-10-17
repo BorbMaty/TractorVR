@@ -6,10 +6,11 @@ using UnityEngine;
 ///   Steering wheel: grab the rim and turn it, with one hand or two, hand over hand. The wheel stays where it was let go
 ///   (like real hydrostatic steering) until the left stick is used again. The speed-dependent comfort lock still applies,
 ///   so beyond it the wheel slips in the hand.
-///   Speed lever: grab the knob of the lever at the front of the right armrest and move the hand forward / back.
-///   It is geared down: 12 cm of hand travel from neutral to full (relative to where it was grabbed, so it never jumps).
-///   A notchy neutral (±20 %) snaps it upright with a click. It stays where it is let go (cruise); the right stick or the
-///   panel's STOP button puts it back to neutral.
+///   Speed lever: grab the knob of the lever at the front of the right armrest and swing it forward / back. The lever follows
+///   the hand around its pivot (the knob stays in the hand), relative to where it was grabbed so it never jumps. Speed is 0
+///   in the middle (±25 % of the swing, a click when passing through) and rises smoothly beyond it; let go in the middle and it
+///   snaps upright. It stays where it is let go (cruise); the right stick or the panel's STOP button puts it back to neutral.
+///   While held, the HUD shows what it does (N / F % / R %).
 /// Feedback: the rim / knob lights up softly when a hand is in reach and brighter while held, and a tracked hand is shown
 /// snapped onto what it holds (hides tracking jitter).
 /// </summary>
@@ -18,9 +19,8 @@ public class CabControls : MonoBehaviour
 {
     public Transform speedLever;          // hinge at the bottom of the stem, tilts around local X
     public Vector3 knobLocal;             // knob centre in the hinge's space
-    public float leverTilt = 25f;
-    public float leverTravel = 0.12f;     // m of hand travel from neutral to full (20 cm put reverse out of reach, behind the body)
-    public float neutralNotch = 0.25f;    // share of the range that snaps to neutral (3 cm of hand travel)
+    public float leverTilt = 25f;         // degrees each way
+    public float neutralNotch = 0.25f;    // middle share of the swing where the speed is 0
     public float rimRadius = 0.1985f;
     public float grabReach = 0.07f;       // m from the rim / knob (controllers)
     public float handReach = 0.09f;       // m, tracked hands (the palm sits further from a thin rim than a controller's grip)
@@ -35,8 +35,8 @@ public class CabControls : MonoBehaviour
     readonly List<VRHands.Hand> wheelHands = new List<VRHands.Hand>();
     readonly Dictionary<VRHands.Hand, float> lastAngle = new Dictionary<VRHands.Hand, float>();
     float wheelAngle;                     // degrees the wheel is turned (steering wheel space, + = counter-clockwise for the driver)
-    float lever;                          // -1..1
-    float leverAtGrab, handAtGrab;
+    float lever;                          // lever position -1..1 (what you see)
+    float leverAngleOffset;               // lever angle minus hand angle at the grab (keeps it from jumping)
     Renderer[] wheelRenderers, leverRenderers;
     MaterialPropertyBlock block;
     static readonly int HighlightId = Shader.PropertyToID("_Highlight");
@@ -44,6 +44,10 @@ public class CabControls : MonoBehaviour
     public bool WheelHeld => wheelHands.Count > 0;
     public bool LeverHeld => leverHand != null;
     public float Lever => lever;
+    /// <summary>Speed command from the lever (-1..1): 0 in the neutral zone, smooth beyond it.</summary>
+    public float LeverOutput => Mathf.Abs(lever) <= neutralNotch ? 0f : Mathf.Sign(lever) * (Mathf.Abs(lever) - neutralNotch) / (1f - neutralNotch);
+    /// <summary>"N", "F 35%", "R 20%" while the lever is held (HUD), else empty.</summary>
+    public string LeverStatus => !LeverHeld ? "" : LeverOutput == 0f ? "LEVER: N" : $"LEVER: {(LeverOutput > 0f ? "F" : "R")} {Mathf.Abs(LeverOutput) * 100f:0}%";
 
     void Start()
     {
@@ -73,7 +77,7 @@ public class CabControls : MonoBehaviour
     public void Neutral()
     {
         lever = 0f;
-        if (leverHand != null) { leverAtGrab = 0f; handAtGrab = HandForward(leverHand); }
+        if (leverHand != null) leverAngleOffset = -HandLeverAngle(leverHand);
     }
 
     float Reach(VRHands.Hand h) => h.IsHandTracking ? handReach : grabReach;
@@ -86,19 +90,26 @@ public class CabControls : MonoBehaviour
         return Mathf.Abs(new Vector2(p.x, p.y).magnitude - rimRadius) < Reach(h) && Mathf.Abs(p.z) < Reach(h);
     }
 
-    float HandForward(VRHands.Hand h) => Vector3.Dot(h.GrabPoint, transform.forward);
+    // Angle of the hand around the lever's pivot in its swing plane (side view of the tractor), from the lever's rest
+    // direction; positive = forward (the same sense as the lever's tilt).
+    float HandLeverAngle(VRHands.Hand h)
+    {
+        Vector3 hand = transform.InverseTransformPoint(h.GrabPoint) - speedLever.localPosition;
+        return Vector3.SignedAngle(new Vector3(0f, knobLocal.y, knobLocal.z), new Vector3(0f, hand.y, hand.z), Vector3.right);
+    }
 
     void TryGrab(VRHands.Hand h)
     {
         if (leverHand == null && NearKnob(h))
         {
             leverHand = h;
-            leverAtGrab = lever;
-            handAtGrab = HandForward(h);
+            leverAngleOffset = lever * leverTilt - HandLeverAngle(h);
+            Debug.Log($"[Cab] lever grabbed ({(h.IsHandTracking ? (h.PinchGrab ? "hand, pinch" : "hand, fist") : "controller")}) at {lever:0.00}");
             return;
         }
         if (NearRim(h))
         {
+            Debug.Log($"[Cab] wheel grabbed ({(h.IsHandTracking ? (h.PinchGrab ? "hand, pinch" : "hand, fist") : "controller")})");
             if (wheelHands.Count == 0) wheelAngle = -tractor.SteerAngle * tractor.steeringRatio;
             wheelHands.Add(h);
             lastAngle[h] = HandAngle(h);
@@ -107,7 +118,12 @@ public class CabControls : MonoBehaviour
 
     void Release(VRHands.Hand h)
     {
-        if (leverHand == h) leverHand = null;
+        if (leverHand == h)
+        {
+            leverHand = null;
+            if (LeverOutput == 0f) lever = 0f;   // let go in the middle: snaps upright
+            Debug.Log($"[Cab] lever released at {lever:0.00} (speed command {LeverOutput:0.00})");
+        }
         if (wheelHands.Remove(h) && wheelHands.Count == 0) tractor.ReleaseHeldSteer();
         hands.SnapVisual(h, null);
     }
@@ -141,13 +157,12 @@ public class CabControls : MonoBehaviour
         if (Mathf.Abs(input.RightStick.y) > 0.1f && leverHand == null) lever = 0f;   // the stick takes over
         if (leverHand != null)
         {
-            float raw = Mathf.Clamp(leverAtGrab + (HandForward(leverHand) - handAtGrab) / leverTravel, -1f, 1f);
-            float next = Mathf.Abs(raw) < neutralNotch ? 0f : raw;   // notch: snaps upright
-            if (next == 0f && lever != 0f && click) click.Play();
-            lever = next;
+            float before = LeverOutput;
+            lever = Mathf.Clamp((HandLeverAngle(leverHand) + leverAngleOffset) / leverTilt, -1f, 1f);
+            if ((before == 0f) != (LeverOutput == 0f) && click) click.Play();   // passing the edge of neutral
         }
         speedLever.localRotation = Quaternion.AngleAxis(lever * leverTilt, Vector3.right);
-        input.leverThrottle = lever;
+        input.leverThrottle = LeverOutput;
     }
 
     void UpdateFeedback()

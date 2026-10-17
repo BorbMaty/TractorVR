@@ -502,3 +502,18 @@ Hand-control fixes:
   so switching mid-grab can't jump. Grab reach for tracked hands 7 → 9 cm.
 
 Tests: PhysicsTest + PlayModeTest OK. APK installed; ⏳ frame rate to be measured in the headset (the Quest only renders while worn).
+
+## 2026-10-18: Speed lever rebuilt
+Headset: frame rate better, but the speed lever "either won't move, or moves but not in the right direction". The geared, straight-line mapping
+(hand forward/back → lever) with a dead 3 cm notch felt wrong: small movements did nothing, the lever then jumped out of the notch, and the knob
+didn't stay under the hand because a lever swings in an arc.
+
+New behaviour (`CabControls`):
+- **The lever follows the hand around its pivot** (side view): the knob stays in the hand. It's relative to where it was grabbed (no jump).
+- **Neutral is in the speed, not the lever**: the lever moves freely; the speed command is 0 in the middle ±25 % of the swing and rises smoothly beyond it.
+  It clicks when passing the edge of neutral, and snaps upright if let go there.
+- **HUD while held**: "LEVER: N", "LEVER: F 47%", "LEVER: R 20%".
+- **Diagnostics**: wheel / lever grabs and releases are logged (`[Cab]` in `adb logcat -s Unity`), with the hand type (controller, hand fist, hand pinch).
+
+Test (`PhysicsTest` N): swings of 5° / 15° / 25° / 0° / -15° give speed commands 0 / 0.47 / 1.00 / 0 / -0.47 exactly, with the knob 0.0 cm from the hand;
+re-grab doesn't jump; let go at -3° snaps to neutral. Noisy hand-tracking replay (+20° → -20°): never the wrong direction. PlayModeTest OK. APK installed.
