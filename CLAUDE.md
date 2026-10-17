@@ -115,6 +115,11 @@ $u = "C:\Program Files\Unity\Hub\Editor\6000.6.3f1\Editor\Unity.exe"
 - Outside play mode `Destroy` does nothing: components removed by game code that also runs in the editor tests need `DestroyImmediate` there
   (the trailer's joint survived detaching in `PhysicsTest` and dragged the trailer along with every teleport).
 - Teleports (`ResetTractor`, the test's `Place`) call `ResetSuspension`: it clears the spring history and straightens a latched steering wheel.
+- **Quest GPU budget** (13.9 ms at 72 Hz): the app is GPU-bound. Measure with `adb logcat -s VrApi` (look at `FPS=`, `App=` ms, `GPU%`) while the
+  headset is worn (it only renders then). In place: fixed foveated rendering (`Foveation`, OpenXR Foveated Rendering feature without eye tracking),
+  GroundLit samples only the layers present + Blinn-Phong, TriplanarLit projects from the dominant axis only, terrain casts no shadows,
+  shadow map 1024, the tractor's shadow comes from a 416-triangle `ShadowProxy` (model renderers don't cast), FBX mesh LODs (625k → 355k / 233k / 151k),
+  `QualitySettings.meshLodThreshold` 1.5. Keep new shaders cheap (few texture reads, Blinn-Phong) and new meshes from casting shadows unless needed.
 - Run `PhysicsTest` after changing the vehicle, and `PlayModeTest` after changing anything that runs in the game
   (`Unity.exe -batchmode -projectPath . -executeMethod PlayModeTest.Run` without -quit). State survives the domain reload via SessionState. It has caught every physics bug so far, without a headset.
 - The rig is yaw-only in third person (no pitch/roll), for comfort. Head tracking supplies the rest.

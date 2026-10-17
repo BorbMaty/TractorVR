@@ -532,3 +532,16 @@ for the shadow map. The steps alone are 41k + 37k triangles, and the engine unde
   `QualitySettings.meshLodThreshold` 1.5. Forced-LOD renders (`lod1/2/3.png`): LOD2 at ~8 m looks the same as LOD0; LOD3 shows defects (rims, exhaust).
   Close-up views keep full detail.
 - PlayModeTest OK. APK installed, log recording again for the next session.
+
+## 2026-10-18: End of day
+Last session (log recorded over USB): **72 fps most of the time** (GPU ~11.3 ms), stretches at ~15 ms (59–60 fps) and one short drop to 20–23 ms (30–39 fps).
+Average 61 fps, up from 41–53 at the start of the day. Accepted for now; a context logger for slow frames was started and then left for later (not committed).
+
+Summary of the day:
+1. ROADMAP tidy-up, phase 3 planned (physics, terrain, cab buttons); step 1 built: ground map, natural terrain, farmyard, roads, fields, per-surface physics.
+2. README turned into a gallery with new showcase renders; the phases section restored.
+3. Decision: finish phases 1 and 2 first. Batch 1 done: hand-control improvements (highlight, rebuilt speed lever, hand snap, STOP), play-mode test.
+4. Frame rate on the Quest: foveated rendering, cheaper terrain and interior shaders, no terrain shadows, a shadow stand-in instead of the
+   750k-triangle model, mesh LODs.
+
+Next: batch 2 (cab), then batch 3 (implements), then phase 3 step 2 (traction).

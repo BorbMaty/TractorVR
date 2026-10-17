@@ -1,14 +1,19 @@
 # Roadmap
 
-## ▶ Where we left off (2026-10-18)
-**Finishing phases 1 and 2 before continuing phase 3** (decided 2026-10-18). The open items are done in three batches, each headset-checked:
-1. **Hand controls + testing**: the five hand-control improvements, a play-mode test in the editor, a frame-time readout. Built and installed, ⏳ headset check.
-2. **Cab**: opening doors, fuel / temperature + CommandCenter display, torque curve + hand throttle, grabbable hydraulic levers
-3. **Implements**: top link, front-linkage cylinders, trailer tipping, front ballast weight, better implement models
+## ▶ Where we left off (2026-10-18, end of day)
+**Finishing phases 1 and 2 before continuing phase 3** (decided 2026-10-18).
+- Batch 1 (hand controls + testing) ✅ done and headset-checked: grab highlight, rebuilt speed lever (follows the hand around its pivot,
+  neutral zone in the speed command, HUD status), hand snapping, STOP / NEUTRAL, FRAME TIME, FOVEATION, play-mode test.
+- Frame rate: two optimisation rounds (foveated rendering, cheaper shaders, shadow stand-in, mesh LODs). The last session held **72 fps most of the time**
+  (GPU ~11.3 ms of the 13.9 ms budget), with some stretches at ~59 fps and one short drop to 30–39 fps. Accepted for now (2026-10-18).
+  If it needs another pass: log the context of slow frames (view, position, implements, trails) to find the expensive situations.
 
-Still needed from the user: a frame-rate measurement in the headset (FRAME TIME on the cab panel, or `adb logcat -s VrApi` while playing),
-and whether the original TurboSquid `tex\` folder is available.
-Phase 3 (step 2 traction next) continues after that.
+**Next session:**
+1. Batch 2 (cab): opening doors, fuel / temperature + CommandCenter display, torque curve + hand throttle, grabbable hydraulic levers
+2. Batch 3 (implements): top link, front-linkage cylinders, trailer tipping, front ballast weight, better implement models
+3. Then phase 3 step 2 (traction)
+
+Still open with the user: whether the original TurboSquid `tex\` folder is available.
 
 ## Phase 1: flat world, general controls ✅ done (closed 2026-10-17)
 Goal: drive the John Deere 6195M on a flat world with the Quest 2 thumbsticks, from two viewpoints.
@@ -31,7 +36,8 @@ Status at closing (the open items below were accepted as good enough after the h
   - [x] Seat height/position feels right (could still bake a calibrated value into `ProjectSetup`)
   - [x] Third-person comfort: caused motion sickness at first; solved by the comfort pass below ✅ headset-tested 2026-10-16
   - [x] Speed feel: acceleration/turning were too abrupt; solved by the comfort pass (and the phase 2 drivetrain: 50 km/h top speed) ✅
-  - [ ] Frame rate holds 72/90 Hz: no visible stutter; FRAME TIME readout added to the cab panel (2026-10-18), ⏳ measure in the headset
+  - [x] Frame rate: measured on the Quest (2026-10-18). Started at 41–53 fps (GPU-bound, 18 ms); after foveated rendering, cheaper shaders, a shadow stand-in
+    and mesh LODs it holds 72 fps most of the time (11.3 ms GPU), occasional dips to ~59 and one to 30–39 fps. Accepted for now; further tuning possible
 - [x] Comfort (motion sickness reported in the first headset test):
   - [x] Comfort vignette while turning/accelerating ✅ headset-tested 2026-10-16
   - [x] Gentler defaults: acceleration 1.0 m/s², braking 2.5 m/s², coast 0.8 m/s², steer rate 35°/s, squared stick response, yaw ≤ 25°/s, lateral ≤ 2.5 m/s² ✅ headset-tested 2026-10-16
@@ -87,12 +93,14 @@ First block, chosen 2026-10-17: **steering wheel + drivetrain** (biggest effect 
 - [x] Cab panel at the right front corner (touch buttons): view, recenter, comfort, gearbox, hitch/front up/down, PTO, attach, seat adjust/reset, units, reset tractor. ✅ headset-tested 2026-10-17
 - [ ] Grab the hydraulic remote levers / hitch control on the armrest (batch 2; also listed in phase 3 step 4)
 
-Hand-control improvements (from the hand-tracking tests, built 2026-10-18 in batch 1, ⏳ headset check):
+Hand-control improvements (from the hand-tracking tests, built 2026-10-18 in batch 1, ✅ headset-checked 2026-10-18):
 - [x] Highlight the steering wheel rim / lever knob when a hand is in reach, brighter while held
-- [x] Speed lever geared down: 20 cm of hand travel from neutral to full, relative to where it was grabbed (never jumps)
+- [x] Speed lever reworked: it follows the hand around its pivot (the knob stays in the hand), relative to the grab point (never jumps); HUD shows N / F % / R %
+  (first tried as a geared straight-line mapping: reverse was out of reach and small moves did nothing)
 - [x] The visible tracked hand snaps onto the rim / knob while holding (hides tracking jitter)
-- [x] Notchy neutral on the speed lever (±20 %), snaps upright with a click
-- [x] STOP / NEUTRAL button on the cab panel (lever to neutral, brakes at 2.5 m/s² and holds); also a FRAME TIME button
+- [x] Neutral zone on the speed lever: speed 0 in the middle ±25 % of the swing, smooth beyond; click at the edge; snaps upright if let go there
+- [x] STOP / NEUTRAL button on the cab panel (lever to neutral, brakes at 2.5 m/s² and holds); also FRAME TIME and FOVEATION buttons
+- [x] Pinch grabs at the pinch point, grab reach 9 cm for tracked hands (the steering wheel couldn't be grabbed by hand before)
 
 Done first in phase 2: **drivetrain + turning steering wheel** (see above).
 
