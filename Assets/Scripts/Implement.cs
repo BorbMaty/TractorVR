@@ -74,6 +74,7 @@ public class Implement : MonoBehaviour
     public void Detach()
     {
         Attached = false;
+        SetTractorCollisions(false);   // back on once nothing overlaps (FrameUpdate), e.g. the jack coming down
         foreach (var s in stands) s.enabled = true;
         if (joint) Destroy(joint);
         transform.SetParent(null, true);
@@ -83,7 +84,23 @@ public class Implement : MonoBehaviour
         Working = false;
         DraftForce = 0f;
         if (trail) trail.emitting = false;
-        // Collisions with the tractor come back once it has driven clear (see FrameUpdate).
+        // Collisions with the tractor come back once nothing overlaps (see FrameUpdate).
+    }
+
+    /// <summary>True while any of our colliders intersects one of the tractor's.</summary>
+    public bool OverlapsTractor()
+    {
+        if (tractorRb == null) return false;
+        var tc = tractorColliders ?? tractorRb.GetComponentsInChildren<Collider>();
+        foreach (var a in colliders)
+        {
+            if (!a.enabled) continue;
+            foreach (var b in tc)
+                if (Physics.ComputePenetration(a, a.transform.position, a.transform.rotation,
+                                               b, b.transform.position, b.transform.rotation, out _, out _))
+                    return true;
+        }
+        return false;
     }
 
     void SetTractorCollisions(bool on)
@@ -105,8 +122,9 @@ public class Implement : MonoBehaviour
 
     public void FrameUpdate(float dt)
     {
-        if (!Attached && tractorColliders != null && tractorRb != null &&
-            Vector3.Distance(tractorRb.position, transform.position) > 8f)
+        // After detaching: collide with the tractor again as soon as nothing overlaps (re-enabling inside an overlap
+        // would shove the two apart).
+        if (!Attached && tractorColliders != null && !OverlapsTractor())
         {
             SetTractorCollisions(true);
             tractorColliders = null;
@@ -169,7 +187,10 @@ public class Implement : MonoBehaviour
         joint.angularZMotion = ConfigurableJointMotion.Limited;
         joint.angularZLimit = new SoftJointLimit { limit = 25f };
         joint.projectionMode = JointProjectionMode.PositionAndRotation;
-        joint.enableCollision = false;
+        // The trailer body must still hit the tractor (jackknifing, reversing into it): it sits 0.24 m behind the
+        // tractor when straight, so there is no contact at the coupling itself.
+        joint.enableCollision = true;
+        SetTractorCollisions(true);
     }
 
     void FixedUpdate() => PhysicsStep();

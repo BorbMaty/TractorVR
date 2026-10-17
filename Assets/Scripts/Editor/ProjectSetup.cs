@@ -356,10 +356,17 @@ public static class ProjectSetup
         var rb = root.GetComponent<Rigidbody>();   // added with TractorController (RequireComponent)
         rb.isKinematic = false;
         rb.interpolation = RigidbodyInterpolation.Interpolate;
-        var box = root.AddComponent<BoxCollider>();
+        // Main block from just behind the rear axle forward (full width: fenders, steps, mirrors), plus a narrow block for
+        // the rear frame / hitch. A single full-width box out to the hitch stopped a coupled trailer from swinging past ~12°.
         const float clearance = 0.45f;
-        box.center = root.transform.InverseTransformPoint(all.center) + Vector3.up * clearance * 0.5f;
-        box.size = all.size - Vector3.up * clearance;
+        Vector3 lo = root.transform.InverseTransformPoint(all.min), hi = root.transform.InverseTransformPoint(all.max);
+        const float mainBack = -0.55f;
+        var main = root.AddComponent<BoxCollider>();
+        main.center = new Vector3(0f, (clearance + hi.y) * 0.5f, (mainBack + hi.z) * 0.5f);
+        main.size = new Vector3(hi.x - lo.x, hi.y - clearance, hi.z - mainBack);
+        var rearBlock = root.AddComponent<BoxCollider>();
+        rearBlock.center = new Vector3(0f, (clearance + 2.2f) * 0.5f, (lo.z + mainBack) * 0.5f);
+        rearBlock.size = new Vector3(1.0f, 2.2f - clearance, mainBack - lo.z);
         // Wheel blocks for bumping into things (the wheel rays only see static ground): tyre-sized boxes that stop 0.1 m above it.
         foreach (var w in wheels)
         {
@@ -1182,6 +1189,7 @@ public static class ProjectSetup
         }
 
         // ---- Single-axle tipping trailer on the drawbar
+        // The body starts 1.6 m behind the drawbar eye (like a real tipping trailer), so it can swing ~50° before touching the rear tyres.
         {
             float eyeY = hitch.drawbarMount.localPosition.y;
             var go = NewImplement(parent, "Trailer", new Vector3(9f, 0f, -6f), 0f);
@@ -1190,29 +1198,29 @@ public static class ProjectSetup
             imp.mass = 2500f;
             var t = go.transform;
             imp.hitchPoint = Point(t, "Eye", new Vector3(0f, eyeY, 0f));
-            Part(t, "Drawbar", PrimitiveType.Cube, new Vector3(0f, (eyeY + 0.85f) * 0.5f, -0.7f), new Vector3(0.14f, 0.12f, 1.5f), green,
-                 new Vector3(-Mathf.Atan2(0.85f - eyeY, 1.4f) * Mathf.Rad2Deg, 0f, 0f));
-            Part(t, "Chassis_L", PrimitiveType.Cube, new Vector3(-0.55f, 0.9f, -2.9f), new Vector3(0.14f, 0.18f, 4.4f), green);
-            Part(t, "Chassis_R", PrimitiveType.Cube, new Vector3(0.55f, 0.9f, -2.9f), new Vector3(0.14f, 0.18f, 4.4f), green);
-            Part(t, "Floor", PrimitiveType.Cube, new Vector3(0f, 1.04f, -2.9f), new Vector3(2.3f, 0.08f, 4.6f), green);
-            Part(t, "Side_L", PrimitiveType.Cube, new Vector3(-1.12f, 1.43f, -2.9f), new Vector3(0.06f, 0.7f, 4.6f), green);
-            Part(t, "Side_R", PrimitiveType.Cube, new Vector3(1.12f, 1.43f, -2.9f), new Vector3(0.06f, 0.7f, 4.6f), green);
-            Part(t, "Front", PrimitiveType.Cube, new Vector3(0f, 1.43f, -0.63f), new Vector3(2.3f, 0.7f, 0.06f), green);
-            Part(t, "Rear", PrimitiveType.Cube, new Vector3(0f, 1.43f, -5.17f), new Vector3(2.3f, 0.7f, 0.06f), green);
-            Part(t, "Axle", PrimitiveType.Cube, new Vector3(0f, 0.5f, -3.2f), new Vector3(1.9f, 0.1f, 0.1f), dark);
+            Part(t, "Drawbar", PrimitiveType.Cube, new Vector3(0f, (eyeY + 0.85f) * 0.5f, -0.85f), new Vector3(0.14f, 0.12f, 1.75f), green,
+                 new Vector3(-Mathf.Atan2(0.85f - eyeY, 1.7f) * Mathf.Rad2Deg, 0f, 0f));
+            Part(t, "Chassis_L", PrimitiveType.Cube, new Vector3(-0.55f, 0.9f, -3.9f), new Vector3(0.14f, 0.18f, 4.4f), green);
+            Part(t, "Chassis_R", PrimitiveType.Cube, new Vector3(0.55f, 0.9f, -3.9f), new Vector3(0.14f, 0.18f, 4.4f), green);
+            Part(t, "Floor", PrimitiveType.Cube, new Vector3(0f, 1.04f, -3.9f), new Vector3(2.3f, 0.08f, 4.6f), green);
+            Part(t, "Side_L", PrimitiveType.Cube, new Vector3(-1.12f, 1.43f, -3.9f), new Vector3(0.06f, 0.7f, 4.6f), green);
+            Part(t, "Side_R", PrimitiveType.Cube, new Vector3(1.12f, 1.43f, -3.9f), new Vector3(0.06f, 0.7f, 4.6f), green);
+            Part(t, "Front", PrimitiveType.Cube, new Vector3(0f, 1.43f, -1.63f), new Vector3(2.3f, 0.7f, 0.06f), green);
+            Part(t, "Rear", PrimitiveType.Cube, new Vector3(0f, 1.43f, -6.17f), new Vector3(2.3f, 0.7f, 0.06f), green);
+            Part(t, "Axle", PrimitiveType.Cube, new Vector3(0f, 0.5f, -4.2f), new Vector3(1.9f, 0.1f, 0.1f), dark);
             Part(t, "Jack", PrimitiveType.Cube, new Vector3(0f, 0.3f, -0.55f), new Vector3(0.1f, 0.6f, 0.1f), dark);
             var wheels = new System.Collections.Generic.List<SimpleWheels.Wheel>();
             foreach (float x in new[] { -0.95f, 0.95f })
             {
-                var pivot = Point(t, x < 0f ? "Wheel_L" : "Wheel_R", new Vector3(x, 0.5f, -3.2f));
+                var pivot = Point(t, x < 0f ? "Wheel_L" : "Wheel_R", new Vector3(x, 0.5f, -4.2f));
                 var spin = Point(pivot, "Spin", Vector3.zero);
                 Part(spin, "Tyre", PrimitiveType.Cylinder, Vector3.zero, new Vector3(1.0f, 0.2f, 1.0f), dark, new Vector3(0f, 0f, 90f));
                 Part(spin, "Rim", PrimitiveType.Cylinder, Vector3.zero, new Vector3(0.6f, 0.21f, 0.6f), green, new Vector3(0f, 0f, 90f));
                 wheels.Add(new SimpleWheels.Wheel { pivot = pivot, radius = 0.5f });
             }
-            Box(go, new Vector3(0f, 1.42f, -2.9f), new Vector3(2.3f, 0.8f, 4.6f));
+            Box(go, new Vector3(0f, 1.42f, -3.9f), new Vector3(2.3f, 0.8f, 4.6f));
             imp.stands = new[] { Box(go, new Vector3(0f, 0.3f, -0.55f), new Vector3(0.12f, 0.6f, 0.12f)) };   // jack: only while parked
-            var rb = Body(go, imp.mass, new Vector3(0f, 1.0f, -2.85f));
+            var rb = Body(go, imp.mass, new Vector3(0f, 1.0f, -3.85f));
             var sw = go.AddComponent<SimpleWheels>();
             sw.wheels = wheels.ToArray();
             sw.implement = imp;

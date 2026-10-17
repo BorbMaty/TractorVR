@@ -81,8 +81,11 @@ $u = "C:\Program Files\Unity\Hub\Editor\6000.6.3f1\Editor\Unity.exe"
 - Wheel rays ignore anything with a Rigidbody (`GroundRay`). Movable objects meet the body/wheel **box colliders** instead. A ray riding up a bale launched
   the tractor in the first test. The tractor colliders are on layer 2 (Ignore Raycast) with a low-friction material, because a grippy flat front climbed onto rolling bales.
 - Implements: +Z of an implement points to the tractor. `hitchPoint` is its coupling point. Mounted ones go kinematic, parented to `RearMount`/`FrontMount`.
-  The trailer stays dynamic, with a `ConfigurableJoint` at the drawbar eye. Collisions between the implement and the tractor are ignored while coupled
-  (and until they're 8 m apart after detaching). Plough draft is fed forward into the drive force (a P-only speed controller left a 4 km/h error).
+  The trailer stays dynamic, with a `ConfigurableJoint` at the drawbar eye. Collisions between a **mounted** implement and the tractor are ignored while
+  coupled. The **trailer keeps colliding** (joint `enableCollision = true`). After detaching, collisions come back as soon as nothing overlaps (`OverlapsTractor`).
+  Detaching a trailer is refused above 25° articulation (its jack would come down inside the tractor).
+- Tractor colliders: a main block (full width, from z −0.55 forward), a narrow rear block (1 m wide, hitch/frame) and four wheel blocks.
+  A single full-width box out to the hitch limited a coupled trailer to ~12° of swing. The trailer body starts 1.6 m behind its eye, so it swings ~50° before touching the tyres (joint limit 70°). Plough draft is fed forward into the drive force (a P-only speed controller left a 4 km/h error).
 - Rear linkage reach: link ends 0.43–1.27 m, so 3-point implements need their lower-link pins at ~0.75 m when parked.
 - Run `PhysicsTest` after changing the vehicle. It has caught every physics bug so far, without a headset.
 - The rig is yaw-only in third person (no pitch/roll), for comfort. Head tracking supplies the rest.

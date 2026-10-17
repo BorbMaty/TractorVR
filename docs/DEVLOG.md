@@ -274,3 +274,20 @@ Bugs the test found:
 | ![plough](images/plough_attached.png) | ![implements](images/implements.png) |
 
 **Build**: setup + APK without errors, installed. The launch was blocked by the "controllers required" dialog, so it is **not headset-tested yet**.
+
+## 2026-10-17: Block 2 headset check + trailer collision fix
+Headset test of hydraulics + implements: linkage controls fine, attaching fine ("takes practice"), ploughing / mowing / towing fine.
+**Bug: the tractor could drive into the trailer.**
+
+Cause: while coupled, all collisions between implement and tractor were switched off (`IgnoreCollision`, so the two wouldn't fight at the
+coupling), and the trailer's ball joint also had `enableCollision = false`. After detaching, collisions only came back at 8 m apart.
+
+Fix:
+- The trailer keeps colliding while coupled. After detaching (any implement), collisions come back as soon as nothing overlaps.
+- New test scenario **M** (jackknife in reverse, then reverse into the parked trailer) measures the overlap with `Physics.ComputePenetration`.
+  It found two more problems:
+  1. The trailer could only swing ~12°: the tractor had **one full-width box out to the hitch**, and the trailer body started only 0.6 m behind its eye.
+     Now the tractor has a main block + a narrow rear block + wheel blocks, and the trailer has a realistic 1.6 m drawbar. It now swings to the joint limit (70°) with no overlap.
+  2. Detaching at 70° brought the jack down inside the tractor, and the push-out **rolled the tractor 48°**. Detaching now needs the trailer within 25°
+     ("STRAIGHTEN UP TO DETACH"), and collisions stay off until nothing overlaps.
+- Final scenario M: jackknife deepest overlap 0.0 cm. Reversing into the parked trailer pushes it 1 m, deepest overlap 0.0 cm. All other scenarios unchanged.

@@ -246,7 +246,42 @@ public static class PhysicsTest
         Simulate(8f, 0.62f, 1f, 1f);
         Simulate(4f, 0.62f, 0f, 1f);
         Simulate(14f, -0.3f, 0f, 2f);
+
+        Section("M. Trailer vs tractor body: jackknife in reverse, then reverse into the uncoupled trailer");
+        Simulate(3f, 0f, 0f, 10f);
+        float worst = 0f;
+        extra = () =>
+        {
+            float p = Penetration(trailer);
+            worst = Mathf.Max(worst, p);
+            return $"trailer angle {Vector3.SignedAngle(ctrl.transform.forward, trailer.transform.forward, Vector3.up):0.0}°  overlap {p * 100f:0.0} cm";
+        };
+        Simulate(20f, -0.3f, 1f, 2f);
+        log.AppendLine($"   jackknife: deepest overlap {worst * 100f:0.0} cm");
+        Simulate(4f, 0f, 0f, 10f);
+        hitch.ToggleAttach();             // refused at this angle
+        Simulate(14f, 0.15f, 0f, 3f);     // pull forward to straighten
+        Simulate(4f, 0f, 0f, 10f);
+        hitch.ToggleAttach();   // detach
+        Simulate(2f, 0f, 0f, 10f);
+        Vector3 parked = trailer.transform.position;
+        Simulate(4f, 0.12f, 0f, 10f);     // pull 2–3 m away
+        Simulate(3f, 0f, 0f, 10f);
+        worst = 0f;
+        Simulate(12f, -0.25f, 0f, 2f);    // and back into it
+        log.AppendLine($"   reversing into it: deepest overlap {worst * 100f:0.0} cm, trailer pushed {Vector3.Distance(parked, trailer.transform.position):0.00} m");
         extra = null;
+    }
+
+    // Deepest intersection between the implement's colliders and the tractor's (contacts sit within a few mm).
+    static float Penetration(Implement imp)
+    {
+        float worst = 0f;
+        foreach (var a in imp.GetComponentsInChildren<Collider>())
+        foreach (var b in ctrl.GetComponentsInChildren<Collider>())
+            if (a.enabled && Physics.ComputePenetration(a, a.transform.position, a.transform.rotation, b, b.transform.position, b.transform.rotation, out _, out float d))
+                worst = Mathf.Max(worst, d);
+        return worst;
     }
 
     static float SlopeUnder()

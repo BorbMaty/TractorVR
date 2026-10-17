@@ -1,15 +1,13 @@
 # Roadmap
 
-## ▶ Where we left off (2026-10-17, late evening)
-Phase 2 order: **1. physics + terrain ✅ → 2. hydraulics + implements → 3. VR interaction**.
-- Block 2 (**hydraulics + implements**): built, passes the offline test (scenarios I–L in `PhysicsTest`), installed on the Quest 2,
-  **not headset-tested yet**.
+## ▶ Where we left off (2026-10-17, night)
+Phase 2 order: **1. physics + terrain ✅ → 2. hydraulics + implements ✅ → 3. VR interaction**.
+- Block 2 headset-tested 2026-10-17: controls OK, attaching OK ("takes practice"), ploughing/mowing/towing OK.
+  One bug found: **the tractor could pass into the trailer**. Fixed and covered by test scenario M, installed, ⏳ re-check in the headset.
 
 **Next session:**
-1. Headset test: hitch/front linkage controls (left stick ↑↓, left trigger), attaching (left stick click) the plough, mower and trailer,
-   ploughing (furrows, engine load), mowing with the PTO (right stick click), towing and reversing with the trailer
-2. Tune from the test (attach reach/angle, lift speed, draft, trail look)
-3. Then block 3: VR interaction (grab the steering wheel and joystick, hands, settings menu)
+1. Quick headset re-check: jackknife the trailer in reverse and back into a parked trailer (they should collide now)
+2. Block 3: VR interaction (grab the steering wheel and the armrest joystick, hands, settings menu)
 
 ## Phase 1: flat world, general controls ✅ done (closed 2026-10-17)
 Goal: drive the John Deere 6195M on a flat world with the Quest 2 thumbsticks, from two viewpoints.
@@ -62,11 +60,12 @@ First block, chosen 2026-10-17: **steering wheel + drivetrain** (biggest effect 
 - [ ] Wheel slip / spin visuals, soil types, ballast settings
 
 ### Hydraulics and implements (block 2)
-- [x] Rear 3-point hitch animated as a real four-bar linkage from the model's pivots (lift arms, lift rods, lower links, stabilisers, lift cylinders); link ends 0.43–1.27 m. Built 2026-10-17, ⏳ headset test
-- [x] Front linkage: lower links fold from stowed down to working position. Built 2026-10-17, ⏳ headset test
-- [x] PTO on/off (1000 rpm at 1900 engine rpm; AUTO holds the engine at PTO speed; PTO power reduces drive power). ⏳ headset test
-- [x] Implements (built from primitives): 3-furrow plough (rear, 30 kN draft, depth control, furrow trail), 3 m front disc mower (PTO, spinning discs, mown strip), single-axle trailer (drawbar ball joint, own raycast wheels, jack). ⏳ headset test
+- [x] Rear 3-point hitch animated as a real four-bar linkage from the model's pivots (lift arms, lift rods, lower links, stabilisers, lift cylinders); link ends 0.43–1.27 m. Built 2026-10-17, ✅ headset-tested 2026-10-17
+- [x] Front linkage: lower links fold from stowed down to working position. Built 2026-10-17, ✅ headset-tested 2026-10-17
+- [x] PTO on/off (1000 rpm at 1900 engine rpm; AUTO holds the engine at PTO speed; PTO power reduces drive power). ✅ headset-tested 2026-10-17
+- [x] Implements (built from primitives): 3-furrow plough (rear, 30 kN draft, depth control, furrow trail), 3 m front disc mower (PTO, spinning discs, mown strip), single-axle trailer (drawbar ball joint, own raycast wheels, jack). ✅ headset-tested 2026-10-17
 - [x] Attach/detach with reach/alignment/height checks and HUD guidance; mounted mass moves the centre of mass
+- [x] Trailer collides with the tractor while coupled and after detaching (bug from the headset test, fixed 2026-10-17). ⏳ re-check
 - [ ] Top link visual for mounted implements, front cylinders, trailer tipping, better implement models
 
 ### Environment

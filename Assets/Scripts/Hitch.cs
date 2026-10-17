@@ -325,6 +325,13 @@ public class Hitch : MonoBehaviour
     void TryDetach(Implement imp)
     {
         if (Mathf.Abs(tractor.SpeedKmh) > 2f) { Message?.Invoke("STOP TO DETACH"); return; }
+        // A trailer parked at a sharp angle would drop its jack into the tractor's rear.
+        if (imp.mount == Implement.Mount.Drawbar &&
+            Vector3.Angle(Vector3.ProjectOnPlane(transform.forward, Vector3.up), Vector3.ProjectOnPlane(imp.transform.forward, Vector3.up)) > 25f)
+        {
+            Message?.Invoke("STRAIGHTEN UP TO DETACH");
+            return;
+        }
         if (imp.mount != Implement.Mount.Drawbar && imp.Depth < -0.08f)
         {
             Message?.Invoke("LOWER " + (imp.mount == Implement.Mount.Front ? "FRONT LINKAGE" : "HITCH") + " FIRST");
