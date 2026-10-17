@@ -482,3 +482,23 @@ Decision: finish every open item of phases 1 and 2 before continuing phase 3. It
 - PhysicsTest: lever notch (3 cm → 0.00) and gearing (12 cm → 0.60) checked; new scenario P: STOP from 20.1 km/h → standstill in 2.2 s (expected 2.2), then holds.
 
 APK installed, ⏳ headset check.
+
+## 2026-10-18: Batch 1 headset check: frame rate + hand-control fixes
+Headset: **41–43 fps in the cab, 53 in third person** (target 72), and the hand controls jittered, the lever only went forward, and the steering
+wheel couldn't be grabbed. The Quest's own log (`adb logcat -s VrApi`) showed `FPS=41/72, App=18.2 ms, GPU%=0.99, CPU%=0.13`: completely
+**GPU-bound** (budget 13.9 ms). The low frame rate also makes everything (hands included) judder through reprojection.
+
+GPU savings:
+- **Fixed foveated rendering** (OpenXR Foveated Rendering feature, SRP foveation API, no eye tracking, subsampled layout): new `Foveation` component,
+  FOVEATION Off / Low / Medium / High on the cab panel (default High).
+- **Terrain shader**: samples only the layers present (most pixels are pure grass: ~4 texture reads instead of 8), one normal map (the dominant layer),
+  Blinn-Phong instead of PBR.
+- **Interior shader**: projects from the dominant axis only (2 texture reads instead of 6), Blinn-Phong.
+- Terrain no longer casts shadows (gentle hills shadow nothing within the 40 m shadow distance); shadow map 2048 → 1024.
+
+Hand-control fixes:
+- Lever travel 20 → 12 cm from neutral to full: reverse needed the hand ~24 cm back, behind the body. The neutral notch is ±25 % (3 cm).
+- A pinch now grabs at the pinch point (between thumb and index tips), not the palm, which is 5–8 cm from a pinched rim. The gesture is chosen when the grab starts,
+  so switching mid-grab can't jump. Grab reach for tracked hands 7 → 9 cm.
+
+Tests: PhysicsTest + PlayModeTest OK. APK installed; ⏳ frame rate to be measured in the headset (the Quest only renders while worn).

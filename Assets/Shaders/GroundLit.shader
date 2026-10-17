@@ -1,6 +1,6 @@
 // Terrain: grass / field soil / mud blended from the GroundMap control texture (R soil, G mud, B ploughed = darker soil),
 // each with its own tiling albedo + normal map in world XZ. A large-scale variation texture breaks up the tiling.
-// URP lighting like TriplanarLit (main-light shadows, SH ambient, fog, stereo).
+// Blinn-Phong lighting (main-light shadows, SH ambient, fog, stereo); only the layers present are sampled (Quest GPU budget).
 Shader "TractorVR/GroundLit"
 {
     Properties
@@ -36,6 +36,7 @@ Shader "TractorVR/GroundLit"
             #pragma multi_compile_fog
             #pragma multi_compile_instancing
 
+            #define _SPECULAR_COLOR
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
@@ -97,15 +98,19 @@ Shader "TractorVR/GroundLit"
                 wGrass /= sum; wSoil /= sum; wMud /= sum;
 
                 float2 uvG = xz * _Tiling.x, uvS = xz * _Tiling.y, uvM = xz * _Tiling.z;
-                half3 albedo = SAMPLE_TEXTURE2D(_GrassTex, sampler_GrassTex, uvG).rgb * wGrass
-                             + SAMPLE_TEXTURE2D(_SoilTex, sampler_GrassTex, uvS).rgb * wSoil * (1.0h - 0.3h * ctrl.b)
-                             + SAMPLE_TEXTURE2D(_MudTex, sampler_GrassTex, uvM).rgb * wMud;
+                // Quest budget: sample only the layers that are present here (most pixels are pure grass), and one normal map
+                // (the dominant layer's).
+                half3 albedo = 0;
+                UNITY_BRANCH if (wGrass > 0.01h) albedo += SAMPLE_TEXTURE2D(_GrassTex, sampler_GrassTex, uvG).rgb * wGrass;
+                UNITY_BRANCH if (wSoil > 0.01h) albedo += SAMPLE_TEXTURE2D(_SoilTex, sampler_GrassTex, uvS).rgb * wSoil * (1.0h - 0.3h * ctrl.b);
+                UNITY_BRANCH if (wMud > 0.01h) albedo += SAMPLE_TEXTURE2D(_MudTex, sampler_GrassTex, uvM).rgb * wMud;
                 half macro = SAMPLE_TEXTURE2D(_Macro, sampler_Macro, xz * _Tiling.w).r;
                 albedo *= lerp(0.8h, 1.15h, macro);
 
-                half3 nTS = UnpackNormal(SAMPLE_TEXTURE2D(_GrassN, sampler_GrassN, uvG)) * wGrass
-                          + UnpackNormal(SAMPLE_TEXTURE2D(_SoilN, sampler_GrassN, uvS)) * wSoil
-                          + UnpackNormal(SAMPLE_TEXTURE2D(_MudN, sampler_GrassN, uvM)) * wMud;
+                half3 nTS;
+                UNITY_BRANCH if (wGrass >= wSoil && wGrass >= wMud) nTS = UnpackNormal(SAMPLE_TEXTURE2D(_GrassN, sampler_GrassN, uvG));
+                else if (wSoil >= wMud) nTS = UnpackNormal(SAMPLE_TEXTURE2D(_SoilN, sampler_GrassN, uvS));
+                else nTS = UnpackNormal(SAMPLE_TEXTURE2D(_MudN, sampler_GrassN, uvM));
                 float3 n = normalize(i.normalWS);
                 float3 t = normalize(float3(1, 0, 0) - n * n.x);   // planar XZ mapping: tangent along +X,
                 float3 b = cross(t, n);                            // bitangent along +Z
@@ -114,6 +119,7 @@ Shader "TractorVR/GroundLit"
                 SurfaceData s = (SurfaceData)0;
                 s.albedo = albedo;
                 s.smoothness = _Smooth.x * wGrass + _Smooth.y * wSoil + _Smooth.z * wMud;
+                s.specular = half3(0.12h, 0.12h, 0.12h) * wMud;   // only wet mud shines a little
                 s.occlusion = 1;
                 s.alpha = 1;
                 s.normalTS = half3(0, 0, 1);
@@ -129,7 +135,7 @@ Shader "TractorVR/GroundLit"
                 d.normalizedScreenSpaceUV = GetNormalizedScreenSpaceUV(i.positionCS);
                 d.shadowMask = half4(1, 1, 1, 1);
 
-                half4 c = UniversalFragmentPBR(d, s);
+                half4 c = UniversalFragmentBlinnPhong(d, s);   // cheaper than PBR; the ground is matte
                 c.rgb = MixFog(c.rgb, i.fogFactor);
                 return c;
             }

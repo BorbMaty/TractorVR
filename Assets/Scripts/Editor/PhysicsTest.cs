@@ -390,10 +390,10 @@ public static class PhysicsTest
         // Speed lever: grab the knob and push it 15° forward.
         Vector3 knob = cab.speedLever.TransformPoint(cab.knobLocal);
         h.GrabPoint = knob; h.Grabbing = h.GrabStarted = true; Step();
-        h.GrabPoint = knob + ctrl.transform.forward * 0.03f; Step();
-        log.AppendLine($"   hand 3 cm forward → lever {input.leverThrottle:0.00} (inside the ±{cab.neutralNotch:0.0} neutral notch: expected 0.00)");
-        h.GrabPoint = knob + ctrl.transform.forward * 0.12f; Step();
-        log.AppendLine($"   hand 12 cm forward → lever throttle {input.leverThrottle:0.00} (expected +{0.12f / cab.leverTravel:0.00}), knob moved {(cab.speedLever.TransformPoint(cab.knobLocal) - knob).z * 100f:0.0} cm forward");
+        h.GrabPoint = knob + ctrl.transform.forward * 0.025f; Step();
+        log.AppendLine($"   hand 2.5 cm forward → lever {input.leverThrottle:0.00} (inside the ±{cab.neutralNotch:0.0} neutral notch: expected 0.00)");
+        h.GrabPoint = knob + ctrl.transform.forward * 0.072f; Step();
+        log.AppendLine($"   hand 7.2 cm forward → lever throttle {input.leverThrottle:0.00} (expected +{0.072f / cab.leverTravel:0.00}), knob moved {(cab.speedLever.TransformPoint(cab.knobLocal) - knob).z * 100f:0.0} cm forward");
         h.Grabbing = false; h.GrabEnded = true; Step();
         log.AppendLine($"   released → lever stays at {input.leverThrottle:0.00}");
 

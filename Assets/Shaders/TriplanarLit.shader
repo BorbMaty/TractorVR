@@ -1,4 +1,4 @@
-// URP lit surface with a tiling detail texture + normal map projected from three directions (triplanar), so it needs no UVs.
+// URP surface (Blinn-Phong) with a tiling detail texture + normal map projected along the surface's dominant axis, so it needs no UVs.
 // The cab plastics of the tractor model have degenerate UVs (made for plain colours), hence the projection.
 // Projection is in the object's own axes, scaled to metres, so the texture sticks to the moving tractor.
 // Vertex colour red = baked ambient occlusion (ProjectSetup.BakeAmbientOcclusion), used when _AOStrength > 0.
@@ -35,6 +35,7 @@ Shader "TractorVR/TriplanarLit"
             #pragma multi_compile_fog
             #pragma multi_compile_instancing
 
+            #define _SPECULAR_COLOR
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
@@ -96,24 +97,31 @@ Shader "TractorVR/TriplanarLit"
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
 
                 float3 n = normalize(i.normalOS);
-                float3 w = pow(abs(n), 4.0);
-                w /= max(w.x + w.y + w.z, 1e-4);
+                float3 an = abs(n);
                 float3 p = i.positionOM * _Tiling;
-                float2 uvX = p.zy, uvY = p.xz, uvZ = p.xy;
-
-                half3 detail = SAMPLE_TEXTURE2D(_DetailMap, sampler_DetailMap, uvX).rgb * w.x
-                             + SAMPLE_TEXTURE2D(_DetailMap, sampler_DetailMap, uvY).rgb * w.y
-                             + SAMPLE_TEXTURE2D(_DetailMap, sampler_DetailMap, uvZ).rgb * w.z;
-
-                // Whiteout-blended triplanar normal mapping (object space).
-                half3 tx = UnpackNormalScale(SAMPLE_TEXTURE2D(_NormalMap, sampler_NormalMap, uvX), _NormalStrength);
-                half3 ty = UnpackNormalScale(SAMPLE_TEXTURE2D(_NormalMap, sampler_NormalMap, uvY), _NormalStrength);
-                half3 tz = UnpackNormalScale(SAMPLE_TEXTURE2D(_NormalMap, sampler_NormalMap, uvZ), _NormalStrength);
-                tx = half3(tx.xy + n.zy, abs(tx.z) * n.x);
-                ty = half3(ty.xy + n.xz, abs(ty.z) * n.y);
-                tz = half3(tz.xy + n.xy, abs(tz.z) * n.z);
-                float3 normalOS = normalize(tx.zyx * w.x + ty.xzy * w.y + tz.xyz * w.z);
-                float3 normalWS = TransformObjectToWorldNormal(normalOS);
+                // Quest budget: project from the surface's dominant axis only (one detail + one normal read instead of three each).
+                // The grain / weave textures hide the seams where the axis changes on curved parts.
+                half3 detail;
+                float3 normalOS;
+                UNITY_BRANCH if (an.x >= an.y && an.x >= an.z)
+                {
+                    detail = SAMPLE_TEXTURE2D(_DetailMap, sampler_DetailMap, p.zy).rgb;
+                    half3 t = UnpackNormalScale(SAMPLE_TEXTURE2D(_NormalMap, sampler_NormalMap, p.zy), _NormalStrength);
+                    normalOS = half3(t.xy + n.zy, abs(t.z) * n.x).zyx;
+                }
+                else if (an.y >= an.z)
+                {
+                    detail = SAMPLE_TEXTURE2D(_DetailMap, sampler_DetailMap, p.xz).rgb;
+                    half3 t = UnpackNormalScale(SAMPLE_TEXTURE2D(_NormalMap, sampler_NormalMap, p.xz), _NormalStrength);
+                    normalOS = half3(t.xy + n.xz, abs(t.z) * n.y).xzy;
+                }
+                else
+                {
+                    detail = SAMPLE_TEXTURE2D(_DetailMap, sampler_DetailMap, p.xy).rgb;
+                    half3 t = UnpackNormalScale(SAMPLE_TEXTURE2D(_NormalMap, sampler_NormalMap, p.xy), _NormalStrength);
+                    normalOS = half3(t.xy + n.xy, abs(t.z) * n.z);
+                }
+                float3 normalWS = TransformObjectToWorldNormal(normalize(normalOS));
 
                 half ao = lerp(1.0h, i.color.r, _AOStrength);
 
@@ -121,6 +129,7 @@ Shader "TractorVR/TriplanarLit"
                 s.albedo = _BaseColor.rgb * detail * lerp(1.0h, ao, 0.6h);
                 s.metallic = _Metallic;
                 s.smoothness = _Smoothness;
+                s.specular = half3(0.2h, 0.2h, 0.2h) * _Smoothness;
                 s.occlusion = ao;
                 s.alpha = 1;
                 s.normalTS = half3(0, 0, 1);
@@ -136,7 +145,7 @@ Shader "TractorVR/TriplanarLit"
                 d.normalizedScreenSpaceUV = GetNormalizedScreenSpaceUV(i.positionCS);
                 d.shadowMask = half4(1, 1, 1, 1);
 
-                half4 c = UniversalFragmentPBR(d, s);
+                half4 c = UniversalFragmentBlinnPhong(d, s);
                 c.rgb += _Highlight.rgb;   // grab highlight (CabControls sets it with a MaterialPropertyBlock)
                 c.rgb = MixFog(c.rgb, i.fogFactor);
                 return c;

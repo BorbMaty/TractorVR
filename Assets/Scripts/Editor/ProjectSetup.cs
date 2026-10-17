@@ -94,6 +94,7 @@ public static class ProjectSetup
         urp.supportsHDR = false;
         urp.renderScale = 1f;
         urp.shadowDistance = 40f;
+        urp.mainLightShadowmapResolution = 1024;   // Quest GPU budget (hard shadows; soft shadows are off)
         urp.supportsCameraDepthTexture = false;
         urp.supportsCameraOpaqueTexture = false;
         EditorUtility.SetDirty(urp);
@@ -138,8 +139,17 @@ public static class ProjectSetup
             {
                 string n = f.GetType().Name;
                 bool want = n == "OculusTouchControllerProfile" || n == "MetaQuestTouchPlusControllerProfile" || n == "HandTracking"
+                            || (group == BuildTargetGroup.Android && n == "FoveatedRenderingFeature")
                             || (group == BuildTargetGroup.Android && n == "MetaQuestFeature");
                 if (want && !f.enabled) f.enabled = true;
+                if (want && n == "FoveatedRenderingFeature")
+                {
+                    // Fixed foveation (the Quest 2 has no eye tracking: no eye-tracking permission); subsampled layout is a Vulkan speed-up.
+                    var so = new SerializedObject(f);
+                    so.FindProperty("useEyeTracking").boolValue = false;
+                    so.FindProperty("enableSubsampledLayout").boolValue = true;
+                    so.ApplyModifiedPropertiesWithoutUndo();
+                }
                 if (want) Debug.Log($"[Setup]   {group} feature {n} enabled");
             }
             EditorUtility.SetDirty(oxr);
@@ -1824,6 +1834,7 @@ public static class ProjectSetup
         BuildAudio(tractor, vr);
 
         // Hands: grip poses for grabbing (controllers), tracked hand meshes, and the cab panel.
+        rig.AddComponent<Foveation>();
         var hands = rig.AddComponent<VRHands>();
         hands.cameraOffset = offset;
         hands.leftGrip = GripPose(offset, "LeftHand");

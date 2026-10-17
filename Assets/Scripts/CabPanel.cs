@@ -67,6 +67,7 @@ public class CabPanel : MonoBehaviour
             ("units",    () => Mph ? "UNITS: MPH" : "UNITS: KM/H", ToggleUnits, false),
             ("reset",    () => "RESET TRACTOR", () => tractor.ResetTractor(), false),
             ("stop",     () => "STOP / NEUTRAL", () => { tractor.GetComponent<CabControls>().Neutral(); tractor.RequestStop(); }, false),
+            ("foveation",() => "FOVEATION: " + Foveation.Names[Foveation.Level], () => Foveation.Level = (Foveation.Level + 1) % 4, false),
             ("perf",     () => TractorHud.ShowPerf ? "FRAME TIME: ON" : "FRAME TIME: OFF", () => TractorHud.ShowPerf = !TractorHud.ShowPerf, false),
         };
         int rows = (items.Length + 1) / 2;

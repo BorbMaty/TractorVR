@@ -23,6 +23,7 @@ public class VRHands : MonoBehaviour
         public bool Grabbing;
         public bool GrabStarted;   // this frame
         public bool GrabEnded;     // this frame
+        public bool PinchGrab;     // hand tracking: this grab started as a pinch (grab point = between thumb and index tips)
     }
 
     public Transform cameraOffset;                  // tracking space
@@ -68,9 +69,9 @@ public class VRHands : MonoBehaviour
         if (xr.isTracked && Joint(xr, XRHandJointID.Palm, out Pose palm) && Joint(xr, XRHandJointID.IndexTip, out Pose index)
             && Joint(xr, XRHandJointID.MiddleProximal, out Pose knuckle) && Joint(xr, XRHandJointID.ThumbTip, out Pose thumb))
         {
-            // Grab point: between the palm and the middle knuckle, which stay steady in a fist (the fingertips are hidden then).
-            Vector3 raw = cameraOffset.TransformPoint((palm.position + knuckle.position) * 0.5f);
-            h.RawGrabPoint = raw;
+            // Grab point: between the palm and the middle knuckle for a fist (steady even with the fingertips hidden);
+            // between thumb and index tips for a pinch (that's where a pinched rim or knob actually is). Chosen when the grab
+            // starts and kept until it ends, so switching gesture mid-grab can't make the wheel jump.
             // Fist: average fingertip distance to the palm (close < 6.5 cm, open > 8.5 cm). Pinch: thumb to index tip (< 2.5 / > 4.5 cm).
             float sum = 0f; int n = 0;
             foreach (var id in new[] { XRHandJointID.IndexTip, XRHandJointID.MiddleTip, XRHandJointID.RingTip })
@@ -79,6 +80,10 @@ public class VRHands : MonoBehaviour
             sig.fist = sig.fist ? curl < 0.085f : curl < 0.065f;
             float pinch = Vector3.Distance(thumb.position, index.position);
             sig.pinch = sig.pinch ? pinch < 0.045f : pinch < 0.025f;
+            if (!h.Grabbing) h.PinchGrab = sig.pinch && !sig.fist;
+            Vector3 raw = h.PinchGrab ? cameraOffset.TransformPoint((thumb.position + index.position) * 0.5f)
+                                      : cameraOffset.TransformPoint((palm.position + knuckle.position) * 0.5f);
+            h.RawGrabPoint = raw;
             sig.Step(true, raw, sig.fist || sig.pinch, dt);
             h.IsHandTracking = true;
             h.PokeTip = cameraOffset.TransformPoint(index.position);

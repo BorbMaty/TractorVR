@@ -7,7 +7,7 @@ using UnityEngine;
 ///   (like real hydrostatic steering) until the left stick is used again. The speed-dependent comfort lock still applies,
 ///   so beyond it the wheel slips in the hand.
 ///   Speed lever: grab the knob of the lever at the front of the right armrest and move the hand forward / back.
-///   It is geared down: 20 cm of hand travel from neutral to full (relative to where it was grabbed, so it never jumps).
+///   It is geared down: 12 cm of hand travel from neutral to full (relative to where it was grabbed, so it never jumps).
 ///   A notchy neutral (±20 %) snaps it upright with a click. It stays where it is let go (cruise); the right stick or the
 ///   panel's STOP button puts it back to neutral.
 /// Feedback: the rim / knob lights up softly when a hand is in reach and brighter while held, and a tracked hand is shown
@@ -19,10 +19,11 @@ public class CabControls : MonoBehaviour
     public Transform speedLever;          // hinge at the bottom of the stem, tilts around local X
     public Vector3 knobLocal;             // knob centre in the hinge's space
     public float leverTilt = 25f;
-    public float leverTravel = 0.20f;     // m of hand travel from neutral to full
-    public float neutralNotch = 0.2f;     // share of the range that snaps to neutral
+    public float leverTravel = 0.12f;     // m of hand travel from neutral to full (20 cm put reverse out of reach, behind the body)
+    public float neutralNotch = 0.25f;    // share of the range that snaps to neutral (3 cm of hand travel)
     public float rimRadius = 0.1985f;
-    public float grabReach = 0.07f;       // m from the rim / knob
+    public float grabReach = 0.07f;       // m from the rim / knob (controllers)
+    public float handReach = 0.09f;       // m, tracked hands (the palm sits further from a thin rim than a controller's grip)
     public AudioSource click;
     public Color hoverGlow = new Color(0.04f, 0.10f, 0.04f), heldGlow = new Color(0.08f, 0.22f, 0.08f);
 
@@ -75,12 +76,14 @@ public class CabControls : MonoBehaviour
         if (leverHand != null) { leverAtGrab = 0f; handAtGrab = HandForward(leverHand); }
     }
 
-    bool NearKnob(VRHands.Hand h) => Vector3.Distance(h.GrabPoint, speedLever.TransformPoint(knobLocal)) < grabReach + 0.02f;
+    float Reach(VRHands.Hand h) => h.IsHandTracking ? handReach : grabReach;
+
+    bool NearKnob(VRHands.Hand h) => Vector3.Distance(h.GrabPoint, speedLever.TransformPoint(knobLocal)) < Reach(h) + 0.02f;
 
     bool NearRim(VRHands.Hand h)
     {
         Vector3 p = column.InverseTransformPoint(h.GrabPoint);
-        return Mathf.Abs(new Vector2(p.x, p.y).magnitude - rimRadius) < grabReach && Mathf.Abs(p.z) < grabReach;
+        return Mathf.Abs(new Vector2(p.x, p.y).magnitude - rimRadius) < Reach(h) && Mathf.Abs(p.z) < Reach(h);
     }
 
     float HandForward(VRHands.Hand h) => Vector3.Dot(h.GrabPoint, transform.forward);

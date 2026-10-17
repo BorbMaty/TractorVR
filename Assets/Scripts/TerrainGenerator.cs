@@ -76,7 +76,9 @@ public class TerrainGenerator : MonoBehaviour
             go.transform.SetParent(transform, false);
             go.isStatic = true;
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
-            go.AddComponent<MeshRenderer>().sharedMaterial = mat;
+            var r = go.AddComponent<MeshRenderer>();
+            r.sharedMaterial = mat;
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;   // gentle hills shadow nothing within 40 m; saves GPU
             go.AddComponent<MeshCollider>().sharedMesh = mesh;
         }
         BuildSurfaces();
