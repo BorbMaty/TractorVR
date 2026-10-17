@@ -222,3 +222,6 @@ Main open question: whether the cab pitching/rolling on the hills is comfortable
 | Hills (start area is flat on purpose) | Cab |
 |---|---|
 | ![hills](images/hills.png) | ![cab](images/cab.png) |
+
+## 2026-10-17: Physics + terrain headset check
+- Hills, cab pitch/roll on slopes, driving feel and pushing bales were tested on the Quest 2: all good, no comfort problems, no tuning needed.

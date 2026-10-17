@@ -3,8 +3,8 @@
 ## ▶ Where we left off (2026-10-17, evening)
 Phase 2 order agreed on 2026-10-17: **1. physics + terrain → 2. hydraulics + implements → 3. VR interaction**.
 - Block 0 (steering wheel, cluster, gearbox, sounds): ✅ headset-tested.
-- Block 1 (**physics + terrain**): built, passes the offline physics test (`Tractor VR → Run Physics Test`), installed on the Quest 2,
-  **not headset-tested yet**.
+- Block 1 (**physics + terrain**): ✅ headset-tested 2026-10-17 (hills, cab pitch/roll, bales all fine; no tuning needed).
+- Block 2 (**hydraulics + implements**): in progress.
 
 **Next session:**
 1. Headset test of the physics build: comfort on the hills (the cab view now pitches and rolls with the tractor), driving feel, pushing bales, frame rate
@@ -56,8 +56,8 @@ First block, chosen 2026-10-17: **steering wheel + drivetrain** (biggest effect 
 - [ ] Torque curve / real tractive force (needs the physics block), hand throttle
 
 ### Physics (block 1)
-- [x] Replace the kinematic model with real wheel physics: Rigidbody + custom raycast suspension (spring-damper per wheel), tyre forces with a friction circle, 90 Hz physics + interpolation. Built 2026-10-17, ⏳ headset test
-- [x] Mass 7.5 t, centre of gravity (40 % front), grip μ 0.8, slopes (195 hp power limit on climbs), parking brake that holds on a slope, collisions (pushable hay bales). Built 2026-10-17, ⏳ headset test
+- [x] Replace the kinematic model with real wheel physics: Rigidbody + custom raycast suspension (spring-damper per wheel), tyre forces with a friction circle, 90 Hz physics + interpolation. Built 2026-10-17, ✅ headset-tested 2026-10-17
+- [x] Mass 7.5 t, centre of gravity (40 % front), grip μ 0.8, slopes (195 hp power limit on climbs), parking brake that holds on a slope, collisions (pushable hay bales). Built 2026-10-17, ✅ headset-tested 2026-10-17
 - [x] Offline physics test in the editor (`PhysicsTest`): settle, acceleration, turns, steepest hill, parking, bale push
 - [ ] Wheel slip / spin visuals, soil types, ballast settings
 
@@ -67,7 +67,7 @@ First block, chosen 2026-10-17: **steering wheel + drivetrain** (biggest effect 
 - [ ] Attach implements: plough, trailer, mower
 
 ### Environment
-- [x] Terrain with gentle hills (2 × 2 km, generated at runtime, slopes up to ~11°, flat start area), haze, lower sun. Built 2026-10-17, ⏳ headset test
+- [x] Terrain with gentle hills (2 × 2 km, generated at runtime, slopes up to ~11°, flat start area), haze, lower sun. Built 2026-10-17, ✅ headset-tested 2026-10-17
 - [ ] Field with crop rows, roads, a farmyard
 
 ### VR interaction
