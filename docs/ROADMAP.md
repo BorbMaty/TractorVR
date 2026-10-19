@@ -135,7 +135,7 @@ hydraulic levers, pressable switches, lights, and keep the cab panel. Order (eac
 Two builds from the same project: the optimised **standalone Android** build stays the main deliverable, and a **PC VR** build renders on the
 laptop (RTX 3060 Laptop 6 GB, Ryzen 7 5800H, 16 GB) and streams to the Quest 2 over Link. The 750k-triangle model is cheap for that GPU.
 - [ ] Laptop setup: install the Meta Quest Link app, set it as the active OpenXR runtime, allow unknown sources; force OVRServer and Unity / the build onto the NVIDIA GPU
-- [ ] Cable: USB-C with USB 3 data (Link cable or a good 3–5 m cable); Air Link optional (5 GHz / Wi-Fi 6 router, laptop on Ethernet)
+- [ ] Cable: USB-C with USB 3 data (Link cable or a good 3–5 m cable); Air Link is an option: a 5 GHz Wi-Fi network is available (best with the laptop on Ethernet to the router, headset close to it)
 - [ ] Play mode through Link in the Editor (faster test loop, no APK install)
 - [ ] Windows Standalone build profile: OpenXR + Oculus Touch profiles (already set), its own quality level
 - [ ] PC quality: LOD0 / full model, real model shadows instead of the `ShadowProxy`, MSAA 4×, higher render scale, 90 Hz
