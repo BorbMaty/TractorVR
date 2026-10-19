@@ -13,6 +13,8 @@
 2. Batch 3 (implements): top link, front-linkage cylinders, trailer tipping, front ballast weight, better implement models
 3. Then phase 3 step 2 (traction)
 
+Planned (2026-10-19): a second, PC VR build over Quest Link next to the standalone one, see "PC VR build" below.
+
 Still open with the user: whether the original TurboSquid `tex\` folder is available.
 
 ## Phase 1: flat world, general controls ✅ done (closed 2026-10-17)
@@ -128,6 +130,17 @@ hydraulic levers, pressable switches, lights, and keep the cab panel. Order (eac
 - [ ] Pressable switches and knobs on the console and corner post: lights, PTO, 4WD, diff lock, hazards, beacon
 - [ ] Working lights (headlights, work lights, beacon, indicators), day / dusk option
 - [ ] Keep the cab panel as the easy way to reach everything
+
+## PC VR build (Quest Link), alongside the standalone build (planned 2026-10-19, not scheduled yet)
+Two builds from the same project: the optimised **standalone Android** build stays the main deliverable, and a **PC VR** build renders on the
+laptop (RTX 3060 Laptop 6 GB, Ryzen 7 5800H, 16 GB) and streams to the Quest 2 over Link. The 750k-triangle model is cheap for that GPU.
+- [ ] Laptop setup: install the Meta Quest Link app, set it as the active OpenXR runtime, allow unknown sources; force OVRServer and Unity / the build onto the NVIDIA GPU
+- [ ] Cable: USB-C with USB 3 data (Link cable or a good 3–5 m cable); Air Link optional (5 GHz / Wi-Fi 6 router, laptop on Ethernet)
+- [ ] Play mode through Link in the Editor (faster test loop, no APK install)
+- [ ] Windows Standalone build profile: OpenXR + Oculus Touch profiles (already set), its own quality level
+- [ ] PC quality: LOD0 / full model, real model shadows instead of the `ShadowProxy`, MSAA 4×, higher render scale, 90 Hz
+- [ ] Platform-specific settings so the Android build keeps its optimisations (foveation, LODs, shadow stand-in)
+- [ ] Measure and compare both builds (frame time, image quality, latency) for the documentation
 
 ## Future ideas / reference (not scheduled)
 - **Working mirrors**: the model has three parts with the `mirror` material. One small render-texture camera per mirror (mono, from the reflected
