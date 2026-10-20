@@ -650,3 +650,9 @@ the parked trailer's body raised in play mode pours its whole load into one heap
 | Top link at work / raised | Tipping | Front weight |
 |---|---|---|
 | ![top link](images/toplink_raised.png) | ![tipping](images/tipping_rear.png) | ![front weight](images/front_weight.png) |
+
+## 2026-10-21: Headset test of batches 2 and 3, phases 1 and 2 closed
+Tested in the headset by the user: everything in batches 2 and 3 works, and **phases 1 and 2 are complete**.
+One bug, to fix next session (in the ROADMAP under "Known bug"): RESET TRACTOR with the trailer coupled makes the trailer disappear, and
+it stays coupled and can't be detached. The optional original-textures item of phase 1 moved to "Future ideas".
+Next: fix that bug, then phase 3 step 2 (traction).
