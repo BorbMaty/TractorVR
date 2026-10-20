@@ -22,7 +22,8 @@ Docs: [Roadmap](docs/ROADMAP.md) · [Development log](docs/DEVLOG.md) · [CLAUDE
 ### Phase 2: the specifications ✅ done
 - **Steering wheel + drivetrain**: turning steering wheel, instrument cluster, 20F/20R gearbox (auto / manual), engine RPM and load, synthesised sounds
 - **Physics + terrain**: 7.5 t Rigidbody on raycast wheels, power limit on climbs, parking brake on slopes, rolling hills, pushable hay bales
-- **Hydraulics + implements**: rear three-point hitch and front linkage, PTO, plough, front mower, trailer; attach / detach
+- **Hydraulics + implements**: rear three-point hitch with a working top link, front linkage with moving cylinders, PTO; plough, front mower,
+  900 kg front weight, tipping trailer with a 3 t load; attach / detach
 - **VR interaction**: grab the steering wheel, the speed lever, the hydraulic remote levers and the doors; hand tracking, cab panel with touch buttons
 - **Cab visuals**: generated interior textures and baked ambient occlusion
 - **Cab + engine extras**: opening doors, CommandCenter display (fuel, coolant temperature, power), torque curve, hand throttle
@@ -31,7 +32,7 @@ Docs: [Roadmap](docs/ROADMAP.md) · [Development log](docs/DEVLOG.md) · [CLAUDE
 1. ✅ **Ground + layout**: farmyard, roads, fields, mud; grip and rolling resistance per surface
 2. ⏳ **Traction**: wheel slip, brakes, 4WD, diff lock (next)
 3. ⏳ **Fields + crops**: standing crop rows the mower cuts, ploughing changes the field
-4. ⏳ **Cab buttons**: hydraulic levers, pressable switches, working lights (the cab panel stays)
+4. ⏳ **Cab buttons**: pressable switches, working lights (the hydraulic levers came with phase 2; the cab panel stays)
 
 Future ideas (working mirrors, original model textures, hand-control improvements): see the [Roadmap](docs/ROADMAP.md).
 
@@ -66,14 +67,29 @@ hills, an asphalt road, mud at the field gates and in the hollows. Every surface
 ### Implements and hydraulics
 Rear three-point hitch (real four-bar linkage motion from the model's pivots), front linkage, drawbar and PTO.
 Back up or drive up to an implement and press attach.
+- **Top link**: stowed upright until a three-point implement is coupled, then set to the length that fits and connected to the
+  implement's top pin. The implement pitches as the hitch moves, as with real three-point geometry (level at work, tail up when raised).
+- **Front linkage cylinders** swing and slide with the front links.
+- **Front weight** (900 kg) for the front linkage: about 12 kN more on the steering axle.
+- **Tipping trailer**: rear-hinged body on a seven-stage telescopic ram, tailgate that swings open, 3 t of soil that pours out into a heap
+  (remote lever 3, panel TIP buttons). The trailer's mass and centre of mass follow the load.
+- Implement models built in code: lugged tyres, twisted mouldboards, disc coulters, mower hood and knives, trailer stakes, mudguards, lamps.
 
 | Plough: 30 kN draft, depth control, furrows | Front disc mower on the PTO |
 |---|---|
 | ![ploughing](docs/images/ploughing.png) | ![mower](docs/images/mower.png) |
 
-| Tipping trailer on the drawbar | Rear hitch lowered / raised |
+| Top link at working depth | Raised: the plough pitches |
 |---|---|
-| ![trailer](docs/images/trailer.png) | ![hitch](docs/images/hitch_low.png) |
+| ![top link](docs/images/toplink_work.png) | ![raised](docs/images/toplink_raised.png) |
+
+| Tipping trailer on the drawbar | Tipping: the load pours out |
+|---|---|
+| ![trailer](docs/images/trailer.png) | ![tipping](docs/images/tipping_rear.png) |
+
+| Front weight + plough raised | Rear hitch lowered |
+|---|---|
+| ![front weight](docs/images/front_weight.png) | ![hitch](docs/images/hitch_low.png) |
 
 ### The cab
 - The steering wheel turns (cut out of the cab mesh), the instrument cluster shows RPM, speed, gear and mode
@@ -121,7 +137,8 @@ The panel's MENU tab is always visible at the right front of the cab.
 | Panel: SEAT ADJ ON + sticks | Hold Left Shift | Seat adjust: left stick ↑↓ = height, right stick = forward/back/sideways (saved) |
 | **Grip** (either hand) near the wheel rim | — | Grab the steering wheel and turn it; it stays where you let go until you use the left stick |
 | **Grip** on the lever knob (right armrest) | — | Speed lever: push forward = drive, pull back = reverse; stays set. The right stick puts it back to neutral |
-| **Grip** on a remote lever knob (behind the speed lever) | — | Pull back = raise, push forward = lower (1 rear hitch, 2 front linkage); springs back to the middle |
+| **Grip** on a remote lever knob (behind the speed lever) | — | Pull back = raise, push forward = lower (1 rear hitch, 2 front linkage, 3 tipping trailer); springs back to the middle |
+| Panel TIP UP / TIP DOWN | I / K | Raise / lower the coupled tipping trailer's body |
 | **Grip** on a door | — | Swing the door open / closed (it stays where you let go); panel DOORS opens / closes both |
 | **Menu** button (left) | M | Cab panel at the right front: touch the buttons with a controller tip or a fingertip |
 | CommandCenter / panel THROTTLE − / + | [ / ] | Hand throttle (engine speed, idle = off) |
@@ -140,6 +157,7 @@ Assets/Scripts/TractorController.cs   driving physics (Rigidbody + raycast suspe
 Assets/Scripts/TerrainGenerator.cs    rolling hills, generated at startup
 Assets/Scripts/Hitch.cs               rear hitch + front linkage + drawbar, PTO, attach / detach
 Assets/Scripts/Implement.cs           coupling, depth, draft, PTO parts, work trails
+Assets/Scripts/Tipper.cs              tipping trailer body, ram, tailgate, load and heaps
 Assets/Scripts/SimpleWheels.cs        trailer wheels
 Assets/Scripts/VRHands.cs             hands from controllers or hand tracking (grab point, grabbing, poke tip)
 Assets/Scripts/CabControls.cs         grab the steering wheel, the speed lever, the remote levers and the doors

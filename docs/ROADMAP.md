@@ -4,17 +4,20 @@
 **Finishing phases 1 and 2 before continuing phase 3** (decided 2026-10-18).
 - Batch 1 (hand controls + testing) ✅ done and headset-checked: grab highlight, rebuilt speed lever (follows the hand around its pivot,
   neutral zone in the speed command, HUD status), hand snapping, STOP / NEUTRAL, FRAME TIME, FOVEATION, play-mode test.
-- Batch 2 (cab) built 2026-10-21, tests pass, APK installed, ⏳ headset check: opening doors, CommandCenter display (fuel, coolant,
-  power, linkage, PTO), torque curve, hand throttle, grabbable hydraulic remote levers.
+- Batch 2 (cab) built 2026-10-21, tests pass, APK installed, reviewed by the user ("looks good"), ⏳ headset check: opening doors,
+  CommandCenter display (fuel, coolant, power, linkage, PTO), torque curve, hand throttle, grabbable hydraulic remote levers.
+- Batch 3 (implements) built 2026-10-21, tests pass, APK installed, ⏳ headset check: top link with three-point pitch, front linkage
+  cylinders, tipping trailer (ram, tailgate, 3 t load, heaps; remote lever 3), 900 kg front weight, better implement models.
+- With batches 1–3 every phase 1 and 2 item is built; phase 2 closes once batches 2 and 3 pass the headset check.
 - Frame rate: two optimisation rounds (foveated rendering, cheaper shaders, shadow stand-in, mesh LODs). The last session held **72 fps most of the time**
   (GPU ~11.3 ms of the 13.9 ms budget), with some stretches at ~59 fps and one short drop to 30–39 fps. Accepted for now (2026-10-18).
   If it needs another pass: log the context of slow frames (view, position, implements, trails) to find the expensive situations.
 
 **Next session:**
-1. Headset check of batch 2: grab a door / a remote lever (controllers and hands), read the CommandCenter from the seat, hand throttle feel,
-   frame rate with the new display (FRAME TIME button)
-2. Batch 3 (implements): top link, front-linkage cylinders, trailer tipping (remote lever 3), front ballast weight, better implement models
-3. Then phase 3 step 2 (traction)
+1. Headset check of batches 2 and 3: grab a door / a remote lever (controllers and hands), read the CommandCenter from the seat,
+   hand throttle feel; couple the plough (top link) and the front weight, tip the trailer with remote lever 3;
+   frame rate with the new display and implement models (FRAME TIME button)
+2. Close phase 2, then phase 3 step 2 (traction)
 
 Planned (2026-10-19): a second, PC VR build over Quest Link next to the standalone one, see "PC VR build" below.
 
@@ -80,7 +83,8 @@ First block, chosen 2026-10-17: **steering wheel + drivetrain** (biggest effect 
 - [x] Offline physics test in the editor (`PhysicsTest`): settle, acceleration, turns, steepest hill, parking, bale push
 - [x] Soil types: done in phase 3 step 1 (GroundMap: grip, rolling resistance, draft per surface)
 - [ ] Wheel slip / spin visuals → moved to phase 3 step 2 (traction)
-- [ ] Ballast: front weight on the front linkage (batch 3)
+- [x] Ballast: 900 kg front weight for the front linkage (cast slabs on a carrier). Front axle +12.6 kN, rear −3.8 kN (expected +12.3 / −3.5).
+  The centre of mass now follows the linkage positions every frame. Built 2026-10-21 in batch 3, ⏳ headset check
 
 ### Hydraulics and implements (block 2)
 - [x] Rear 3-point hitch animated as a real four-bar linkage from the model's pivots (lift arms, lift rods, lower links, stabilisers, lift cylinders); link ends 0.43–1.27 m. Built 2026-10-17, ✅ headset-tested 2026-10-17
@@ -89,7 +93,13 @@ First block, chosen 2026-10-17: **steering wheel + drivetrain** (biggest effect 
 - [x] Implements (built from primitives): 3-furrow plough (rear, 30 kN draft, depth control, furrow trail), 3 m front disc mower (PTO, spinning discs, mown strip), single-axle trailer (drawbar ball joint, own raycast wheels, jack). ✅ headset-tested 2026-10-17
 - [x] Attach/detach with reach/alignment/height checks and HUD guidance; mounted mass moves the centre of mass
 - [x] Trailer collides with the tractor while coupled and after detaching (bug from the headset test, fixed 2026-10-17). ✅ re-checked in the headset
-- [ ] Top link for mounted implements, front-linkage cylinders, trailer tipping, better implement models (batch 3)
+- [x] Top link: stowed upright until a three-point implement is coupled, then set to the length that fits (plough: 92 cm) and pinned to
+  the implement's top pin; the implement pitches with the hitch (plough −1.2° at work, +14.6° fully raised). Built 2026-10-21 in batch 3, ⏳ headset check
+- [x] Front-linkage cylinders: barrel on its frame pin, rod on the lug below each lower link's pivot. Built 2026-10-21 in batch 3, ⏳ headset check
+- [x] Trailer tipping: rear-hinged body, 7-stage telescopic ram in front of the headboard, tailgate hanging plumb, 3 t of soil that pours
+  out above 20° into a heap (3 t in ~5 s at 45°); remote lever 3, panel TIP UP / DOWN, I / K. Built 2026-10-21 in batch 3, ⏳ headset check
+- [x] Better implement models (built in code): lugged tyres, twisted mouldboards, coulters, A-frame headstocks, mower hood / knives / curtain,
+  trailer stakes, ladder, mudguards, lamps. Built 2026-10-21 in batch 3, ⏳ headset check
 
 ### Environment
 - [x] Terrain with gentle hills (2 × 2 km, generated at runtime, slopes up to ~11°, flat start area), haze, lower sun. Built 2026-10-17, ✅ headset-tested 2026-10-17
@@ -103,7 +113,7 @@ First block, chosen 2026-10-17: **steering wheel + drivetrain** (biggest effect 
 - [x] Grab the speed lever on the armrest (the shift lever + knob pieces + stem, cut out of the cab mesh, pivot inside the gate): forward = drive, back = reverse, stays set (cruise). ✅ Controllers; hand tracking as for the wheel
 - [x] Cab panel at the right front corner (touch buttons): view, recenter, comfort, gearbox, hitch/front up/down, PTO, attach, seat adjust/reset, units, reset tractor. ✅ headset-tested 2026-10-17
 - [x] Grab the hydraulic remote levers on the armrest: three levers cut out of the cab mesh (knob + handle + stem), spring-centred,
-  1 = rear hitch, 2 = front linkage (pull back = raise, speed ∝ deflection), 3 = trailer tipping → batch 3. Built 2026-10-21 in batch 2, ⏳ headset check
+  1 = rear hitch, 2 = front linkage, 3 = tipping trailer (pull back = raise, speed ∝ deflection). Built 2026-10-21 in batches 2 and 3, ⏳ headset check
 
 Hand-control improvements (from the hand-tracking tests, built 2026-10-18 in batch 1, ✅ headset-checked 2026-10-18):
 - [x] Highlight the steering wheel rim / lever knob when a hand is in reach, brighter while held
@@ -136,7 +146,7 @@ hydraulic levers, pressable switches, lights, and keep the cab panel. Order (eac
 - [ ] Ploughing turns the ground to "ploughed" (grip, draft, look)
 
 ### Step 4: cab buttons
-- [x] The three hydraulic remote levers on the armrest: grabbable, move the hitch / front linkage (done in phase 2 batch 2); trailer tipping with batch 3
+- [x] The three hydraulic remote levers on the armrest: grabbable, move the hitch / front linkage / trailer tipping (done in phase 2, batches 2 and 3)
 - [ ] Pressable switches and knobs on the console and corner post: lights, PTO, 4WD, diff lock, hazards, beacon
 - [ ] Working lights (headlights, work lights, beacon, indicators), day / dusk option
 - [ ] Keep the cab panel as the easy way to reach everything

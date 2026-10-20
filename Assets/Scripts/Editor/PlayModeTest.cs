@@ -11,7 +11,7 @@ using UnityEngine;
 /// Plays the real scene in the editor (no headset) for ~25 s with scripted input and reports any runtime error.
 /// Everything runs as in the game: Awake / Start / Update / FixedUpdate of every component, the terrain build, the HUD, the cab panel.
 /// Script: settle → drive off → steer → stop button → every cab panel button (except reset) → CommandCenter hand throttle
-/// → hitch down/up → done.
+/// → hitch down/up, trailer body tipped (pours its load) → done.
 ///   Menu: Tractor VR > Run Play Mode Test
 ///   CLI : Unity.exe -batchmode -projectPath . -executeMethod PlayModeTest.Run   (no -quit: it exits by itself, code 1 on errors)
 /// Entering play mode reloads the scripts, so the run state lives in SessionState.
@@ -116,12 +116,15 @@ public static class PlayModeTest
         });
         Once("hitchDown", 19, t, () => input.scriptedHitch = -1f);
         Once("hitchUp", 22, t, () => input.scriptedHitch = 1f);
+        Once("tip", 20, t, () => Object.FindAnyObjectByType<Tipper>().Move(1f, 7f));   // raise the parked trailer's body straight to the top
         Once("end", 25, t, () =>
         {
             input.scriptedHitch = 0f;
             var hitch = tractor.GetComponent<Hitch>();
             log.AppendLine($"{t:0.0}s hitch at {hitch.RearPosition:0.00}, {frames} frames ({frames / t:0} fps in the editor)");
             var drive = tractor.GetComponent<Drivetrain>();
+            var tipper = Object.FindAnyObjectByType<Tipper>();
+            log.AppendLine($"{t:0.0}s trailer body {tipper.Angle:0}°, load {tipper.LoadKg:0} kg left, {Object.FindObjectsByType<MeshFilter>(FindObjectsSortMode.None).Count(m => m.name == "SoilHeap")} heap(s)");
             log.AppendLine($"{t:0.0}s fuel {drive.FuelLitres:0.0} L ({drive.FuelRateLph:0.0} L/h), coolant {drive.CoolantC:0.0} °C, doors open {tractor.GetComponent<CabControls>().DoorsOpen}");
             Finish(null);
         });

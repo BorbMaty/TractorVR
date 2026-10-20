@@ -596,3 +596,57 @@ run (climb, parking, bale, plough, mower, trailer, surfaces). PlayModeTest OK (1
 | CommandCenter | Remote levers (1 raised, 2 lowered) | Door open |
 |---|---|---|
 | ![commandcenter](images/commandcenter.png) | ![remotes](images/remotes.png) | ![door](images/doors_side.png) |
+
+## 2026-10-21: Finishing phases 1 and 2, batch 3 (implements)
+All five batch 3 items, built and tested in the editor. APK (62.3 MB) installed, ⏳ headset check. With this, every phase 1 and 2 item
+is built; phase 2 closes after the headset check of batches 2 and 3.
+
+**Probe first**: a temporary editor script printed the pivots and extents of the top link and the front cylinders, and rendered tinted
+close-ups. The top link `Rear_Holder_01` has its pivot on the tractor bracket at (0, 1.179, −0.511) and stands 0.94 m tall. The front
+cylinder barrels pivot on their frame pin at the top (1.162, 3.337), but the model pins the rods *on the lower link's own pivot*, where a
+cylinder couldn't move anything. The renders show a lug below each link's pivot, so the rods ride on that lug (centroid of the link's
+vertices more than 4 cm below the pivot, (0.773, 3.588)).
+
+**Top link with three-point pitch** (`Hitch`): when a three-point implement with a `topPin` is coupled, the top link is set to the length that
+fits at that moment (plough: 92 cm) and stays that long, like a turnbuckle. Each frame `SolvePitch` finds the implement pitch about the
+lower-link pins that puts the top pin at that distance from the bracket (bisection, root nearest level), and turns `RearMount` by it. The
+implement follows because it takes the mount's rotation. The top link mesh is turned onto the pin and stretched along its axis.
+PhysicsTest J: plough level when coupled (0.6°), −1.2° at working depth, +14.6° fully raised (tail up), with the same draft (30.4 kN)
+and track as before.
+
+**Front linkage cylinders**: the barrel turns on its frame pin towards the lug pin. The rod is turned by the same angle and slides along
+the barrel by the change in length (`front_cyl_up/mid/down.png`).
+
+**Tipping trailer** (`Tipper.cs`): the body (floor, sides, stakes, headboard with ladder, body collider) is a child hinged at the rear of the
+chassis. A seven-stage telescopic ram runs from the drawbar to the top of the headboard; its stages spread evenly between base and pin,
+from 0.7 m closed to 4.1 m at the 45° limit. The tailgate hangs from its top edge and stays plumb, so it swings open. The trailer
+starts with 3 t of soil: above 20° it pours (full rate at 40°) into a mound behind the tailgate, sized by volume (1500 kg/m³, repose ~25°).
+A new mound starts when the trailer has moved on 1.5 m. Mass and centre of mass follow the load and the body angle, and the tractor's towed
+mass follows too. It's worked by remote lever 3, the panel's TIP UP / DOWN, or I / K, only while coupled.
+PhysicsTest S: 3000 kg poured in ~5 s at 45°, CoM 1.23 → 2.14 m high at the peak, one mound of 1.41 m radius 7 m behind the eye, then
+lowered in 4 s and driven off at 12 km/h.
+
+**Front weight**: 900 kg of cast slabs on a carrier, coupled to the front linkage like the mower. PhysicsTest R: front axle 29.4 → 42.0 kN,
+rear 44.2 → 40.4 kN (lever rule: +12.3 / −3.5). Two bugs showed up here:
+- The weight couldn't be uncoupled ("LOWER FRONT LINKAGE FIRST"): the lowered check uses ground points and the weight has none. Now an
+  implement without working parts measures its depth by its coupling point against its parked height.
+- That left everything after it coupled. The trailer stayed on the drawbar, and the next scenario's teleport dragged it along and made
+  the physics explode (6100 km/h). The tipping scenario now uncouples at the end, and reports it.
+- The centre of mass was only computed when coupling, so lifting an implement didn't move it. `Hitch` now updates mass and CoM every
+  frame while anything is coupled (the plough raised shifts the front axle 0.2 kN more than before).
+
+**Better implement models** (all generated in `ProjectSetup.BuildImplements`):
+- Procedural meshes: lugged tractor tyres (two staggered rows, a castellated profile swept across each half, flat-shaded) and a twisted
+  mouldboard surface.
+- Plough: cross shaft with yellow pins, A-frame headstock and top pin, braces, beam, raked legs, frogs, shares and points, mouldboards,
+  landsides, disc coulters, depth wheel on an arm, parking stand.
+- Mower: A-frame headstock with hooks, gearbox, PTO shaft guard, knives on the discs, sloping hood, side shields, rubber curtain, skids.
+- Trailer: A-frame drawbar with eye ring, jack with crank, rails and cross members, leaf springs, mudguards, light bar with lamps and plate,
+  stakes and top rails, headboard ladder, tailgate with bar.
+
+Tests: PhysicsTest R and S are new and J logs the pitch. All other scenarios match the batch 2 run. PlayModeTest OK: 21 panel buttons, and
+the parked trailer's body raised in play mode pours its whole load into one heap.
+
+| Top link at work / raised | Tipping | Front weight |
+|---|---|---|
+| ![top link](images/toplink_raised.png) | ![tipping](images/tipping_rear.png) | ![front weight](images/front_weight.png) |

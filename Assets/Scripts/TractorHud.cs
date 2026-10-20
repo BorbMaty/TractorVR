@@ -38,7 +38,8 @@ public class TractorHud : MonoBehaviour
         var s = new System.Text.StringBuilder();
         if (hitch.Front) s.Append($"{hitch.Front.displayName} {hitch.FrontPosition * 100f:0}%  ");
         if (hitch.Rear) s.Append($"{hitch.Rear.displayName} {hitch.RearPosition * 100f:0}%{(hitch.Rear.Working ? " WORK" : "")}  ");
-        if (hitch.Towed) s.Append($"{hitch.Towed.displayName}  ");
+        var tipper = hitch.TowedTipper;
+        if (hitch.Towed) s.Append(tipper ? $"{hitch.Towed.displayName} {tipper.LoadKg / 1000f:0.0} t{(tipper.Angle > 0.5f ? $" TIP {tipper.Share * 100f:0}%" : "")}  " : $"{hitch.Towed.displayName}  ");
         if (hitch.Pto) s.Append($"PTO {hitch.PtoSpeed:0}");
         if (hitch.Nearest && hitch.NearestDistance < 6f) s.Append($"  {hitch.Nearest.displayName} {hitch.NearestDistance:0.0} m");
         return s.ToString().Trim();

@@ -11,7 +11,7 @@ using UnityEngine;
 /// with scripted stick input, and writes what happened to Logs/PhysicsTest.txt.
 /// Scenarios: settle, full throttle, coast + hold, steady turn, steepest hill (climb + park), pushing a hay bale,
 /// hitch sweep, ploughing, mowing (front linkage + PTO), towing the trailer, torque curve / hand throttle / fuel / coolant,
-/// cab controls with simulated hands (wheel, speed lever, remote levers, doors).
+/// cab controls with simulated hands (wheel, speed lever, remote levers, doors), top link pitch, front weight, trailer tipping.
 ///   Menu: Tractor VR > Run Physics Test
 ///   CLI : Unity.exe -batchmode -quit -projectPath . -executeMethod PhysicsTest.Run
 /// The scene is not saved.
@@ -27,6 +27,7 @@ public static class PhysicsTest
     static Drivetrain drive;
     static Implement[] implements;
     static SimpleWheels[] wheelSets;
+    static Tipper[] tippers;
     static System.Func<string> extra;
 
     static void CallAwake(Object o) =>
@@ -57,6 +58,8 @@ public static class PhysicsTest
             CallAwake(hitch);
             foreach (var i in implements) CallAwake(i);
             foreach (var w in wheelSets) CallAwake(w);
+            tippers = Object.FindObjectsByType<Tipper>(FindObjectsSortMode.None);
+            foreach (var tp in tippers) CallAwake(tp);
             hitch.Init();
             hitch.Message += m => log.AppendLine("   [HUD] " + m);
             float dt = Time.fixedDeltaTime;
@@ -230,6 +233,7 @@ public static class PhysicsTest
             ctrl.PhysicsStep();
             foreach (var i in implements) i.PhysicsStep();
             foreach (var w in wheelSets) w.PhysicsStep();
+            foreach (var tp in tippers) tp.FrameUpdate(dt);
             Physics.Simulate(dt);
             time += dt;
             if (t >= next)
@@ -308,11 +312,14 @@ public static class PhysicsTest
     }
 
     // Put the tractor (heading +Z) so that the given mount sits right over a coupling point.
-    static void PlaceAt(Transform mount, Vector3 target)
+    static void PlaceAt(Transform mount, Vector3 target, float yaw = 0f)
     {
-        Vector3 local = ctrl.transform.InverseTransformPoint(mount.position);
-        Place(new Vector3(target.x - local.x, 0f, target.z - local.z), 0f);
+        Vector3 local = Quaternion.Euler(0f, yaw, 0f) * ctrl.transform.InverseTransformPoint(mount.position);
+        Place(new Vector3(target.x - local.x, 0f, target.z - local.z), yaw);
     }
+
+    static float FrontAxleKN => (ctrl.wheels[0].load + ctrl.wheels[1].load) / 1000f;
+    static float RearAxleKN => (ctrl.wheels[2].load + ctrl.wheels[3].load) / 1000f;
 
     static void RunImplementScenarios()
     {
@@ -331,7 +338,8 @@ public static class PhysicsTest
         Simulate(0.5f, 0f, 0f, 10f);
         hitch.ToggleAttach();
         Simulate(1.5f, 0f, 0f, 10f);
-        extra = () => $"rear {hitch.RearPosition:0.00}  depth {plough.Depth:0.00}  draft {plough.DraftForce / 1000f:0.0} kN  {(plough.Working ? "WORK" : "")}  {ctrl.GroundLabel}  mass {rb.mass:0} CoM z {rb.centerOfMass.z:0.00}";
+        extra = () => $"rear {hitch.RearPosition:0.00}  pitch {hitch.RearPitch:0.0}°  depth {plough.Depth:0.00}  draft {plough.DraftForce / 1000f:0.0} kN  {(plough.Working ? "WORK" : "")}  {ctrl.GroundLabel}  mass {rb.mass:0} CoM z {rb.centerOfMass.z:0.00}";
+        log.AppendLine($"   top link set to {hitch.TopLinkLength * 100f:0} cm, plough pitch {hitch.RearPitch:0.0}° at the coupling height");
         // On the yard concrete the plough can't go in: lowering stops at the surface, no draft.
         input.scriptedHitch = -1f; Simulate(3f, 0f, 0f, 1.5f); input.scriptedHitch = 1f; Simulate(4f, 0f, 0f, 10f); input.scriptedHitch = 0f;
         log.AppendLine("   → carried to the north field (soil):");
@@ -368,6 +376,29 @@ public static class PhysicsTest
         Simulate(3f, 0f, 0f, 10f);
         hitch.ToggleAttach();
         Simulate(2f, 0f, 0f, 10f);
+
+        var weight = Find("FrontWeight");
+        Section("R. Front weight 900 kg: axle loads without / with it, front linkage raised");
+        Place(new Vector3(14f, 0f, -20f), 0f);
+        Simulate(2f, 0f, 0f, 10f);
+        float front0 = FrontAxleKN, rear0 = RearAxleKN;
+        input.scriptedFront = true; input.scriptedHitch = -1f; Simulate(6f, 0f, 0f, 10f); input.scriptedHitch = 0f;
+        PlaceAt(hitch.frontMount, weight.hitchPoint.position);
+        Simulate(0.5f, 0f, 0f, 10f);
+        hitch.ToggleAttach();
+        Simulate(1.5f, 0f, 0f, 10f);
+        input.scriptedHitch = 1f; Simulate(5f, 0f, 0f, 10f); input.scriptedHitch = 0f;
+        input.scriptedFront = false;
+        Simulate(3f, 0f, 0f, 10f);
+        float zw = ctrl.transform.InverseTransformPoint(hitch.frontMount.position + ctrl.transform.rotation * weight.centreOfMassOffset).z;
+        float gain = weight.mass * 9.81f * zw / ctrl.wheelbase / 1000f;
+        log.AppendLine($"   front axle {front0:0.0} → {FrontAxleKN:0.0} kN (expected +{gain:0.0}), rear axle {rear0:0.0} → {RearAxleKN:0.0} kN " +
+                       $"(expected {weight.mass * 9.81f / 1000f - gain:+0.0;-0.0}), weight at {zw:0.00} m ahead of the rear axle, mass {rb.mass:0}");
+        Simulate(6f, 0.3f, 0f, 2f);
+        input.scriptedFront = true; input.scriptedHitch = -1f; Simulate(6f, 0f, 0f, 10f); input.scriptedHitch = 0f; input.scriptedFront = false;
+        hitch.ToggleAttach();
+        Simulate(2f, 0f, 0f, 10f);
+        log.AppendLine($"   detached: mass back to {rb.mass:0}");
 
         var trailer = Find("Trailer");
         var trb = trailer.GetComponent<Rigidbody>();
@@ -408,6 +439,28 @@ public static class PhysicsTest
         worst = 0f;
         Simulate(12f, -0.25f, 0f, 2f);    // and back into it
         log.AppendLine($"   reversing into it: deepest overlap {worst * 100f:0.0} cm, trailer pushed {Vector3.Distance(parked, trailer.transform.position):0.00} m");
+
+        var tipper = trailer.GetComponent<Tipper>();
+        Section("S. Tipping: couple the loaded trailer, raise the body fully (remote 3 / TIP UP), hold, lower");
+        Simulate(2f, 0f, 0f, 10f);
+        PlaceAt(hitch.drawbarMount, trailer.hitchPoint.position, trailer.transform.eulerAngles.y);
+        Simulate(0.5f, 0f, 0f, 10f);
+        hitch.ToggleAttach();
+        Simulate(2f, 0f, 0f, 10f);
+        extra = () => $"tip {tipper.Angle:0.0}°  load {tipper.LoadKg:0} kg  trailer mass {trb.mass:0}  CoM {trb.centerOfMass.y:0.00}/{trb.centerOfMass.z:0.00}  towed {ctrl.towedMass:0}";
+        input.scriptedTip = 1f; Simulate(9f, 0f, 0f, 1f);
+        input.scriptedTip = 0f; Simulate(2f, 0f, 0f, 1f);
+        input.scriptedTip = -1f; Simulate(5f, 0f, 0f, 1f);
+        input.scriptedTip = 0f;
+        var heaps = Object.FindObjectsByType<MeshFilter>(FindObjectsSortMode.None).Where(m => m.name == "SoilHeap").ToArray();
+        log.AppendLine($"   {heaps.Length} heap(s) on the ground: " + string.Join(", ", heaps.Select(h =>
+            $"radius {h.transform.localScale.x:0.00} m at {Vector3.Distance(Flat(h.transform.position), Flat(trailer.transform.position)):0.0} m behind the eye")));
+        Simulate(8f, 0.3f, 0f, 2f);   // drive off with the empty trailer
+        input.scriptedThrottle = 0f; ctrl.RequestStop();
+        Simulate(4f, 0f, 0f, 10f);
+        hitch.ToggleAttach();         // uncouple before the next scenarios teleport the tractor
+        Simulate(2f, 0f, 0f, 10f);
+        log.AppendLine($"   trailer {(hitch.Towed ? "STILL COUPLED" : "uncoupled")}, mass {trb.mass:0} kg");
         extra = null;
         CabControlsTest();
     }
@@ -590,8 +643,11 @@ public static class PhysicsTest
         ctrl.PhysicsStep();
         foreach (var i in implements) i.PhysicsStep();
         foreach (var w in wheelSets) w.PhysicsStep();
+        foreach (var tp in tippers) tp.FrameUpdate(dt);
         Physics.Simulate(dt);
     }
+
+    static Vector3 Flat(Vector3 v) => new Vector3(v.x, 0f, v.z);
 
     static float SlopeUnder()
     {

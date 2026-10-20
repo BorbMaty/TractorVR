@@ -6,8 +6,11 @@ using UnityEngine;
 ///   Rear three-point linkage: the lift arms turn on the rockshaft; the lift rods hang from the arm tips and carry the
 ///   lower links. This four-bar linkage is solved from the model's own pivot points (set up by ProjectSetup), and the
 ///   lift cylinders follow. Position 0 = lowest, 1 = highest.
-///   Front linkage: the lower links fold from forward-down (0) up to the stowed, upright position of the model (1).
-///   Drawbar: fixed coupling point for trailed implements.
+///   Top link: stowed upright while nothing is coupled. With a mounted implement it runs from its bracket to the implement's
+///   top pin, set to the length that fits when coupling; the implement then pitches as the hitch moves (real three-point geometry).
+///   Front linkage: the lower links fold from forward-down (0) up to the stowed, upright position of the model (1);
+///   its cylinders follow (barrel pinned on the frame, rod on the lug below each link's pivot).
+///   Drawbar: fixed coupling point for trailed implements. A tipping trailer's body is raised / lowered from the cab (MenuTip).
 ///   PTO: on/off; the engine holds PTO speed (see Drivetrain), implements report the power they take.
 /// Controls: left stick ↑↓ = rear hitch (hold left trigger = front linkage), right stick click = PTO, left stick click = attach / detach.
 /// Attaching: back up (or drive up, for the front) until the implement's coupling point is within reach, then press attach.
@@ -22,12 +25,17 @@ public class Hitch : MonoBehaviour
     public Transform[] stabilisers = new Transform[0];  // follow the lower links
     public Transform cylinderBarrel, cylinderRod;       // barrel hinge at its base, rod hinge on the arm
     public Vector3 rockshaftPivot, armTip, rodBottom, lowerPivot, linkEnd, cylinderBase, cylinderTop;
-    public Transform rearMount;         // follows the lower link ends (x = 0)
+    public Transform rearMount;         // follows the lower link ends (x = 0); pitched by the top link
+    public Transform topLink;           // hinge at the tractor-side pin; the mesh points along restDir
+    public Vector3 topLinkPivot, topLinkRestDir = Vector3.up;
+    public float topLinkModelLength = 1f;
 
     [Header("Front linkage (filled by setup)")]
     public Transform[] frontLinks = new Transform[0];
     public Vector3 frontPivot, frontTip;
     public Transform frontMount;
+    public Transform[] frontBarrels = new Transform[0], frontRods = new Transform[0];   // hinges: barrel at its frame pin, rod at its own pivot
+    public Vector3 frontCylBase, frontCylPin, frontRodPivot;                          // side view (x = 0): frame pin, link lug pin, rod pivot (stowed)
 
     [Header("Drawbar")]
     public Transform drawbarMount;
@@ -38,9 +46,11 @@ public class Hitch : MonoBehaviour
     public float attachAngle = 30f;     // degrees of heading difference
     public float ptoRpm = 1000f;
 
-    float menuRear, menuFront;
+    float menuRear, menuFront, menuTip;
     /// <summary>Cab panel buttons: move the rear hitch / front linkage this frame (-1 lower, +1 raise).</summary>
     public void MenuLift(bool frontLinkage, float direction) { if (frontLinkage) menuFront = direction; else menuRear = direction; }
+    /// <summary>Remote lever 3 / panel: raise (+1) or lower (-1) a coupled tipping trailer's body this frame.</summary>
+    public void MenuTip(float direction) => menuTip = direction;
 
     public float RearPosition { get; private set; }
     public float FrontPosition { get; private set; } = 1f;
@@ -52,6 +62,10 @@ public class Hitch : MonoBehaviour
     /// <summary>Closest implement that could be attached, and how far its coupling point is (for the HUD).</summary>
     public Implement Nearest { get; private set; }
     public float NearestDistance { get; private set; }
+    /// <summary>Pitch of the rear implement from the top link (degrees around X; + = its tractor end dips), and the top link's set length.</summary>
+    public float RearPitch { get; private set; }
+    public float TopLinkLength { get; private set; }
+    public Tipper TowedTipper => Towed ? Towed.GetComponent<Tipper>() : null;
 
     public event System.Action<string> Message;
 
@@ -66,6 +80,7 @@ public class Hitch : MonoBehaviour
     float frontLow;                                          // front link angle at position 0
     float rodLength;
     float restPosition;
+    float tipMessageAt = -10f, clock;
     Implement[] all = new Implement[0];
 
     void Awake()
@@ -94,6 +109,32 @@ public class Hitch : MonoBehaviour
         if (rearTable.Count == 0) { BuildRearTable(); BuildFront(); }
         ApplyRear(rear);
         ApplyFront(front);
+    }
+
+    /// <summary>Editor previews: treat an implement as coupled (rear: top link set at the implement's parked pin height).
+    /// The caller poses the implement on the mount.</summary>
+    public void PreviewAttach(Implement imp)
+    {
+        if (rearTable.Count == 0) { BuildRearTable(); BuildFront(); }
+        if (imp.mount == Implement.Mount.Front) { Front = imp; return; }
+        if (imp.mount == Implement.Mount.Drawbar) { Towed = imp; return; }
+        Rear = null;
+        float best = 0f, bestErr = float.MaxValue;
+        for (float p = 0f; p <= 1f; p += 0.005f)
+        {
+            ApplyRear(p);
+            float err = Mathf.Abs(rearMount.localPosition.y - imp.hitchPoint.localPosition.y);
+            if (err < bestErr) { bestErr = err; best = p; }
+        }
+        ApplyRear(best);
+        TopLinkLength = imp.topPin ? Vector3.Distance(YZ(rearMount.localPosition) + TopPinOffset(imp), YZ(topLinkPivot)) : 0f;
+        Rear = imp;
+    }
+
+    public void PreviewDetach()
+    {
+        Rear = Front = Towed = null;
+        TopLinkLength = 0f;
     }
 
     /// <summary>Re-reads the scene's implements (the editor test calls this after Awake).</summary>
@@ -194,6 +235,44 @@ public class Hitch : MonoBehaviour
 
         Vector3 end = Rot(phi, linkEnd, lowerPivot);
         rearMount.localPosition = new Vector3(0f, end.y, end.z);
+        RearPitch = Rear != null && Rear.topPin != null && TopLinkLength > 0f ? SolvePitch(rearMount.localPosition, TopPinOffset(Rear)) : 0f;
+        rearMount.localRotation = Quaternion.AngleAxis(RearPitch, Vector3.right);
+        ApplyTopLink();
+    }
+
+    // Top pin relative to the lower-link pins, implement space (= tractor space when level).
+    static Vector3 TopPinOffset(Implement imp) => YZ(imp.topPin.localPosition - imp.hitchPoint.localPosition);
+
+    // Implement pitch that puts its top pin at the top link's length from the top link pivot (the root nearest level).
+    float SolvePitch(Vector3 linkEnds, Vector3 offset)
+    {
+        float F(float a) => Vector3.Distance(YZ(linkEnds) + Quaternion.AngleAxis(a, Vector3.right) * offset, YZ(topLinkPivot)) - TopLinkLength;
+        for (float step = 0.5f; step <= 40f; step += 0.5f)
+            foreach (float a in new[] { -step, step })
+            {
+                float b = a - Mathf.Sign(a) * 0.5f;
+                if (F(a) * F(b) > 0f) continue;
+                float lo = b, hi = a;
+                for (int i = 0; i < 25; i++) { float mid = 0.5f * (lo + hi); if (F(lo) * F(mid) <= 0f) hi = mid; else lo = mid; }
+                return 0.5f * (lo + hi);
+            }
+        return Mathf.Abs(F(-40f)) < Mathf.Abs(F(40f)) ? -40f : 40f;
+    }
+
+    // Top link from its bracket to the coupled implement's top pin (stretched / shortened like a turnbuckle), or stowed upright.
+    void ApplyTopLink()
+    {
+        if (topLink == null) return;
+        if (Rear == null || Rear.topPin == null || TopLinkLength <= 0f)
+        {
+            topLink.localRotation = Quaternion.identity;
+            topLink.localScale = Vector3.one;
+            return;
+        }
+        Vector3 pin = rearMount.localPosition + rearMount.localRotation * TopPinOffset(Rear);
+        Vector3 dir = YZ(pin) - YZ(topLinkPivot);
+        topLink.localRotation = Quaternion.FromToRotation(topLinkRestDir, dir);
+        topLink.localScale = new Vector3(1f, dir.magnitude / topLinkModelLength, 1f);
     }
 
     void BuildFront()
@@ -218,6 +297,20 @@ public class Hitch : MonoBehaviour
         foreach (var l in frontLinks) l.localRotation = Quaternion.AngleAxis(a, Vector3.right);
         Vector3 tip = Rot(a, frontTip, frontPivot);
         frontMount.localPosition = new Vector3(0f, tip.y, tip.z);
+
+        // Cylinders: the barrel turns on its frame pin towards the lug pin; the rod rides on the lug, sliding along the barrel.
+        if (frontBarrels.Length == 0) return;
+        Vector3 pin = Rot(a, frontCylPin, frontPivot);
+        Vector3 rest = YZ(frontCylPin - frontCylBase), now = YZ(pin - frontCylBase);
+        float cyl = Vector3.SignedAngle(rest, now, Vector3.right);
+        Quaternion r = Quaternion.AngleAxis(cyl, Vector3.right);
+        Vector3 rodAt = frontCylBase + r * (frontRodPivot - frontCylBase) + now.normalized * (now.magnitude - rest.magnitude);
+        foreach (var b in frontBarrels) b.localRotation = r;
+        foreach (var rod in frontRods)
+        {
+            rod.localPosition = new Vector3(rod.localPosition.x, rodAt.y, rodAt.z);
+            rod.localRotation = r;
+        }
     }
 
     // ------------------------------------------------------------------ operation
@@ -228,7 +321,15 @@ public class Hitch : MonoBehaviour
         float lever = menuRear != 0f ? menuRear : input.HitchLever;
         bool front = input.FrontLinkageHeld;
         if (menuFront != 0f) { lever = menuFront; front = true; }
-        menuRear = menuFront = 0f;
+        float tip = menuTip != 0f ? menuTip : input.TipLever;
+        menuRear = menuFront = menuTip = 0f;
+        clock += dt;
+        if (tip != 0f)
+        {
+            var tipper = TowedTipper;
+            if (tipper) tipper.Move(tip, dt);
+            else if (clock - tipMessageAt > 2f) { tipMessageAt = clock; Message?.Invoke("NO TIPPING TRAILER COUPLED"); }
+        }
         if (input.PtoPressed) SetPto(!Pto);
         if (input.AttachPressed) ToggleAttach();
 
@@ -239,6 +340,7 @@ public class Hitch : MonoBehaviour
         ApplyFront(FrontPosition);
 
         PtoSpeed = Mathf.MoveTowards(PtoSpeed, Pto ? ptoRpm * drivetrain.Rpm / drivetrain.ptoEngineRpm : 0f, ptoRpm * dt);
+        if (Rear != null || Front != null || Towed != null) UpdateMass();   // linkage positions move the centre of mass; a tipper's load changes
         FindNearest();
     }
 
@@ -321,6 +423,13 @@ public class Hitch : MonoBehaviour
             return;
         }
         target.Attach(this, MountFor(target), rb);
+        if (target.mount == Implement.Mount.Rear && target.topPin != null)
+        {
+            // The top link is set to the length that holds the implement level at the coupling height.
+            rearMount.localRotation = Quaternion.identity;
+            TopLinkLength = Vector3.Distance(YZ(rearMount.localPosition) + TopPinOffset(target), YZ(topLinkPivot));
+            Message?.Invoke($"TOP LINK {TopLinkLength * 100f:0} cm");
+        }
         if (target.mount == Implement.Mount.Rear) Rear = target;
         else if (target.mount == Implement.Mount.Front) Front = target;
         else Towed = target;
@@ -344,7 +453,7 @@ public class Hitch : MonoBehaviour
             return;
         }
         imp.Detach();
-        if (imp == Rear) Rear = null;
+        if (imp == Rear) { Rear = null; TopLinkLength = 0f; ApplyRear(RearPosition); }
         if (imp == Front) Front = null;
         if (imp == Towed) Towed = null;
         UpdateMass();

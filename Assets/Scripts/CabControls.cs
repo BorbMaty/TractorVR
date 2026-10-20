@@ -12,7 +12,7 @@ using UnityEngine;
 ///   snaps upright. It stays where it is let go (cruise); the right stick or the panel's STOP button puts it back to neutral.
 ///   While held, the HUD shows what it does (N / F % / R %).
 ///   Hydraulic remote levers (three, behind the speed lever): spring-centred, pull back = raise, push forward = lower,
-///   speed proportional to the deflection. 1 = rear hitch, 2 = front linkage, 3 = trailer tipping (not built yet).
+///   speed proportional to the deflection. 1 = rear hitch, 2 = front linkage, 3 = tipping trailer body.
 ///   Doors (rear-hinged): grab anywhere on the inside and swing them open / closed; they stay where they are let go.
 ///   The cab panel's DOORS button opens / closes both.
 /// Feedback: the rim / knob lights up softly when a hand is in reach and brighter while held, and a tracked hand is shown
@@ -80,7 +80,7 @@ public class CabControls : MonoBehaviour
     public float LeverOutput => Mathf.Abs(lever) <= neutralNotch ? 0f : Mathf.Sign(lever) * (Mathf.Abs(lever) - neutralNotch) / (1f - neutralNotch);
     /// <summary>"N", "F 35%", "R 20%" while the lever is held (HUD), else empty.</summary>
     public string LeverStatus => !LeverHeld ? "" : LeverOutput == 0f ? "LEVER: N" : $"LEVER: {(LeverOutput > 0f ? "F" : "R")} {Mathf.Abs(LeverOutput) * 100f:0}%";
-    static readonly string[] RemoteJobs = { "HITCH", "FRONT", "TIPPING (not built yet)" };
+    static readonly string[] RemoteJobs = { "HITCH", "FRONT", "TIPPER" };
     /// <summary>Everything held right now, for the HUD (speed lever, remote levers, doors).</summary>
     public string Status
     {
@@ -297,11 +297,12 @@ public class CabControls : MonoBehaviour
             sw.hinge.localRotation = sw.rest * Quaternion.AngleAxis(sw.angle, sw.axis);
             if (sw.sound && (before > 0.5f) != (sw.angle > 0.5f)) sw.sound.Play();
         }
-        // Remote levers 1 and 2 drive the rear hitch and the front linkage (pull back = raise).
+        // Remote levers: 1 rear hitch, 2 front linkage, 3 tipping trailer (pull back = raise).
         if (hitch)
         {
             if (remotes.Length > 0 && remotes[0].Output != 0f) hitch.MenuLift(false, -remotes[0].Output);
             if (remotes.Length > 1 && remotes[1].Output != 0f) hitch.MenuLift(true, -remotes[1].Output);
+            if (remotes.Length > 2 && remotes[2].Output != 0f) hitch.MenuTip(-remotes[2].Output);
         }
     }
 

@@ -17,7 +17,8 @@ See `README.md` for controls, `docs/ROADMAP.md` for what's next and `docs/DEVLOG
 |---|---|
 | `Assets/Scripts/TractorInput.cs` | All input actions, created in code (Quest + keyboard/gamepad fallback) |
 | `Assets/Scripts/TractorController.cs` | Physics driving: Rigidbody + 4 raycast wheels (suspension, tyre friction circle), comfort-limited speed command → drive force, Ackermann, wheel visuals |
-| `Assets/Scripts/Hitch.cs` | Rear 3-point linkage (four-bar solved from model pivots → table θ/φ per position), front linkage, drawbar, PTO, attach/detach, mass/CoM update |
+| `Assets/Scripts/Hitch.cs` | Rear 3-point linkage (four-bar solved from model pivots → table θ/φ per position), top link + implement pitch (`SolvePitch`), front linkage + cylinders, drawbar, PTO, tipping input, attach/detach, mass/CoM update every frame |
+| `Assets/Scripts/Tipper.cs` | Tipping trailer: rear-hinged body, telescopic ram stages, plumb tailgate, load that pours into runtime mound meshes, mass/CoM from load + angle |
 | `Assets/Scripts/Implement.cs` | Implement: kinematic on the linkage mount / ball joint on the drawbar, depth from `TerrainGenerator.Height`, draft force, PTO spinners, TrailRenderer marks |
 | `Assets/Scripts/SimpleWheels.cs` | Raycast wheels for the trailer (parking brake while uncoupled) |
 | `Assets/Scripts/VRHands.cs` | Per side: tracked hand (XR Hands: palm, fist, index tip) or controller (grip pose, grip button, aim tip) |
@@ -88,7 +89,11 @@ $u = "C:\Program Files\Unity\Hub\Editor\6000.6.3f1\Editor\Unity.exe"
   `Rear_Holder_Ruler_02_L/R` lift rods (pivot = arm tip), `Rear_Holder_02` lower links (both in one mesh, pivot y 0.67 z −0.099), `Rear_Holder_Ruler_03_L/R`
   stabilisers, `Rear_Forcer_01/02` lift cylinder barrels/rods, `Rear_Holder_01` top link (stowed upright, not animated), `Front_Holder_02_L/R` front lower
   links (stowed upright). The model is drawn with the rear hitch fully raised. Drawbar (pick-up hitch) at (0, 0.43, −0.78).
-  `ProjectSetup.BuildLinkage` puts each moving part under a tractor-aligned `Hinge_*`. Still static: `Front_Forcer_*`, `Front_Small_Forcer_*`, `Front_Main_Forcer_01`.
+  `ProjectSetup.BuildLinkage` puts each moving part under a tractor-aligned `Hinge_*`. Still static: `Front_Small_Forcer_*` (front axle), `Front_Main_Forcer_01` (steering).
+- **Top link** `Rear_Holder_01`: pivot = tractor bracket (0, 1.179, −0.511), stowed upright, 0.936 m. Coupled: `Hitch` turns `Hinge_TopLink` onto the
+  implement's `topPin` and scales it along its axis (length set at coupling).
+- **Front cylinders** `Front_Forcer_01_L/R` (barrels, pivot = frame pin at the top (1.162, 3.337)) and `Front_Forcer_02_L/R` (rods). The model's rod pivot
+  sits on the lower link's pivot, so the rods ride on the link's lug below it instead (setup: centroid of link vertices > 4 cm below the pivot).
 - **Doors** `Door_L/R`: their pivots sit on the hinge line at the rear edge (±0.744, 2.242, 0.589): rear-hinged like the real JD cab. `BuildDoors` puts them
   under `Hinge_Door_L/R`; + angle = open outward (left around −Y, right around +Y), max 65° (more swings the lower panel into the rear fender).
 - **Textures are missing**: the FBX references `..\tex\*.tif` from the original TurboSquid package, which was not included.
@@ -111,6 +116,12 @@ $u = "C:\Program Files\Unity\Hub\Editor\6000.6.3f1\Editor\Unity.exe"
 - Tractor colliders: a main block (full width, from z −0.55 forward), a narrow rear block (1 m wide, hitch/frame) and four wheel blocks.
   A single full-width box out to the hitch limited a coupled trailer to ~12° of swing. The trailer body starts 1.6 m behind its eye, so it swings ~50° before touching the tyres (joint limit 70°). Plough draft is fed forward into the drive force (a P-only speed controller left a 4 km/h error).
 - Rear linkage reach: link ends 0.43–1.27 m, so 3-point implements need their lower-link pins at ~0.75 m when parked.
+- Three-point implements with a `topPin` pitch with the hitch: `RearMount` is rotated by `Hitch.RearPitch`, and implements take the mount's rotation.
+- `Implement.Depth` for an implement without ground points (front weight) = how far its coupling point is below its parked height, so the
+  "lower it first" detach rule works for it too.
+- Editor tests teleport the tractor: anything still coupled (especially the trailer on its joint) gets dragged and blows up the physics.
+  Uncouple at the end of each scenario.
+- Implement models are generated: primitives via `Part`, procedural meshes via `MeshPart` (`TyreMesh`, `MouldboardMesh`, `Tipper.Mound`), saved as `Generated/Impl_*.asset`.
 - The **grips are for grabbing** (wheel, lever). Seat adjust moved to the cab panel (`TractorInput.seatAdjust`; Left Shift in the editor).
   Steering by hand: `HoldSteer(angle)` while held. After `ReleaseHeldSteer()` the angle is latched until |left stick| > 0.15. The comfort lock still clamps it.
 - XR Hands: `XRHandSkeletonDriver.jointTransformReferences` is null on a component added from code, so set a new list before `FindJointsFromRoot`.

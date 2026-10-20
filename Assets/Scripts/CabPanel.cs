@@ -72,6 +72,8 @@ public class CabPanel : MonoBehaviour
             ("doors",    () => tractor.GetComponent<CabControls>().DoorsOpen ? "DOORS: OPEN" : "DOORS: CLOSED", () => tractor.GetComponent<CabControls>().ToggleDoors(), false),
             ("thrDown",  () => "THROTTLE -", () => drivetrain.MoveHandThrottle(-1f, Time.deltaTime), true),
             ("thrUp",    () => "THROTTLE +", () => drivetrain.MoveHandThrottle(1f, Time.deltaTime), true),
+            ("tipUp",    () => "TIP UP", () => hitch.MenuTip(1f), true),
+            ("tipDn",    () => "TIP DOWN", () => hitch.MenuTip(-1f), true),
         };
         int rows = (items.Length + 1) / 2;
         var bg = Quad("Background", transform, new Vector3(0f, 0f, 0.004f), new Vector2(2 * W + 3 * Gap, rows * (H + Gap) + Gap), panelMat);

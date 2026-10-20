@@ -17,6 +17,7 @@ public class Implement : MonoBehaviour
     public string displayName = "IMPLEMENT";
     public Mount mount;
     public Transform hitchPoint;            // the implement's coupling point (lower link pins midpoint / drawbar eye)
+    public Transform topPin;                // rear three-point implements: where the top link connects (null = no top link)
     public float mass = 1000f;
     public Vector3 centreOfMassOffset;      // from the coupling point, implement space
     public Collider[] stands = new Collider[0];   // parking stands / jack: switched off while coupled
@@ -48,12 +49,14 @@ public class Implement : MonoBehaviour
     Collider[] colliders;
     Collider[] tractorColliders;
     float spinAngle;
+    float parkedPinHeight;                  // coupling point above the ground when standing on its own
 
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
         colliders = GetComponentsInChildren<Collider>();
         if (trail) trail.emitting = false;
+        parkedPinHeight = hitchPoint ? hitchPoint.localPosition.y : 0f;
     }
 
     public void Attach(Hitch h, Transform mountT, Rigidbody tractorBody)
@@ -151,6 +154,9 @@ public class Implement : MonoBehaviour
         Depth = -1f;
         foreach (var g in groundPoints)
             Depth = Mathf.Max(Depth, TerrainGenerator.Height(g.position.x, g.position.z) - g.position.y);
+        // No working parts (front weight): how far the coupling point is below its parked height (0 = standing on its feet).
+        if (groundPoints.Length == 0 && hitchPoint)
+            Depth = TerrainGenerator.Height(hitchPoint.position.x, hitchPoint.position.z) + parkedPinHeight - hitchPoint.position.y;
         // Concrete, asphalt and gravel (draft 0 in GroundMap): the shares can't enter, so the working depth there is 0.
         HardGround = workingDepth > 0f && groundPoints.Length > 0 && GroundMap.SurfaceAt(groundPoints[0].position).draft <= 0f;
 

@@ -20,6 +20,7 @@ using UnityEngine.InputSystem;
 ///   Right stick click ... PTO on / off
 ///   Left stick click .... attach / detach implement
 ///   Hand throttle ....... cab panel / CommandCenter buttons (keyboard ] / [, gamepad d-pad up / down)
+///   Trailer tipping ..... remote lever 3 / cab panel TIP buttons (keyboard I / K)
 /// Runs before the other tractor scripts so the per-frame flick events are ready when they read them.
 /// </summary>
 [DefaultExecutionOrder(-100)]
@@ -33,7 +34,7 @@ public class TractorInput : MonoBehaviour
     InputAction comfortAction;
     InputAction modeAction;
     InputAction hornAction;
-    InputAction frontLinkageAction, ptoAction, attachAction, menuAction, handThrottleAction;
+    InputAction frontLinkageAction, ptoAction, attachAction, menuAction, handThrottleAction, tipAction;
     int flick;          // -1 / 0 / +1: where the right stick X was held last frame
 
     public Vector2 LeftStick => steerAction.ReadValue<Vector2>();
@@ -47,10 +48,12 @@ public class TractorInput : MonoBehaviour
     public bool MenuPressed => menuAction.WasPressedThisFrame();
     /// <summary>Hand throttle up (+1) / down (-1) while held.</summary>
     public float HandThrottle => scripted ? 0f : handThrottleAction.ReadValue<float>();
+    /// <summary>Tipping trailer body up (+1) / down (-1) while held.</summary>
+    public float TipLever => scripted ? scriptedTip : tipAction.ReadValue<float>();
 
     /// <summary>Test autopilot (editor physics test): replaces the sticks for steering and throttle.</summary>
     [System.NonSerialized] public bool scripted;
-    [System.NonSerialized] public float scriptedSteer, scriptedThrottle, scriptedHitch;
+    [System.NonSerialized] public float scriptedSteer, scriptedThrottle, scriptedHitch, scriptedTip;
     [System.NonSerialized] public bool scriptedFront;
     public bool SwitchViewPressed => switchViewAction.WasPressedThisFrame();
     public bool RecenterPressed => recenterAction.WasPressedThisFrame();
@@ -144,6 +147,9 @@ public class TractorInput : MonoBehaviour
         handThrottleAction = new InputAction("HandThrottle", InputActionType.Value, expectedControlType: "Axis");
         handThrottleAction.AddCompositeBinding("1DAxis").With("Positive", "<Keyboard>/rightBracket").With("Negative", "<Keyboard>/leftBracket");
         handThrottleAction.AddCompositeBinding("1DAxis").With("Positive", "<Gamepad>/dpad/up").With("Negative", "<Gamepad>/dpad/down");
+
+        tipAction = new InputAction("Tip", InputActionType.Value, expectedControlType: "Axis");
+        tipAction.AddCompositeBinding("1DAxis").With("Positive", "<Keyboard>/i").With("Negative", "<Keyboard>/k");
     }
 
     void Update()
@@ -173,6 +179,7 @@ public class TractorInput : MonoBehaviour
         attachAction.Enable();
         menuAction.Enable();
         handThrottleAction.Enable();
+        tipAction.Enable();
     }
 
     void OnDisable()
@@ -190,5 +197,6 @@ public class TractorInput : MonoBehaviour
         attachAction.Disable();
         menuAction.Disable();
         handThrottleAction.Disable();
+        tipAction.Disable();
     }
 }

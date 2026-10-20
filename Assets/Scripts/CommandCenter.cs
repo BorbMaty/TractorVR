@@ -170,7 +170,9 @@ public class CommandCenter : MonoBehaviour
             c < 60f ? new Color(0.3f, 0.55f, 0.95f) : c > 105f ? new Color(0.9f, 0.15f, 0.1f) : new Color(0.35f, 0.75f, 0.25f));
         useText.text = $"FUEL USE {drivetrain.FuelRateLph:0.0} L/h";
         powerText.text = $"POWER {drivetrain.OutputKW:0} kW of {drivetrain.AvailableKW:0} kW  ({drivetrain.TorqueAt(drivetrain.Rpm):0} Nm)";
-        linkText.text = hitch ? $"HITCH {hitch.RearPosition * 100f:0}%   FRONT {hitch.FrontPosition * 100f:0}%   PTO {(hitch.Pto ? $"{hitch.PtoSpeed:0}" : "OFF")}" : "";
+        var tipper = hitch ? hitch.TowedTipper : null;
+        linkText.text = hitch ? $"HITCH {hitch.RearPosition * 100f:0}%   FRONT {hitch.FrontPosition * 100f:0}%   PTO {(hitch.Pto ? $"{hitch.PtoSpeed:0}" : "OFF")}" +
+                                (tipper ? $"   TIP {tipper.Share * 100f:0}%" : "") : "";
         hoursText.text = $"{drivetrain.Hours:0.00} h";
     }
 
