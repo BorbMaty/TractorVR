@@ -21,8 +21,9 @@ See `README.md` for controls, `docs/ROADMAP.md` for what's next and `docs/DEVLOG
 | `Assets/Scripts/Implement.cs` | Implement: kinematic on the linkage mount / ball joint on the drawbar, depth from `TerrainGenerator.Height`, draft force, PTO spinners, TrailRenderer marks |
 | `Assets/Scripts/SimpleWheels.cs` | Raycast wheels for the trailer (parking brake while uncoupled) |
 | `Assets/Scripts/VRHands.cs` | Per side: tracked hand (XR Hands: palm, fist, index tip) or controller (grip pose, grip button, aim tip) |
-| `Assets/Scripts/CabControls.cs` | Grab the wheel (rim angle in `SteeringColumn` space → `TractorController.HoldSteer`) and the speed lever (→ `TractorInput.leverThrottle`) |
+| `Assets/Scripts/CabControls.cs` | Grab the wheel (rim angle in `SteeringColumn` space → `TractorController.HoldSteer`), the speed lever (→ `TractorInput.leverThrottle`), and `Swing`s: the 3 remote levers (→ `Hitch.MenuLift`) and the doors |
 | `Assets/Scripts/CabPanel.cs` | Rig-locked touch panel (built at runtime from materials set by setup); also sets `CabPanel.Mph` |
+| `Assets/Scripts/CommandCenter.cs` | Tractor-mounted display on the right corner post (fuel, coolant, power, linkage, PTO, hours) + hand throttle touch buttons; built at runtime |
 | `Assets/Scripts/Editor/QuestManifest.cs` | Gradle post-process: HAND_TRACKING permission + handtracking feature in the Quest manifest |
 | `Assets/Shaders/TriplanarLit.shader` | URP lit with triplanar detail + normal map in object space (metres), vertex-colour AO; UsePass Lit shadow/depth |
 | `Assets/Scripts/Ground.cs` | `WorldLayout` (yard, barn, shed, fields, roads, mud spots) + `GroundMap` (surface per m²: grip, rolling, draft; control texture) |
@@ -31,7 +32,7 @@ See `README.md` for controls, `docs/ROADMAP.md` for what's next and `docs/DEVLOG
 | `Assets/Scripts/Editor/PlayModeTest.cs` | Real scene in editor play mode, 25 s scripted (drive, steer, STOP, every panel button, hitch); exits by itself, code 1 on runtime errors → `Logs/PlayModeTest.txt` |
 | `Assets/Scripts/Editor/PhysicsTest.cs` | Offline driving test (scripted sticks, manual `Physics.Simulate`) → `Logs/PhysicsTest.txt` |
 | `Assets/Scripts/VRCameraRig.cs` | Cab / third-person views, recenter, seat calibration (PlayerPrefs) |
-| `Assets/Scripts/Drivetrain.cs` | Engine RPM/load + 20F/20R gearbox (auto/manual), caps the controller's speed in manual |
+| `Assets/Scripts/Drivetrain.cs` | Engine RPM/load, torque curve (`AvailableKW`), hand throttle, fuel + coolant, 20F/20R gearbox (auto with skip-shift / manual), caps the controller's speed in manual |
 | `Assets/Scripts/TractorAudio.cs` | Engine loops (pitch = RPM/1000, cross-fade by load, low-pass in cab), shift, beeper, horn |
 | `Assets/Scripts/Dashboard.cs` + `Assets/Shaders/WorldText.shader` | Instrument cluster needles + gear/mode text (depth-tested TextMesh shader) |
 | `Assets/Scripts/TractorHud.cs` | Rig-locked speed / gear / rpm readout (TextMesh) |
@@ -53,7 +54,8 @@ $u = "C:\Program Files\Unity\Hub\Editor\6000.6.3f1\Editor\Unity.exe"
 #   -executeMethod ProjectSetup.BuildSceneMenu | ProjectSetup.RenderPreviews | BuildQuest.Build
 ```
 - Setup writes a report to `Logs/TractorSetupReport.txt`: bounds, wheel pivots, seat position, every node with its materials.
-- Preview PNGs go to `Logs/Previews/` (cab, cab_down, third, side, front, dash = cluster close-up with the wheel turned 90° right, controller, vignette). Use them to check visual changes without a headset.
+- Preview PNGs go to `Logs/Previews/` (cab, cab_down, third, side, front, dash = cluster close-up with the wheel turned 90° right, controller, vignette,
+  remotes, commandcenter, doors_open / doors_side / doors_top, …). Use them to check visual changes without a headset.
 - In the editor, the same actions are under the **Tractor VR** menu.
 - `-openfile` does NOT open a scene when launching the editor. Open `Assets/Scenes/TractorFlat.unity` from the Project window.
 
@@ -72,7 +74,9 @@ $u = "C:\Program Files\Unity\Hub\Editor\6000.6.3f1\Editor\Unity.exe"
   **plus 4 knob pieces** (button block ~8×10×7 cm + buttons, selected by bounds centre within 8 cm of the knob; an all-vertices rule missed the block)
   **plus the stem** (thin rod into the gate, separate piece just below the stalk). The pivot is the bottom of the stem, inside the gate (0.403, 2.189, 0.696).
   Cut out like the wheel, hinge `Tractor/SpeedLever`, knob (0.257, 2.417, 0.606), tilts ±25° around X (+ = forward).
-  The right console also has three hydraulic remote levers (knobs at x 0.42/0.47/0.52, z 0.50) and the H-gate plate. They're still static.
+  The right console also has three **hydraulic remote levers**, each three pieces: knob (~2 cm tall), handle (~8 cm), stem (~10 cm), knobs at x 0.42/0.47/0.52, z 0.50.
+  `SplitSteeringWheel` finds them by height in the box x 0.38–0.58, y 2.15–2.4, z 0.47–0.53, sorts each kind by x and zips them. Hinges
+  `Tractor/RemoteLever_1..3` at the stem bottoms (y 2.155–2.199), swing around X like the speed lever.
 - **UVs:** the cab plastics / dashboard have degenerate UVs (median 0.04–0.09 UV units per metre, many zero-area triangles: made for plain colours).
   Only seat cloth (4.6 UV/m), pedals and floor have real UVs. Hence `TractorVR/TriplanarLit` for detail (`ProjectSetup.ApplyDetailMaterials`,
   textures written as PNGs to `Generated/Textures`, normal maps imported as NormalMap). `_ao` material variants are used on meshes with baked AO.
@@ -84,7 +88,9 @@ $u = "C:\Program Files\Unity\Hub\Editor\6000.6.3f1\Editor\Unity.exe"
   `Rear_Holder_Ruler_02_L/R` lift rods (pivot = arm tip), `Rear_Holder_02` lower links (both in one mesh, pivot y 0.67 z −0.099), `Rear_Holder_Ruler_03_L/R`
   stabilisers, `Rear_Forcer_01/02` lift cylinder barrels/rods, `Rear_Holder_01` top link (stowed upright, not animated), `Front_Holder_02_L/R` front lower
   links (stowed upright). The model is drawn with the rear hitch fully raised. Drawbar (pick-up hitch) at (0, 0.43, −0.78).
-  `ProjectSetup.BuildLinkage` puts each moving part under a tractor-aligned `Hinge_*`. Still static: `Front_Forcer_*`, `Front_Small_Forcer_*`, `Front_Main_Forcer_01`, `Door_L/R`.
+  `ProjectSetup.BuildLinkage` puts each moving part under a tractor-aligned `Hinge_*`. Still static: `Front_Forcer_*`, `Front_Small_Forcer_*`, `Front_Main_Forcer_01`.
+- **Doors** `Door_L/R`: their pivots sit on the hinge line at the rear edge (±0.744, 2.242, 0.589): rear-hinged like the real JD cab. `BuildDoors` puts them
+  under `Hinge_Door_L/R`; + angle = open outward (left around −Y, right around +Y), max 65° (more swings the lower panel into the rear fender).
 - **Textures are missing**: the FBX references `..\tex\*.tif` from the original TurboSquid package, which was not included.
   `ProjectSetup.ApplyMaterials` rebuilds the materials by name. `Body_paint` is shared by the body and the rims, so it is
   split by part (wheels → yellow, everything else → JD green). Glass uses URP Unlit, transparent, alpha 0.06.
@@ -133,8 +139,14 @@ $u = "C:\Program Files\Unity\Hub\Editor\6000.6.3f1\Editor\Unity.exe"
 - Audio is **synthesised** in `ProjectSetup` (`EngineClips`, `ShiftClip`, `BeeperClip`, `HornClip`) → 16-bit WAVs in `Generated/Audio`, imported as PCM
   (seamless loops). The engine loops are exactly 10 engine cycles at 1000 rpm (1.2 s). Quest speakers are weak below ~150 Hz, so the
   "clatter" band (3.2 kHz) carries the diesel character.
-- Drivetrain does not change how fast the tractor accelerates. The comfort-limited `TractorController` still owns speed, and the drivetrain
-  derives gear/RPM/load from it (and caps the target speed in manual mode).
+- The comfort-limited `TractorController` still owns speed; the drivetrain derives gear/RPM/load from it, caps the target speed in manual mode
+  (hand throttle: at least the gear's speed at that rpm), and since batch 2 sets the **power limit** (`AvailableKW` = torque curve at the current RPM).
+  When the force is power-limited the engine revs to peak torque (pulling away with a plough in the ground stalled at idle otherwise).
+- Anything the editor tests step by hand (`FrameUpdate(dt)` / `PhysicsStep`) must use the `dt` it is given: no `Time.time`, and pass `dt` to
+  `SmoothDamp` (its default is `Time.deltaTime`). The drivetrain's RPM sat at idle in `PhysicsTest` until this was fixed.
+- Long-running accumulators (fuel, engine hours) are doubles: one 90 Hz step of idle fuel use is below float precision at ~300 L.
+- Don't `CreatePrimitive` under the tractor at runtime: its MeshCollider lands on the dynamic Rigidbody until the deferred `Destroy` (physics error,
+  caught by `PlayModeTest`). Use a GameObject + MeshFilter with `Resources.GetBuiltinResource<Mesh>("Quad.fbx")` (see `CommandCenter.Quad`).
 - The first render in a batch-mode session comes out grey, so `RenderPreviews` throws a warm-up shot away.
 - If a preview PNG is open in a viewer, Windows locks it and `RenderPreviews` fails with `IOException ... 1224`. Delete or close the old images first.
 - Quest blocks a launch via adb with a "controllers required" dialog while the headset sleeps. That isn't a crash.

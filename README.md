@@ -23,8 +23,9 @@ Docs: [Roadmap](docs/ROADMAP.md) · [Development log](docs/DEVLOG.md) · [CLAUDE
 - **Steering wheel + drivetrain**: turning steering wheel, instrument cluster, 20F/20R gearbox (auto / manual), engine RPM and load, synthesised sounds
 - **Physics + terrain**: 7.5 t Rigidbody on raycast wheels, power limit on climbs, parking brake on slopes, rolling hills, pushable hay bales
 - **Hydraulics + implements**: rear three-point hitch and front linkage, PTO, plough, front mower, trailer; attach / detach
-- **VR interaction**: grab the steering wheel and the speed lever, hand tracking, cab panel with touch buttons
+- **VR interaction**: grab the steering wheel, the speed lever, the hydraulic remote levers and the doors; hand tracking, cab panel with touch buttons
 - **Cab visuals**: generated interior textures and baked ambient occlusion
+- **Cab + engine extras**: opening doors, CommandCenter display (fuel, coolant temperature, power), torque curve, hand throttle
 
 ### Phase 3: physics, terrain, cab buttons 🚧 in progress
 1. ✅ **Ground + layout**: farmyard, roads, fields, mud; grip and rolling resistance per surface
@@ -51,7 +52,10 @@ hills, an asphalt road, mud at the field gates and in the hollows. Every surface
 
 ### Driving
 - 7.5 t physics body on four raycast wheels (suspension, tyre friction circle), 90 Hz physics, power limit on climbs (195 hp), parking brake that holds on slopes
-- Gearbox like the 6195M's AutoQuad Plus 20/20 (A1–E4, automatic or manual), engine RPM and load, top speed 50 km/h
+- Gearbox like the 6195M's AutoQuad Plus 20/20 (A1–E4, automatic or manual, skip-shifts), engine RPM and load, top speed 50 km/h
+- Engine torque curve (880 Nm peak at 1500–1600 rpm, 34 % torque rise): the power available depends on the engine speed
+- Hand throttle: sets the engine speed (AUTO holds it there; in manual the tractor drives at that engine speed in the selected gear)
+- Fuel use from the engine power (about 41 L/h at full power, 2.5 L/h at idle), coolant that warms up to 85 °C
 - Synthesised sounds: diesel engine following RPM and load (muffled in the cab), shift clunk, reverse beeper, horn
 - **Comfort first**: gentle acceleration, yaw-rate and sideways-force limits, edge vignette (off / low / high)
 
@@ -74,7 +78,10 @@ Back up or drive up to an implement and press attach.
 ### The cab
 - The steering wheel turns (cut out of the cab mesh), the instrument cluster shows RPM, speed, gear and mode
 - Grab the steering wheel and the speed lever with the controller grips or, with hand tracking, a fist or a pinch
-- Cab panel with touch buttons (view, comfort, gearbox, hitch, PTO, attach, seat, units, reset)
+- Three hydraulic remote levers behind the speed lever (spring-centred): 1 = rear hitch, 2 = front linkage, 3 = trailer tipping (comes with batch 3)
+- Doors (rear-hinged, as on the real cab): swing them open by hand, or with the panel's DOORS button
+- CommandCenter display on the right corner post: engine speed, hand throttle, fuel, coolant temperature, fuel use, power, linkage positions, PTO
+- Cab panel with touch buttons (view, comfort, gearbox, hitch, PTO, attach, seat, units, reset, doors, hand throttle)
 - Generated plastic grain, seat fabric and floor mat textures, baked ambient occlusion
 
 | Driver's view | Interior |
@@ -89,8 +96,16 @@ Back up or drive up to an implement and press attach.
 |---|---|
 | ![lever](docs/images/lever.png) | ![controllers](docs/images/controller.png) |
 
+| CommandCenter display | Seen from the seat |
+|---|---|
+| ![commandcenter](docs/images/commandcenter.png) | ![commandcenter from the seat](docs/images/commandcenter_seat.png) |
+
+| Hydraulic remote levers (1 raised, 2 lowered) | Door open |
+|---|---|
+| ![remote levers](docs/images/remotes.png) | ![door](docs/images/doors_side.png) |
+
 ## Controls
-With **hand tracking** (controllers put down): make a fist on the wheel rim or the lever knob to grab, touch the panel buttons with a fingertip.
+With **hand tracking** (controllers put down): make a fist (or pinch) on the wheel rim, a lever knob or a door to grab, touch the buttons with a fingertip.
 The panel's MENU tab is always visible at the right front of the cab.
 
 
@@ -106,7 +121,10 @@ The panel's MENU tab is always visible at the right front of the cab.
 | Panel: SEAT ADJ ON + sticks | Hold Left Shift | Seat adjust: left stick ↑↓ = height, right stick = forward/back/sideways (saved) |
 | **Grip** (either hand) near the wheel rim | — | Grab the steering wheel and turn it; it stays where you let go until you use the left stick |
 | **Grip** on the lever knob (right armrest) | — | Speed lever: push forward = drive, pull back = reverse; stays set. The right stick puts it back to neutral |
+| **Grip** on a remote lever knob (behind the speed lever) | — | Pull back = raise, push forward = lower (1 rear hitch, 2 front linkage); springs back to the middle |
+| **Grip** on a door | — | Swing the door open / closed (it stays where you let go); panel DOORS opens / closes both |
 | **Menu** button (left) | M | Cab panel at the right front: touch the buttons with a controller tip or a fingertip |
+| CommandCenter / panel THROTTLE − / + | [ / ] | Hand throttle (engine speed, idle = off) |
 | Right stick flick → / ← | X / Z | Shift up / down (switches the gearbox to manual) |
 | **Y** (left) | T | Gearbox: automatic ↔ manual (saved) |
 | Right trigger | H | Horn |
@@ -124,12 +142,13 @@ Assets/Scripts/Hitch.cs               rear hitch + front linkage + drawbar, PTO,
 Assets/Scripts/Implement.cs           coupling, depth, draft, PTO parts, work trails
 Assets/Scripts/SimpleWheels.cs        trailer wheels
 Assets/Scripts/VRHands.cs             hands from controllers or hand tracking (grab point, grabbing, poke tip)
-Assets/Scripts/CabControls.cs         grab the steering wheel and the speed lever
+Assets/Scripts/CabControls.cs         grab the steering wheel, the speed lever, the remote levers and the doors
 Assets/Scripts/CabPanel.cs            cab panel with touch buttons
+Assets/Scripts/CommandCenter.cs       display on the right corner post (fuel, temperature, power, hand throttle)
 Assets/Models/Hands/                  hand models (XR Hands sample, Unity Package Distribution License)
 Assets/Scripts/Editor/PhysicsTest.cs  offline driving test         (menu: Tractor VR > Run Physics Test)
 Assets/Scripts/VRCameraRig.cs         cab / third-person views, recenter, seat calibration
-Assets/Scripts/Drivetrain.cs          engine RPM + 20F/20R gearbox (auto / manual)
+Assets/Scripts/Drivetrain.cs          engine (torque curve, hand throttle, fuel, coolant) + 20F/20R gearbox (auto / manual)
 Assets/Scripts/TractorAudio.cs        engine, shift, reverse beeper and horn sounds
 Assets/Scripts/Dashboard.cs           instrument cluster (needles, gear, mode)
 Assets/Scripts/TractorHud.cs          speed / gear / rpm readout

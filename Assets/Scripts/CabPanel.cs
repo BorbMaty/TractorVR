@@ -69,6 +69,9 @@ public class CabPanel : MonoBehaviour
             ("stop",     () => "STOP / NEUTRAL", () => { tractor.GetComponent<CabControls>().Neutral(); tractor.RequestStop(); }, false),
             ("foveation",() => "FOVEATION: " + Foveation.Names[Foveation.Level], () => Foveation.Level = (Foveation.Level + 1) % 4, false),
             ("perf",     () => TractorHud.ShowPerf ? "FRAME TIME: ON" : "FRAME TIME: OFF", () => TractorHud.ShowPerf = !TractorHud.ShowPerf, false),
+            ("doors",    () => tractor.GetComponent<CabControls>().DoorsOpen ? "DOORS: OPEN" : "DOORS: CLOSED", () => tractor.GetComponent<CabControls>().ToggleDoors(), false),
+            ("thrDown",  () => "THROTTLE -", () => drivetrain.MoveHandThrottle(-1f, Time.deltaTime), true),
+            ("thrUp",    () => "THROTTLE +", () => drivetrain.MoveHandThrottle(1f, Time.deltaTime), true),
         };
         int rows = (items.Length + 1) / 2;
         var bg = Quad("Background", transform, new Vector3(0f, 0f, 0.004f), new Vector2(2 * W + 3 * Gap, rows * (H + Gap) + Gap), panelMat);

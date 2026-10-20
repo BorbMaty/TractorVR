@@ -592,17 +592,20 @@ public static class ProjectSetup
 
         // 6) Steering wheel cut out of the cab interior mesh, instrument cluster on the column, drivetrain.
         ctrl.steeringWheel = SplitSteeringWheel(root.transform, Part("Cab_Interier_01"), log, out Pose clusterPose, out Vector2 clusterSize,
-            out Transform speedLever, out Vector3 leverKnob);
+            out Transform speedLever, out Vector3 leverKnob, out CabControls.Swing[] remotes);
         var cabControls = root.AddComponent<CabControls>();
         cabControls.speedLever = speedLever;
         cabControls.knobLocal = speedLever.InverseTransformPoint(root.transform.TransformPoint(leverKnob));
+        cabControls.remotes = remotes;
+        cabControls.doors = BuildDoors(root.transform, Part, log);
 
         // 6b) Shadows: a low-poly stand-in casts the tractor's shadow; the 750k-triangle model itself doesn't (saves a whole pass).
         BuildShadowProxy(root.transform, wheels, cab, log);
         LogMeshLods(model, log);
 
         // 7) Interior detail: baked ambient occlusion on the cab interior, wheel and lever, then textured materials.
-        var aoTargets = new[] { Part("Cab_Interier_01").GetComponent<MeshFilter>(), ctrl.steeringWheel.GetComponentInChildren<MeshFilter>(), speedLever.GetComponentInChildren<MeshFilter>() };
+        var aoTargets = new[] { Part("Cab_Interier_01").GetComponent<MeshFilter>(), ctrl.steeringWheel.GetComponentInChildren<MeshFilter>(), speedLever.GetComponentInChildren<MeshFilter>() }
+            .Concat(remotes.Select(r => r.hinge.GetComponentInChildren<MeshFilter>())).ToArray();
         BakeAmbientOcclusion(root.transform, aoTargets, log);
         ApplyDetailMaterials(root.transform, new System.Collections.Generic.HashSet<Mesh>(aoTargets.Select(t => t.sharedMesh)), log);
         var drivetrain = root.AddComponent<Drivetrain>();
@@ -717,7 +720,7 @@ public static class ProjectSetup
     // gives the steering column axis. Every piece lying flat inside the rim (spokes, hub cap) goes with it.
     // The result is two new meshes: the interior without the wheel, and the wheel in its own pivot frame.
     static Transform SplitSteeringWheel(Transform root, Transform interior, StringBuilder log, out Pose clusterPose, out Vector2 clusterSize,
-        out Transform lever, out Vector3 leverKnob)
+        out Transform lever, out Vector3 leverKnob, out CabControls.Swing[] remotes)
     {
         var mf = interior.GetComponent<MeshFilter>();
         var renderer = interior.GetComponent<MeshRenderer>();
@@ -807,8 +810,51 @@ public static class ProjectSetup
         leverGo.transform.SetParent(lever, false);
         leverGo.AddComponent<MeshFilter>().sharedMesh = SaveMesh(leverMesh, "SpeedLever");
         leverGo.AddComponent<MeshRenderer>().sharedMaterials = leverMats;
+        // Hydraulic remote levers: three in a row behind the speed lever, each a knob, a handle and a stem (separate pieces).
+        // Each kind is found by its height, sorted by x and zipped. Pivot = bottom of the stem, inside the console housing;
+        // they swing fore / aft (around X) like the speed lever.
+        var inRemote = new bool[p.Length];
+        var remoteParts = parts.Where(g =>
+        {
+            var b = PartBounds(g);
+            return b.center.x > 0.38f && b.center.x < 0.58f && b.center.y > 2.15f && b.center.y < 2.4f && b.center.z > 0.47f && b.center.z < 0.53f && b.size.magnitude < 0.13f;
+        }).ToList();
+        int[][] Kind(float minH, float maxH) => remoteParts.Where(g => PartBounds(g).size.y >= minH && PartBounds(g).size.y < maxH).OrderBy(g => PartBounds(g).center.x).ToArray();
+        var knobs = Kind(0f, 0.03f); var handles = Kind(0.06f, 0.09f); var stems = Kind(0.09f, 0.12f);
+        log.AppendLine($"Remote levers: {knobs.Length} knobs, {handles.Length} handles, {stems.Length} stems");
+        var remoteList = new System.Collections.Generic.List<CabControls.Swing>();
+        if (knobs.Length == 3 && handles.Length == 3 && stems.Length == 3)
+        {
+            for (int r = 0; r < 3; r++)
+            {
+                var sel = new bool[p.Length];
+                foreach (var g in new[] { knobs[r], handles[r], stems[r] }) foreach (int i in g) sel[i] = inRemote[i] = true;
+                float bottom = stems[r].Min(i => p[i].y);
+                var low = stems[r].Where(i => p[i].y < bottom + 0.008f).ToArray();
+                Vector3 pivotPos = Vector3.zero; foreach (int i in low) pivotPos += p[i]; pivotPos /= low.Length;
+                var hinge = new GameObject($"RemoteLever_{r + 1}").transform;
+                hinge.SetParent(root, false);
+                hinge.localPosition = pivotPos;
+                var h = hinge;
+                Mesh m = SubsetMesh(src, sel, true, v => h.InverseTransformPoint(interior.TransformPoint(v)), renderer.sharedMaterials, out Material[] rMats,
+                    n => h.InverseTransformDirection(interior.TransformDirection(n)));
+                m.name = $"RemoteLever{r + 1}";
+                var go = new GameObject("LeverMesh");
+                go.transform.SetParent(hinge, false);
+                go.AddComponent<MeshFilter>().sharedMesh = SaveMesh(m, m.name);
+                go.AddComponent<MeshRenderer>().sharedMaterials = rMats;
+                // Grab box: knob + handle, in hinge space.
+                var grab = new Bounds(h.InverseTransformPoint(root.TransformPoint(p[knobs[r][0]])), Vector3.zero);
+                foreach (int i in knobs[r].Concat(handles[r])) grab.Encapsulate(h.InverseTransformPoint(root.TransformPoint(p[i])));
+                remoteList.Add(new CabControls.Swing { name = $"Remote {r + 1}", hinge = hinge, axis = Vector3.right, grabBox = grab, min = -20f, max = 20f, springBack = true });
+                log.AppendLine($"Remote lever {r + 1}: pivot {pivotPos:F3}, knob {PartBounds(knobs[r]).center:F3}, {sel.Count(b => b)} vertices");
+            }
+        }
+        else Debug.LogWarning("[Setup] Hydraulic remote levers not found, they stay part of the cab");
+        remotes = remoteList.ToArray();
+
         var removed = new bool[p.Length];
-        for (int i = 0; i < p.Length; i++) removed[i] = inWheel[i] || inLever[i];
+        for (int i = 0; i < p.Length; i++) removed[i] = inWheel[i] || inLever[i] || inRemote[i];
 
         // Pivot frame: SteeringColumn (fixed, Z = axis) > SteeringWheel (spins around local Z) > mesh.
         var column = new GameObject("SteeringColumn").transform;
@@ -844,6 +890,31 @@ public static class ProjectSetup
         clusterSize = new Vector2(gSize.x, gSize.y);
         log.AppendLine($"Instrument cluster glass: centre {gCentre:F3}, size {gSize.x:0.###} x {gSize.y:0.###} m, tilt {Vector3.Angle(glassNormal, Vector3.forward):0}°");
         return pivot;
+    }
+
+    // Doors: the model's door pivots sit on the hinge line at the rear edge of each door (JD cabs have rear-hinged doors).
+    // Each door goes under a tractor-aligned Hinge_Door_*; it opens outward up to 65° (more would swing the lower door
+    // panel into the rear tyre). The grab box is the whole door, so it can be taken anywhere within reach of the seat.
+    static CabControls.Swing[] BuildDoors(Transform root, System.Func<string, Transform> part, StringBuilder log)
+    {
+        var doors = new System.Collections.Generic.List<CabControls.Swing>();
+        foreach (var (side, sign) in new[] { ("Door_L", -1f), ("Door_R", 1f) })
+        {
+            var door = part(side);
+            if (door == null) { Debug.LogWarning($"[Setup] {side} not found"); continue; }
+            var hinge = new GameObject("Hinge_" + side).transform;
+            hinge.SetParent(root, false);
+            hinge.localPosition = root.InverseTransformPoint(door.position);
+            door.SetParent(hinge, true);
+            var mesh = door.GetComponent<MeshFilter>().sharedMesh;
+            var verts = mesh.vertices;
+            var box = new Bounds(hinge.InverseTransformPoint(door.TransformPoint(verts[0])), Vector3.zero);
+            foreach (var v in verts) box.Encapsulate(hinge.InverseTransformPoint(door.TransformPoint(v)));
+            // + angle = open (outward): left door turns around -Y, right door around +Y.
+            doors.Add(new CabControls.Swing { name = side == "Door_L" ? "LEFT DOOR" : "RIGHT DOOR", hinge = hinge, axis = Vector3.up * sign, grabBox = box, min = 0f, max = 65f });
+            log.AppendLine($"{side}: hinge {hinge.localPosition:F3}, door box {box.center:F3} size {box.size:F3}");
+        }
+        return doors.ToArray();
     }
 
     // Connected pieces of a mesh: vertices joined by triangles, plus vertices sharing a position (UV/normal seams).
@@ -2046,6 +2117,56 @@ public static class ProjectSetup
         leverClick.playOnAwake = false; leverClick.spatialBlend = 0.8f; leverClick.volume = 0.6f; leverClick.pitch = 0.7f;
         leverClick.clip = src.clip;
         cab.click = leverClick;
+        // Doors: a low clunk when they shut or come off the latch.
+        foreach (var d in cab.doors)
+        {
+            var a = d.hinge.gameObject.AddComponent<AudioSource>();
+            a.playOnAwake = false; a.spatialBlend = 1f; a.volume = 0.9f; a.pitch = 0.35f;
+            a.clip = src.clip;
+            d.sound = a;
+        }
+        BuildCommandCenter(tractor, hands, panel, src.clip);
+    }
+
+    // CommandCenter display at the right front corner post, on a short arm, facing the driver's eye point.
+    static void BuildCommandCenter(GameObject tractor, VRHands hands, CabPanel panel, AudioClip clickClip)
+    {
+        var unlit = Shader.Find("Universal Render Pipeline/Unlit");
+        Material Flat(string name, Color c) { var m = new Material(unlit); m.SetColor("_BaseColor", c); return SaveMat(m, name); }
+        var root = tractor.transform;
+        Vector3 eye = root.Find("DriverEye").localPosition;
+        var go = new GameObject("CommandCenter");
+        go.transform.SetParent(root, false);
+        go.transform.localPosition = new Vector3(0.50f, 2.40f, 1.00f);
+        go.transform.localRotation = Quaternion.LookRotation(go.transform.localPosition - eye);   // +Z away from the driver
+        var cc = go.AddComponent<CommandCenter>();
+        cc.drivetrain = tractor.GetComponent<Drivetrain>();
+        cc.tractor = tractor.GetComponent<TractorController>();
+        cc.hitch = tractor.GetComponent<Hitch>();
+        cc.hands = hands;
+        cc.screenMat = Flat("CC_Screen", new Color(0.02f, 0.035f, 0.05f));
+        var bezel = SaveMat(new Material(LitShader) { color = new Color(0.05f, 0.05f, 0.05f) }, "CC_Bezel");
+        bezel.SetFloat("_Smoothness", 0.35f);
+        cc.bezelMat = bezel;
+        cc.barMat = Flat("CC_Bar", Color.white);   // tinted per bar (MaterialPropertyBlock)
+        cc.buttonMat = panel.buttonMat;
+        cc.buttonHotMat = panel.buttonHotMat;
+        cc.textMat = panel.textMat;
+        var src = go.AddComponent<AudioSource>();
+        src.playOnAwake = false; src.spatialBlend = 0.8f; src.volume = 0.5f;
+        src.clip = clickClip;
+        cc.click = src;
+        // Arm from the back of the display to the corner post.
+        var arm = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        Object.DestroyImmediate(arm.GetComponent<Collider>());
+        arm.name = "Arm";
+        arm.transform.SetParent(root, false);
+        Vector3 from = go.transform.localPosition + go.transform.localRotation * new Vector3(0f, 0f, 0.02f), to = new Vector3(0.60f, 2.42f, 1.36f);
+        arm.transform.localPosition = (from + to) * 0.5f;
+        arm.transform.localRotation = Quaternion.LookRotation(to - from);
+        arm.transform.localScale = new Vector3(0.03f, 0.03f, (to - from).magnitude);
+        arm.GetComponent<MeshRenderer>().sharedMaterial = bezel;
+        arm.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
     }
 
     static ControllerVisual BuildController(Transform cameraOffset, bool left, Material mat)
@@ -2184,7 +2305,41 @@ public static class ProjectSetup
         cam.fieldOfView = 90f;
         cabCtl.speedLever.localRotation = Quaternion.identity;
 
+        // Hydraulic remote levers: 1 pulled back (raise), 2 pushed forward (lower), 3 in the middle.
+        var r1 = cabCtl.remotes[0].hinge; var r2 = cabCtl.remotes[1].hinge;
+        r1.localRotation = Quaternion.AngleAxis(-20f, Vector3.right);
+        r2.localRotation = Quaternion.AngleAxis(20f, Vector3.right);
+        cam.fieldOfView = 40f;
+        Vector3 remotesAt = cabCtl.remotes[1].hinge.TransformPoint(cabCtl.remotes[1].grabBox.center);
+        Vector3 remoteCam = tractor.TransformPoint(new Vector3(0.12f, 2.60f, 0.78f));
+        Shot("remotes.png", remoteCam, Quaternion.LookRotation(remotesAt + tractor.up * -0.05f - remoteCam));
+        Vector3 remoteSide = tractor.TransformPoint(cabCtl.remotes[1].hinge.localPosition + new Vector3(-0.38f, 0.14f, 0f));
+        Shot("remotes_side.png", remoteSide, Quaternion.LookRotation(cabCtl.remotes[1].hinge.position + tractor.up * 0.08f - remoteSide));
+        r1.localRotation = r2.localRotation = Quaternion.identity;
+
         panelComp.gameObject.SetActive(false);   // keep it out of the other shots
+
+        // CommandCenter on the right corner post, from the seat (drivetrain values as after start-up, hand throttle at 1500).
+        var cc = Object.FindAnyObjectByType<CommandCenter>();
+        var drive = tractor.GetComponent<Drivetrain>();
+        typeof(Drivetrain).GetMethod("Awake", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).Invoke(drive, null);
+        drive.MoveHandThrottle(1f, (1500f - drive.idleRpm) / drive.handThrottleRate);
+        cc.Build();
+        cam.fieldOfView = 70f;
+        Shot("commandcenter_seat.png", seat.position, Quaternion.LookRotation(cc.transform.position + tractor.right * -0.12f - seat.position));
+        cam.fieldOfView = 35f;
+        Shot("commandcenter.png", seat.position, Quaternion.LookRotation(cc.transform.position - seat.position));
+        cam.fieldOfView = 90f;
+
+        // Both doors open, from the front left.
+        foreach (var d in cabCtl.doors) d.hinge.localRotation = Quaternion.AngleAxis(d.max, d.axis);
+        Vector3 doorCam = tractor.TransformPoint(new Vector3(-4.2f, 2.8f, 3.6f));
+        Shot("doors_open.png", doorCam, Quaternion.LookRotation(tractor.TransformPoint(new Vector3(0f, 1.9f, 0.6f)) - doorCam));
+        Vector3 doorTop = tractor.TransformPoint(new Vector3(-0.3f, 5.5f, 0.9f));
+        Shot("doors_top.png", doorTop, Quaternion.LookRotation(tractor.TransformPoint(new Vector3(-0.6f, 1.6f, 0.5f)) - doorTop, tractor.forward));
+        Vector3 doorSide = tractor.TransformPoint(new Vector3(-2.6f, 1.75f, 2.2f));
+        Shot("doors_side.png", doorSide, Quaternion.LookRotation(tractor.TransformPoint(new Vector3(-1.1f, 1.75f, 0.6f)) - doorSide));
+        foreach (var d in cabCtl.doors) d.hinge.localRotation = Quaternion.identity;
 
         // Instrument cluster from the seat: needles at 1500 rpm / 20 km/h, steering wheel turned 90° for a right turn.
         var board = Object.FindAnyObjectByType<Dashboard>();

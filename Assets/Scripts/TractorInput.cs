@@ -19,6 +19,7 @@ using UnityEngine.InputSystem;
 ///   Left stick ↑ / ↓ .... raise / lower the rear hitch (hold left trigger: front linkage)
 ///   Right stick click ... PTO on / off
 ///   Left stick click .... attach / detach implement
+///   Hand throttle ....... cab panel / CommandCenter buttons (keyboard ] / [, gamepad d-pad up / down)
 /// Runs before the other tractor scripts so the per-frame flick events are ready when they read them.
 /// </summary>
 [DefaultExecutionOrder(-100)]
@@ -32,7 +33,7 @@ public class TractorInput : MonoBehaviour
     InputAction comfortAction;
     InputAction modeAction;
     InputAction hornAction;
-    InputAction frontLinkageAction, ptoAction, attachAction, menuAction;
+    InputAction frontLinkageAction, ptoAction, attachAction, menuAction, handThrottleAction;
     int flick;          // -1 / 0 / +1: where the right stick X was held last frame
 
     public Vector2 LeftStick => steerAction.ReadValue<Vector2>();
@@ -44,6 +45,8 @@ public class TractorInput : MonoBehaviour
     /// <summary>Seat adjust mode, switched in the cab panel.</summary>
     [System.NonSerialized] public bool seatAdjust;
     public bool MenuPressed => menuAction.WasPressedThisFrame();
+    /// <summary>Hand throttle up (+1) / down (-1) while held.</summary>
+    public float HandThrottle => scripted ? 0f : handThrottleAction.ReadValue<float>();
 
     /// <summary>Test autopilot (editor physics test): replaces the sticks for steering and throttle.</summary>
     [System.NonSerialized] public bool scripted;
@@ -137,6 +140,10 @@ public class TractorInput : MonoBehaviour
         menuAction.AddBinding("<XRController>{LeftHand}/{MenuButton}");
         menuAction.AddBinding("<Gamepad>/start");
         menuAction.AddBinding("<Keyboard>/m");
+
+        handThrottleAction = new InputAction("HandThrottle", InputActionType.Value, expectedControlType: "Axis");
+        handThrottleAction.AddCompositeBinding("1DAxis").With("Positive", "<Keyboard>/rightBracket").With("Negative", "<Keyboard>/leftBracket");
+        handThrottleAction.AddCompositeBinding("1DAxis").With("Positive", "<Gamepad>/dpad/up").With("Negative", "<Gamepad>/dpad/down");
     }
 
     void Update()
@@ -165,6 +172,7 @@ public class TractorInput : MonoBehaviour
         ptoAction.Enable();
         attachAction.Enable();
         menuAction.Enable();
+        handThrottleAction.Enable();
     }
 
     void OnDisable()
@@ -181,5 +189,6 @@ public class TractorInput : MonoBehaviour
         ptoAction.Disable();
         attachAction.Disable();
         menuAction.Disable();
+        handThrottleAction.Disable();
     }
 }

@@ -59,7 +59,7 @@ public class TractorHud : MonoBehaviour
         if (input.Calibrating && rig.view == VRCameraRig.View.Cab) line += "\nSEAT ADJUST";
         string work = Implements();
         if (work.Length > 0) line += "\n" + work;
-        string lever = cab ? cab.LeverStatus : "";
+        string lever = cab ? cab.Status : "";
         if (lever.Length > 0) line += "\n" + lever;
         if (Time.time < messageUntil) line += "\n" + message;
         if (ShowPerf)

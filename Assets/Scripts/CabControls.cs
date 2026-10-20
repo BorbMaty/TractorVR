@@ -11,6 +11,10 @@ using UnityEngine;
 ///   in the middle (±25 % of the swing, a click when passing through) and rises smoothly beyond it; let go in the middle and it
 ///   snaps upright. It stays where it is let go (cruise); the right stick or the panel's STOP button puts it back to neutral.
 ///   While held, the HUD shows what it does (N / F % / R %).
+///   Hydraulic remote levers (three, behind the speed lever): spring-centred, pull back = raise, push forward = lower,
+///   speed proportional to the deflection. 1 = rear hitch, 2 = front linkage, 3 = trailer tipping (not built yet).
+///   Doors (rear-hinged): grab anywhere on the inside and swing them open / closed; they stay where they are let go.
+///   The cab panel's DOORS button opens / closes both.
 /// Feedback: the rim / knob lights up softly when a hand is in reach and brighter while held, and a tracked hand is shown
 /// snapped onto what it holds (hides tracking jitter).
 /// </summary>
@@ -25,11 +29,38 @@ public class CabControls : MonoBehaviour
     public float grabReach = 0.07f;       // m from the rim / knob (controllers)
     public float handReach = 0.09f;       // m, tracked hands (the palm sits further from a thin rim than a controller's grip)
     public AudioSource click;
+    public Swing[] remotes = new Swing[0];
+    public Swing[] doors = new Swing[0];
+    public float doorSpeed = 90f;         // degrees per second when opened / closed from the panel
     public Color hoverGlow = new Color(0.04f, 0.10f, 0.04f), heldGlow = new Color(0.08f, 0.22f, 0.08f);
+
+    /// <summary>A part that swings around a hinge axis (remote lever, door), grabbed anywhere in its grab box.</summary>
+    [System.Serializable]
+    public class Swing
+    {
+        public string name;
+        public Transform hinge;           // rotates around `axis` (hinge space) from its rest rotation
+        public Vector3 axis = Vector3.right;
+        public Bounds grabBox;            // hinge space: where a hand can take hold
+        public float min = -20f, max = 20f;   // degrees
+        public bool springBack;           // returns to 0 when let go (remote levers)
+        public AudioSource sound;         // a door clicks when it shuts and when it comes off the latch
+
+        [System.NonSerialized] public float angle, offset;
+        [System.NonSerialized] public Vector3 grabLocal;   // where the hand took hold (hinge space), for the hand snap
+        [System.NonSerialized] public float? target;   // panel open / close, spring return
+        [System.NonSerialized] public VRHands.Hand hand;
+        [System.NonSerialized] public Quaternion rest;
+        [System.NonSerialized] public Renderer[] renderers;
+        public bool Held => hand != null;
+        /// <summary>-1..1 with a small dead band (remote levers: + = pushed forward).</summary>
+        public float Output => Mathf.Abs(angle) < 0.15f * max ? 0f : angle / max;
+    }
 
     VRHands hands;
     TractorController tractor;
     TractorInput input;
+    Hitch hitch;
     Transform column;
     VRHands.Hand leverHand;
     readonly List<VRHands.Hand> wheelHands = new List<VRHands.Hand>();
@@ -43,11 +74,31 @@ public class CabControls : MonoBehaviour
 
     public bool WheelHeld => wheelHands.Count > 0;
     public bool LeverHeld => leverHand != null;
+    public bool DoorsOpen => doors.Length > 0 && doors[0].angle > 1f;
     public float Lever => lever;
     /// <summary>Speed command from the lever (-1..1): 0 in the neutral zone, smooth beyond it.</summary>
     public float LeverOutput => Mathf.Abs(lever) <= neutralNotch ? 0f : Mathf.Sign(lever) * (Mathf.Abs(lever) - neutralNotch) / (1f - neutralNotch);
     /// <summary>"N", "F 35%", "R 20%" while the lever is held (HUD), else empty.</summary>
     public string LeverStatus => !LeverHeld ? "" : LeverOutput == 0f ? "LEVER: N" : $"LEVER: {(LeverOutput > 0f ? "F" : "R")} {Mathf.Abs(LeverOutput) * 100f:0}%";
+    static readonly string[] RemoteJobs = { "HITCH", "FRONT", "TIPPING (not built yet)" };
+    /// <summary>Everything held right now, for the HUD (speed lever, remote levers, doors).</summary>
+    public string Status
+    {
+        get
+        {
+            var lines = new List<string>();
+            if (LeverHeld) lines.Add(LeverStatus);
+            for (int i = 0; i < remotes.Length; i++)
+            {
+                if (!remotes[i].Held) continue;
+                float o = remotes[i].Output;
+                lines.Add($"REMOTE {i + 1} {RemoteJobs[Mathf.Min(i, 2)]}: {(o == 0f ? "HOLD" : o < 0f ? $"RAISE {-o * 100f:0}%" : $"LOWER {o * 100f:0}%")}");
+            }
+            foreach (var d in doors)
+                if (d.Held) lines.Add($"{d.name}: {d.angle / d.max * 100f:0}% OPEN");
+            return string.Join("\n", lines);
+        }
+    }
 
     void Start()
     {
@@ -58,9 +109,31 @@ public class CabControls : MonoBehaviour
         wheelRenderers = tractor.steeringWheel.GetComponentsInChildren<Renderer>();
         leverRenderers = speedLever.GetComponentsInChildren<Renderer>();
         block = new MaterialPropertyBlock();
+        hitch = GetComponent<Hitch>();
+        foreach (var sw in Swings())
+        {
+            sw.rest = sw.hinge.localRotation;
+            sw.renderers = sw.hinge.GetComponentsInChildren<Renderer>();
+        }
     }
 
-    void Update()
+    IEnumerable<Swing> Swings()
+    {
+        foreach (var r in remotes) yield return r;
+        foreach (var d in doors) yield return d;
+    }
+
+    /// <summary>Open both doors if they're closed, else close them (cab panel).</summary>
+    public void ToggleDoors()
+    {
+        bool open = !DoorsOpen;
+        foreach (var d in doors) if (!d.Held) d.target = open ? d.max : 0f;
+    }
+
+    void Update() => FrameUpdate(Time.deltaTime);
+
+    /// <summary>Per-frame update (public for the editor physics test).</summary>
+    public void FrameUpdate(float dt)
     {
         if (hands == null) return;
         foreach (var h in hands.Both)
@@ -70,6 +143,7 @@ public class CabControls : MonoBehaviour
         }
         UpdateWheel();
         UpdateLever();
+        UpdateSwings(dt);
         UpdateFeedback();
     }
 
@@ -98,8 +172,44 @@ public class CabControls : MonoBehaviour
         return Vector3.SignedAngle(new Vector3(0f, knobLocal.y, knobLocal.z), new Vector3(0f, hand.y, hand.z), Vector3.right);
     }
 
+    bool NearSwing(VRHands.Hand h, Swing sw)
+    {
+        var box = sw.grabBox;
+        box.Expand(2f * Reach(h));
+        return box.Contains(sw.hinge.InverseTransformPoint(h.GrabPoint));
+    }
+
+    // Angle of the hand around a swing's hinge axis from the swing's rest pose (degrees, + = the swing's positive sense).
+    float HandSwingAngle(VRHands.Hand h, Swing sw)
+    {
+        Vector3 axis = sw.rest * sw.axis;                                            // in the parent's space
+        Vector3 hand = sw.hinge.parent.InverseTransformPoint(h.GrabPoint) - sw.hinge.localPosition;
+        Vector3 rest = sw.rest * sw.grabBox.center;
+        return Vector3.SignedAngle(Vector3.ProjectOnPlane(rest, axis), Vector3.ProjectOnPlane(hand, axis), axis);
+    }
+
     void TryGrab(VRHands.Hand h)
     {
+        // The nearest remote lever / door in reach; the speed lever wins if its knob is closer (they sit side by side).
+        Swing best = null;
+        float bestDistance = float.MaxValue;
+        foreach (var sw in Swings())
+        {
+            if (sw.Held || !NearSwing(h, sw)) continue;
+            Vector3 local = sw.hinge.InverseTransformPoint(h.GrabPoint);
+            float d = Vector3.Distance(sw.grabBox.ClosestPoint(local), local);
+            if (d < bestDistance) { best = sw; bestDistance = d; }
+        }
+        float knobDistance = leverHand == null && NearKnob(h) ? Vector3.Distance(h.GrabPoint, speedLever.TransformPoint(knobLocal)) : float.MaxValue;
+        if (best != null && bestDistance <= knobDistance)
+        {
+            best.hand = h;
+            best.target = null;
+            best.offset = best.angle - HandSwingAngle(h, best);
+            best.grabLocal = best.hinge.InverseTransformPoint(h.GrabPoint);
+            Debug.Log($"[Cab] {best.name} grabbed ({(h.IsHandTracking ? (h.PinchGrab ? "hand, pinch" : "hand, fist") : "controller")}) at {best.angle:0}°");
+            return;
+        }
         if (leverHand == null && NearKnob(h))
         {
             leverHand = h;
@@ -125,6 +235,13 @@ public class CabControls : MonoBehaviour
             Debug.Log($"[Cab] lever released at {lever:0.00} (speed command {LeverOutput:0.00})");
         }
         if (wheelHands.Remove(h) && wheelHands.Count == 0) tractor.ReleaseHeldSteer();
+        foreach (var sw in Swings())
+        {
+            if (sw.hand != h) continue;
+            sw.hand = null;
+            if (sw.springBack) sw.target = 0f;
+            Debug.Log($"[Cab] {sw.name} released at {sw.angle:0}°");
+        }
         hands.SnapVisual(h, null);
     }
 
@@ -165,6 +282,29 @@ public class CabControls : MonoBehaviour
         input.leverThrottle = LeverOutput;
     }
 
+    void UpdateSwings(float dt)
+    {
+        foreach (var sw in Swings())
+        {
+            float before = sw.angle;
+            if (sw.Held) sw.angle = Mathf.Clamp(HandSwingAngle(sw.hand, sw) + sw.offset, sw.min, sw.max);
+            else if (sw.target.HasValue)
+            {
+                // Spring-centred levers snap back quickly; doors swing at a steady pace.
+                sw.angle = Mathf.MoveTowards(sw.angle, sw.target.Value, (sw.springBack ? 400f : doorSpeed) * dt);
+                if (sw.angle == sw.target.Value) sw.target = null;
+            }
+            sw.hinge.localRotation = sw.rest * Quaternion.AngleAxis(sw.angle, sw.axis);
+            if (sw.sound && (before > 0.5f) != (sw.angle > 0.5f)) sw.sound.Play();
+        }
+        // Remote levers 1 and 2 drive the rear hitch and the front linkage (pull back = raise).
+        if (hitch)
+        {
+            if (remotes.Length > 0 && remotes[0].Output != 0f) hitch.MenuLift(false, -remotes[0].Output);
+            if (remotes.Length > 1 && remotes[1].Output != 0f) hitch.MenuLift(true, -remotes[1].Output);
+        }
+    }
+
     void UpdateFeedback()
     {
         bool wheelNear = false, leverNear = false;
@@ -176,6 +316,13 @@ public class CabControls : MonoBehaviour
         }
         Glow(wheelRenderers, WheelHeld ? heldGlow : wheelNear ? hoverGlow : Color.black);
         Glow(leverRenderers, LeverHeld ? heldGlow : leverNear ? hoverGlow : Color.black);
+        foreach (var sw in Swings())
+        {
+            bool near = false;
+            foreach (var h in hands.Both) near |= h.Tracked && !h.Grabbing && NearSwing(h, sw);
+            Glow(sw.renderers, sw.Held ? heldGlow : near ? hoverGlow : Color.black);
+            if (sw.Held) hands.SnapVisual(sw.hand, sw.hinge.TransformPoint(sw.grabLocal));
+        }
 
         // The visible tracked hand sits on the rim at its own angle, or on the knob.
         foreach (var h in wheelHands)

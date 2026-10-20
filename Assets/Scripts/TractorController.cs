@@ -8,7 +8,7 @@ using UnityEngine;
 ///                  Lateral grip cancels the wheel's sideways sliding, so the tractor follows its Ackermann geometry until grip runs out.
 ///   Drive ........ the same comfort-limited speed command as in phase 1 (stick = target speed, gentle accel/brake rates).
 ///                  A speed controller turns it into a drive force, compensating slope and rolling resistance, limited by
-///                  engine power (195 hp) and grip. All four wheels drive (MFWD), shared by load. On a steep climb it slows down.
+///                  the engine power at the current engine speed (Drivetrain torque curve, 195 hp rated) and grip. All four wheels drive (MFWD), shared by load. On a steep climb it slows down.
 ///   Steering ..... same comfort limits as phase 1 (yaw rate, lateral acceleration); Ackermann angle per front wheel.
 /// Physics runs at 90 Hz with Rigidbody interpolation, so the VR camera riding on the body moves smoothly every frame.
 /// The tractor's colliders are on the Ignore Raycast layer so the wheel rays don't hit their own body.
@@ -51,7 +51,7 @@ public class TractorController : MonoBehaviour
     public float rollingResistance = 1f;
 
     [Header("Engine")]
-    public float enginePowerKW = 145f;          // 195 hp
+    public float enginePowerKW = 145f;          // 195 hp rated; the power at other engine speeds comes from Drivetrain's torque curve
     [System.NonSerialized] public float towedMass;   // trailer on the drawbar (set by Hitch): the drive force accelerates it too
     public float speedTracking = 2.5f;          // 1/s, how hard the drive force pulls the speed onto the command
 
@@ -86,6 +86,8 @@ public class TractorController : MonoBehaviour
     public float LockAngle { get; private set; } = 40f;
     /// <summary>Share of engine power currently used for driving (0..1).</summary>
     public float PowerFraction { get; private set; }
+    /// <summary>The drive force is capped by the engine's power right now (the drivetrain shifts down when it lugs).</summary>
+    public bool PowerLimited { get; private set; }
     public bool Grounded { get; private set; }
     /// <summary>Surface under the rear wheels (HUD, tests).</summary>
     public string GroundLabel { get; private set; } = "";
@@ -159,6 +161,7 @@ public class TractorController : MonoBehaviour
         speedCmd = 0f;
         upsideDownTime = 0f;
         ResetSuspension();
+        if (drivetrain) drivetrain.Refill();
     }
 
     /// <summary>After a teleport: forget the last spring positions, or the dampers see a huge spring speed on the next step;
@@ -192,9 +195,11 @@ public class TractorController : MonoBehaviour
         const float dead = 0.08f;
         float fwdKmh = drivetrain ? drivetrain.SpeedLimitKmh(true, maxForwardKmh, maxReverseKmh) : maxForwardKmh;
         float revKmh = drivetrain ? drivetrain.SpeedLimitKmh(false, maxForwardKmh, maxReverseKmh) : maxReverseKmh;
+        // Manual with the hand throttle set: any lever / stick input drives at least at the gear's speed for that engine speed.
+        float hand = drivetrain ? drivetrain.HandThrottleShare : 0f;
         float target = 0f;
-        if (throttle > dead) target = (throttle - dead) / (1f - dead) * fwdKmh / 3.6f;
-        else if (throttle < -dead) target = (throttle + dead) / (1f - dead) * revKmh / 3.6f;
+        if (throttle > dead) target = Mathf.Max((throttle - dead) / (1f - dead), hand) * fwdKmh / 3.6f;
+        else if (throttle < -dead) target = -Mathf.Max((-throttle - dead) / (1f - dead), hand) * revKmh / 3.6f;
 
         // STOP (cab panel): brake to a standstill at the comfort braking rate; any stick / lever input cancels it.
         if (stopRequested && (target != 0f || Mathf.Abs(SpeedMs) < 0.05f)) stopRequested = false;
@@ -293,10 +298,13 @@ public class TractorController : MonoBehaviour
         bool driving = !holding && force * (Mathf.Abs(SpeedMs) > 0.1f ? SpeedMs : speedCmd) > 0f;
         if (driving)
         {
-            float available = Mathf.Max(10f, enginePowerKW - (hitch ? hitch.PtoPowerKW : 0f));   // the PTO takes its share first
+            float engineKW = drivetrain ? drivetrain.AvailableKW : enginePowerKW;                  // torque curve at the current engine speed
+            float available = Mathf.Max(10f, engineKW - (hitch ? hitch.PtoPowerKW : 0f));          // the PTO takes its share first
             float maxForce = available * 1000f / Mathf.Max(Mathf.Abs(SpeedMs), 2f);
+            PowerLimited = Mathf.Abs(force) > maxForce * 0.98f;
             force = Mathf.Clamp(force, -maxForce, maxForce);
         }
+        else PowerLimited = false;
         PowerFraction = driving ? Mathf.Clamp01(Mathf.Abs(force * SpeedMs) / (enginePowerKW * 1000f)) : 0f;
 
         for (int i = 0; i < wheels.Length; i++)

@@ -10,7 +10,8 @@ using UnityEngine;
 /// Drives the tractor without a headset: steps TractorController + Unity physics by hand in the editor (batch mode works)
 /// with scripted stick input, and writes what happened to Logs/PhysicsTest.txt.
 /// Scenarios: settle, full throttle, coast + hold, steady turn, steepest hill (climb + park), pushing a hay bale,
-/// hitch sweep, ploughing, mowing (front linkage + PTO), towing the trailer.
+/// hitch sweep, ploughing, mowing (front linkage + PTO), towing the trailer, torque curve / hand throttle / fuel / coolant,
+/// cab controls with simulated hands (wheel, speed lever, remote levers, doors).
 ///   Menu: Tractor VR > Run Physics Test
 ///   CLI : Unity.exe -batchmode -quit -projectPath . -executeMethod PhysicsTest.Run
 /// The scene is not saved.
@@ -23,6 +24,7 @@ public static class PhysicsTest
     static StringBuilder log;
     static float time;
     static Hitch hitch;
+    static Drivetrain drive;
     static Implement[] implements;
     static SimpleWheels[] wheelSets;
     static System.Func<string> extra;
@@ -46,6 +48,9 @@ public static class PhysicsTest
             input.scripted = true;
             CallAwake(input);
             CallAwake(ctrl);
+            drive = ctrl.GetComponent<Drivetrain>();
+            CallAwake(drive);
+            if (!drive.Automatic) drive.ToggleMode();   // the saved gearbox mode could be manual
             hitch = ctrl.GetComponent<Hitch>();
             implements = Object.FindObjectsByType<Implement>(FindObjectsSortMode.None);
             wheelSets = Object.FindObjectsByType<SimpleWheels>(FindObjectsSortMode.None);
@@ -124,6 +129,7 @@ public static class PhysicsTest
             float tStop = 0f;
             while (ctrl.SpeedKmh > 0.2f && tStop < 20f) { StepQuiet(); tStop += Time.fixedDeltaTime; }
             Simulate(3f, 0f, 0f, 10f);
+            EngineScenario();
             log.AppendLine($"   from {v0:0.0} km/h: stopped in {tStop:0.0} s (≈{v0 / 3.6f / ctrl.braking:0.0} s at {ctrl.braking} m/s²; coasting would take {v0 / 3.6f / ctrl.coastDecel:0.0} s), then {ctrl.SpeedKmh:0.0} km/h");
         }
         catch (System.Exception e)
@@ -138,11 +144,61 @@ public static class PhysicsTest
         }
     }
 
+    // Q. Torque curve, hand throttle (manual: drives at the gear's speed for that engine speed; auto: holds the engine there),
+    // fuel use and coolant warm-up.
+    static void EngineScenario()
+    {
+        log.AppendLine();
+        log.AppendLine("Q. Engine: torque curve");
+        var curve = new StringBuilder("   ");
+        for (float r = 850f; r <= 2250f; r += 100f) curve.Append($"{r:0}: {drive.TorqueAt(r):0} Nm {drive.PowerAt(r):0} kW | ");
+        log.AppendLine(curve.ToString());
+        float peak = 0f, peakRpm = 0f;
+        for (float r = 850f; r <= 2250f; r += 10f) if (drive.PowerAt(r) > peak) { peak = drive.PowerAt(r); peakRpm = r; }
+        log.AppendLine($"   rated {drive.PowerAt(drive.ratedRpm):0} kW at {drive.ratedRpm:0} rpm, peak {peak:0} kW at {peakRpm:0} rpm, torque rise {(drive.TorqueAt(1550f) / drive.TorqueAt(drive.ratedRpm) - 1f) * 100f:0}%");
+
+        Section("Q2. Manual, gear C1, hand throttle 1500 rpm, lever just out of neutral (0.15), 15 s");
+        Place(new Vector3(32f, 0f, 0f), 90f);
+        Simulate(1f, 0f, 0f, 10f);
+        drive.ToggleMode();   // → manual
+        typeof(Drivetrain).GetMethod("SetGear", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(drive, new object[] { 8, true });
+        drive.MoveHandThrottle(1f, (1500f - drive.idleRpm) / drive.handThrottleRate);
+        extra = () => $"hand {drive.HandThrottleRpm:0}  fuel {drive.FuelRateLph:0.0} L/h";
+        Simulate(15f, 0.15f, 0f, 3f);
+        log.AppendLine($"   {drive.GearName} at {drive.HandThrottleRpm:0} rpm: {ctrl.SpeedKmh:0.0} km/h (expected {drive.gearKmh[8] * drive.HandThrottleRpm / drive.ratedRpm:0.0}), engine {drive.Rpm:0} rpm");
+        input.scriptedThrottle = 0f;
+        ctrl.RequestStop();
+        Simulate(4f, 0f, 0f, 10f);
+        drive.ToggleMode();   // → auto
+        Section("Q3. Auto, hand throttle 1500 rpm, lever 0.3, 10 s: the engine stays near 1500");
+        Simulate(10f, 0.3f, 0f, 2f);
+        drive.MoveHandThrottle(-1f, 10f);
+        log.AppendLine($"   hand throttle back to {drive.HandThrottleRpm:0} (off)");
+        ctrl.RequestStop();
+        Simulate(4f, 0f, 0f, 10f);
+        extra = null;
+
+        log.AppendLine("Q4. Fuel and coolant (drivetrain only, standing)");
+        drive.Refill();
+        float startFuel = drive.FuelLitres;
+        var warm = new StringBuilder("   coolant at idle: ");
+        float dt = Time.fixedDeltaTime, reached = -1f;
+        for (float t = 0f; t <= 600f; t += dt)
+        {
+            drive.FrameUpdate(dt);
+            if (reached < 0f && drive.CoolantC >= drive.thermostatC - 0.5f) reached = t;
+            if (Mathf.Repeat(t, 60f) < dt) warm.Append($"{t:0}s {drive.CoolantC:0}°C  ");
+        }
+        log.AppendLine(warm.ToString());
+        log.AppendLine($"   thermostat temperature reached after {reached:0} s; idle use {drive.FuelRateLph:0.0} L/h ({(startFuel - drive.FuelLitres) * 1000f:0} mL in 10 min); " +
+                       $"at full power {drive.idleLitresPerHour * drive.ratedRpm / drive.idleRpm + drive.litresPerKWh * ctrl.enginePowerKW:0} L/h (6195M: ~40 L/h)");
+    }
+
     static void Section(string title)
     {
         log.AppendLine();
         log.AppendLine(title);
-        log.AppendLine("     t(s)   km/h   accel  yaw°/s  lat m/s²  pitch°  roll°  power  height");
+        log.AppendLine("     t(s)   km/h   accel  yaw°/s  lat m/s²  pitch°  roll°  power  height  gear   rpm  avail kW");
     }
 
     static void Place(Vector3 xz, float yaw)
@@ -169,6 +225,7 @@ public static class PhysicsTest
         {
             hitch.FrameUpdate(dt);
             foreach (var i in implements) i.FrameUpdate(dt);
+            drive.FrameUpdate(dt);
             ctrl.FrameUpdate(dt);
             ctrl.PhysicsStep();
             foreach (var i in implements) i.PhysicsStep();
@@ -181,7 +238,7 @@ public static class PhysicsTest
                 Vector3 e = ctrl.transform.eulerAngles;
                 float yawRate = rb.angularVelocity.y * Mathf.Rad2Deg;
                 float lat = Vector3.Dot(Vector3.Cross(rb.angularVelocity, rb.linearVelocity), ctrl.transform.right);
-                log.AppendLine($"   {t,6:0.0} {ctrl.SpeedKmh,6:0.0} {ctrl.Acceleration,7:0.00} {yawRate,7:0.0} {lat,9:0.00} {Mathf.DeltaAngle(0f, e.x),7:0.0} {Mathf.DeltaAngle(0f, e.z),6:0.0} {ctrl.PowerFraction,6:0.00} {ctrl.transform.position.y,7:0.00}{(extra != null ? "  " + extra() : "")}");
+                log.AppendLine($"   {t,6:0.0} {ctrl.SpeedKmh,6:0.0} {ctrl.Acceleration,7:0.00} {yawRate,7:0.0} {lat,9:0.00} {Mathf.DeltaAngle(0f, e.x),7:0.0} {Mathf.DeltaAngle(0f, e.z),6:0.0} {ctrl.PowerFraction,6:0.00} {ctrl.transform.position.y,7:0.00}  {drive.GearName,4} {drive.Rpm,5:0} {drive.AvailableKW,6:0}{(extra != null ? "  " + extra() : "")}");
             }
         }
     }
@@ -236,7 +293,7 @@ public static class PhysicsTest
             {
                 hitch.FrameUpdate(dt);
                 foreach (var i in implements) i.FrameUpdate(dt);
-                ctrl.FrameUpdate(dt); ctrl.PhysicsStep();
+                drive.FrameUpdate(dt); ctrl.FrameUpdate(dt); ctrl.PhysicsStep();
                 foreach (var i in implements) i.PhysicsStep();
                 foreach (var ws in wheelSets) ws.PhysicsStep();
                 Physics.Simulate(dt);
@@ -363,7 +420,6 @@ public static class PhysicsTest
         var cab = ctrl.GetComponent<CabControls>();
         var vrHands = Object.FindAnyObjectByType<VRHands>();
         cab.GetType().GetMethod("Start", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(cab, null);
-        var update = cab.GetType().GetMethod("Update", BindingFlags.NonPublic | BindingFlags.Instance);
         Place(new Vector3(14f, 0f, -20f), 0f);   // open yard (the barn is at x -44..-30)
         input.scriptedSteer = input.scriptedThrottle = 0f;
         float dt = Time.fixedDeltaTime;
@@ -371,7 +427,7 @@ public static class PhysicsTest
         var h = vrHands.Left;
         void Step(int frames = 1)
         {
-            for (int i = 0; i < frames; i++) { update.Invoke(cab, null); ctrl.FrameUpdate(dt); h.GrabStarted = h.GrabEnded = false; }
+            for (int i = 0; i < frames; i++) { cab.FrameUpdate(dt); ctrl.FrameUpdate(dt); h.GrabStarted = h.GrabEnded = false; }
         }
         Vector3 Rim(float deg) => column.TransformPoint(new Vector3(Mathf.Cos(deg * Mathf.Deg2Rad), Mathf.Sin(deg * Mathf.Deg2Rad), 0f) * cab.rimRadius);
 
@@ -408,6 +464,47 @@ public static class PhysicsTest
         h.Grabbing = false; h.GrabEnded = true; Step();
         log.AppendLine($"   let go at -3° (neutral zone) → lever {cab.Lever:0.00}, speed command {input.leverThrottle:0.00}");
 
+        // Remote lever 1 (rear hitch): push forward = lower, pull back = raise, let go = springs back to the middle.
+        {
+            var r1 = cab.remotes[0];
+            Vector3 rk = r1.hinge.TransformPoint(r1.grabBox.center), rp = r1.hinge.position;
+            Vector3 RSwing(float deg) => rp + Quaternion.AngleAxis(deg, ctrl.transform.right) * (rk - rp);
+            void Run(int frames) { for (int i = 0; i < frames; i++) { Step(); hitch.FrameUpdate(dt); } }
+            Run(1);
+            float start = hitch.RearPosition;
+            h.GrabPoint = rk; h.Grabbing = h.GrabStarted = true; Step();
+            h.GrabPoint = RSwing(18f); Run(180);
+            log.AppendLine($"   remote 1 pushed 18° for 2 s → {cab.Status.Replace("\n", " / ")}; hitch {start:0.00} → {hitch.RearPosition:0.00} (lowers)");
+            float low = hitch.RearPosition;
+            h.GrabPoint = RSwing(-10f); Run(180);
+            log.AppendLine($"   pulled back 10° for 2 s → hitch {low:0.00} → {hitch.RearPosition:0.00} (raises, slower)");
+            h.Grabbing = false; h.GrabEnded = true; Step();
+            Run(30);
+            log.AppendLine($"   let go → lever {r1.angle:0.0}° (springs back), hitch stays at {hitch.RearPosition:0.00}");
+            var r2 = cab.remotes[1];
+            float front = hitch.FrontPosition;
+            h.GrabPoint = r2.hinge.TransformPoint(r2.grabBox.center); h.Grabbing = h.GrabStarted = true; Step();
+            h.GrabPoint = r2.hinge.position + Quaternion.AngleAxis(-20f, ctrl.transform.right) * (h.GrabPoint - r2.hinge.position); Run(90);
+            h.Grabbing = false; h.GrabEnded = true; Step(); Run(30);
+            log.AppendLine($"   remote 2 pulled back 20° for 1 s → front linkage {front:0.00} → {hitch.FrontPosition:0.00} (raises)");
+        }
+        // Doors: grab the left door and swing it 40° open, let go (stays), then the panel button closes / opens both.
+        {
+            var door = cab.doors[0];
+            Vector3 hp = door.hinge.position, ax = door.hinge.TransformDirection(door.axis);
+            Vector3 dp = door.hinge.TransformPoint(door.grabBox.center);
+            h.GrabPoint = dp; h.Grabbing = h.GrabStarted = true; Step();
+            for (int i = 1; i <= 40; i++) { h.GrabPoint = hp + Quaternion.AngleAxis(i, ax) * (dp - hp); Step(); }
+            log.AppendLine($"   left door swung 40° by hand → {door.angle:0}° ({cab.Status})");
+            h.Grabbing = false; h.GrabEnded = true; Step(); Step(90);
+            log.AppendLine($"   let go → stays at {door.angle:0}°, doors open {cab.DoorsOpen}");
+            cab.ToggleDoors(); Step(120);
+            log.AppendLine($"   DOORS button → left {cab.doors[0].angle:0}°, right {cab.doors[1].angle:0}° (closed)");
+            cab.ToggleDoors(); Step(120);
+            log.AppendLine($"   DOORS button → left {cab.doors[0].angle:0}°, right {cab.doors[1].angle:0}° (open, limit {door.max:0}°)");
+            cab.ToggleDoors(); Step(120);
+        }
+
         // Hand-tracking replay on the lever: forward to +20°, back to -20°, 4 s, 4 mm noise, through VRHands.HandSignal.
         {
             var rnd = new System.Random(9);
@@ -421,12 +518,12 @@ public static class PhysicsTest
                 float deg = t < 1f ? 20f * t : t < 3f ? 20f - 20f * (t - 1f) : -20f;
                 sig.Step(true, Swing(deg) + new Vector3(N(), N(), N()), true, dt);
                 VRHands.Apply(h, true, sig.Point, sig.Grabbing);
-                update.Invoke(cab, null);
+                cab.FrameUpdate(dt);
                 ctrl.FrameUpdate(dt);
                 if (Mathf.Abs(Expected(deg)) > 0.15f && Mathf.Sign(input.leverThrottle) != Mathf.Sign(Expected(deg))) wrong++;
                 if (i % (int)(0.5f / dt) == 0) marks.Append($"{deg:0}°→{input.leverThrottle:0.00}  ");
             }
-            VRHands.Apply(h, true, h.GrabPoint, false); update.Invoke(cab, null);
+            VRHands.Apply(h, true, h.GrabPoint, false); cab.FrameUpdate(dt);
             log.AppendLine($"   noisy hand replay: {marks}| frames with the wrong direction: {wrong}");
         }
 
@@ -456,7 +553,7 @@ public static class PhysicsTest
                     else VRHands.Apply(h, sig.Active, sig.Point, sig.Active);
                 }
                 else VRHands.Apply(h, tracked, raw, tracked && grab);
-                update.Invoke(cab, null);
+                cab.FrameUpdate(dt);
                 ctrl.FrameUpdate(dt);
                 if (h.GrabEnded) drops++;
                 // Shake = frame-to-frame changes of the turning speed of the steering wheel (2nd difference), in wheel degrees.
@@ -465,7 +562,7 @@ public static class PhysicsTest
                 if (i > 2) { shake += (d - lastD) * (d - lastD); shakeN++; }
                 lastD = d; last = w;
             }
-            VRHands.Apply(h, true, h.GrabPoint, false); update.Invoke(cab, null);
+            VRHands.Apply(h, true, h.GrabPoint, false); cab.FrameUpdate(dt);
             log.AppendLine($"     {(filtered ? "filtered" : "raw     ")}: grab drops {drops}, wheel shake {Mathf.Sqrt(shake / Mathf.Max(1, shakeN)):0.00}°/frame², " +
                            $"steer {ctrl.SteerAngle:0.00}° (expected {60f / ctrl.steeringRatio:0.00})");
         }
@@ -488,6 +585,7 @@ public static class PhysicsTest
         float dt = Time.fixedDeltaTime;
         hitch.FrameUpdate(dt);
         foreach (var i in implements) i.FrameUpdate(dt);
+        drive.FrameUpdate(dt);
         ctrl.FrameUpdate(dt);
         ctrl.PhysicsStep();
         foreach (var i in implements) i.PhysicsStep();

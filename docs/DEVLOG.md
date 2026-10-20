@@ -545,3 +545,54 @@ Summary of the day:
    750k-triangle model, mesh LODs.
 
 Next: batch 2 (cab), then batch 3 (implements), then phase 3 step 2 (traction).
+
+## 2026-10-21: Finishing phases 1 and 2, batch 2 (cab)
+All four batch 2 items, built and tested in the editor. APK (62.2 MB) installed, ⏳ headset check.
+
+**Hydraulic remote levers** (`CabControls.Swing`, cut out in `ProjectSetup.SplitSteeringWheel`): a probe of the cab mesh's connected pieces showed
+each of the three levers behind the speed lever is three pieces: a knob (2 cm tall), a handle (8 cm) and a stem (10 cm) going into the console.
+Setup finds each kind by its height, sorts by x and zips them; the pivot is the bottom of the stem (y 2.155–2.199). Spring-centred, ±20°,
+15 % dead band. Pull back = raise, push forward = lower, speed proportional to the deflection: 1 = rear hitch, 2 = front linkage
+(through `Hitch.MenuLift`), 3 = trailer tipping (batch 3). The HUD shows e.g. "REMOTE 1 HITCH: RAISE 60%".
+
+**Doors**: the model's `Door_L/R` pivots already sit on the hinge line at the rear edge (JD cabs have rear-hinged doors). Each door gets a
+tractor-aligned `Hinge_Door_*` and opens outward up to 65°; more would swing the lower door panel into the rear fender (checked with
+`doors_side.png` / `doors_top.png`). Grab anywhere on the door: it follows the hand around the hinge, relative to the grab point, and stays where
+it is let go. The panel's DOORS button opens / closes both. They clunk when they shut. Doors and remote levers share one class (`Swing`):
+grab box in hinge space, angle of the hand around the hinge axis, limits, optional spring return. A grab goes to the nearest swing in
+reach, or to the speed lever if its knob is closer.
+
+**Torque curve** (`Drivetrain`): 520 Nm at 800 rpm, 880 Nm at 1500–1600 (34 % torque rise), 659 Nm at 2100 (145 kW rated), governor down to 0
+at 2250; peak power 151 kW at 1800. `TractorController` now limits the drive force with the power at the current engine speed
+(it used a flat 145 kW). Three follow-ups the physics test showed:
+- RPM stayed at idle in the test: `SmoothDamp` and the shift timer used Unity's clock. Both now use the `dt` passed to `Drivetrain.FrameUpdate`,
+  which the test steps (before, the test never ran the drivetrain, so the engine had no influence on it).
+- In the low gears the 0.5 s between shifts let the engine run into the governor (76 kW at 2174 rpm). AUTO now skip-shifts straight to the
+  first gear below the upshift speed.
+- Pulling away with the plough already in the ground stalled at 0.4 km/h: at idle the engine has 49 kW, not enough for 30 kN of draft.
+  When the drive force is power-limited, the engine is now brought up to peak torque (1550 rpm, the clutch slips) for at least a second,
+  and AUTO shifts down when it lugs. The plough run is back to 7.1 km/h with 30.4 kN of draft, ending where it did before.
+
+**Hand throttle**: THROTTLE − / + on the cab panel and the CommandCenter (hold; 400 rpm/s), `[` / `]` on the keyboard. It sets the engine speed:
+AUTO holds the engine there (shift band hand rpm −200 / +150, as with the PTO), and in manual the tractor drives at the selected gear's speed
+for that engine speed as soon as the lever or stick asks for motion. Test: C1 at 1500 rpm, lever at 0.15 → 6.2 km/h (expected 6.2).
+
+**Fuel and coolant**: 340 L tank (85 % at the start and after RESET TRACTOR), use = 2.5 L/h × rpm/850 + 0.24 L/kWh × engine output
+→ 2.5 L/h idling, 41 L/h at full power (the 6195M's real figure is about 40). Kept in a double: one 90 Hz step of idle use is below float
+precision at 289 L, so the first version never used any fuel at idle. Coolant from 35 °C to the thermostat's 85 °C (+8 under load)
+in ~6 min at idle, faster under load.
+
+**CommandCenter display** (`CommandCenter.cs`, built at runtime like the cab panel): a 24 × 15 cm screen on a short arm at the right front
+corner post (0.50, 2.40, 1.00), facing the eye point. It shows engine speed, hand throttle, fuel (bar, %, litres), coolant (bar, blue when cold),
+fuel use, power used / available and torque, hitch / front linkage / PTO and engine hours, with two touch buttons. Fuel and temperature
+are on this display, not the cluster: from the seat the hub and the column shroud hide everything but the top of the dials.
+The play-mode test caught a bug: its quads were built with `CreatePrimitive`, whose MeshCollider sat on the tractor's Rigidbody until the
+deferred `Destroy` ("Concave Mesh Colliders are not supported..."). They're plain MeshFilter quads now.
+
+Tests: PhysicsTest Q (torque table, hand throttle manual + auto, fuel, coolant warm-up) and N (remote levers 1 and 2 move the hitch /
+front linkage and spring back, door swung by hand to 40° stays, DOORS button closes / opens both). The older scenarios match the previous
+run (climb, parking, bale, plough, mower, trailer, surfaces). PlayModeTest OK (19 panel buttons, CommandCenter hand throttle).
+
+| CommandCenter | Remote levers (1 raised, 2 lowered) | Door open |
+|---|---|---|
+| ![commandcenter](images/commandcenter.png) | ![remotes](images/remotes.png) | ![door](images/doors_side.png) |

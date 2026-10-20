@@ -1,16 +1,19 @@
 # Roadmap
 
-## ▶ Where we left off (2026-10-18, end of day)
+## ▶ Where we left off (2026-10-21)
 **Finishing phases 1 and 2 before continuing phase 3** (decided 2026-10-18).
 - Batch 1 (hand controls + testing) ✅ done and headset-checked: grab highlight, rebuilt speed lever (follows the hand around its pivot,
   neutral zone in the speed command, HUD status), hand snapping, STOP / NEUTRAL, FRAME TIME, FOVEATION, play-mode test.
+- Batch 2 (cab) built 2026-10-21, tests pass, APK installed, ⏳ headset check: opening doors, CommandCenter display (fuel, coolant,
+  power, linkage, PTO), torque curve, hand throttle, grabbable hydraulic remote levers.
 - Frame rate: two optimisation rounds (foveated rendering, cheaper shaders, shadow stand-in, mesh LODs). The last session held **72 fps most of the time**
   (GPU ~11.3 ms of the 13.9 ms budget), with some stretches at ~59 fps and one short drop to 30–39 fps. Accepted for now (2026-10-18).
   If it needs another pass: log the context of slow frames (view, position, implements, trails) to find the expensive situations.
 
 **Next session:**
-1. Batch 2 (cab): opening doors, fuel / temperature + CommandCenter display, torque curve + hand throttle, grabbable hydraulic levers
-2. Batch 3 (implements): top link, front-linkage cylinders, trailer tipping, front ballast weight, better implement models
+1. Headset check of batch 2: grab a door / a remote lever (controllers and hands), read the CommandCenter from the seat, hand throttle feel,
+   frame rate with the new display (FRAME TIME button)
+2. Batch 3 (implements): top link, front-linkage cylinders, trailer tipping (remote lever 3), front ballast weight, better implement models
 3. Then phase 3 step 2 (traction)
 
 Planned (2026-10-19): a second, PC VR build over Quest Link next to the standalone one, see "PC VR build" below.
@@ -55,15 +58,21 @@ First block, chosen 2026-10-17: **steering wheel + drivetrain** (biggest effect 
 - [x] Instrument cluster: RPM + speed dials with needles, direction + gear, AUTO/MAN. Built 2026-10-17, ✅ headset-tested 2026-10-17
 - [x] Interior textures: generated tiling detail (fine plastic grain, seat fabric weave, ribbed floor mat, pedal tread) through a triplanar shader
   (the cab plastics have no usable UVs), plus baked ambient occlusion on the cab interior, wheel and lever. Built 2026-10-18, ✅ headset-checked 2026-10-18
-- [ ] Dashboard extras: fuel/temperature, CommandCenter display on the right corner post (batch 2)
-- [ ] Opening doors (`Door_L/R` are already separate) (batch 2)
+- [x] Dashboard extras: fuel / coolant temperature and a CommandCenter display on the right corner post (engine speed, hand throttle,
+  fuel level and use, coolant, power, linkage positions, PTO, engine hours, THROTTLE − / + touch buttons). Fuel and temperature live on
+  the CommandCenter: the cluster has no visible space left (hub and column shroud). Built 2026-10-21 in batch 2, ⏳ headset check
+- [x] Opening doors: rear-hinged on the model's pivots, open outward up to 65° (clears the rear fender), grab anywhere on the door or
+  panel DOORS button, clunk when they shut. Built 2026-10-21 in batch 2, ⏳ headset check
 
 ### Drivetrain
 - [x] Engine RPM: idle 850, rated 2100, high idle 2250; RPM follows the gear, clutch slip when pulling away; load estimate for sound. ✅ headset-tested 2026-10-17
 - [x] Gearbox: 20F/20R AutoQuad Plus-style (ranges A–E × 4 steps), auto + manual mode, F/N/R shuttle, 50 km/h top speed. ✅ headset-tested 2026-10-17
 - [x] Sounds (synthesised, no samples): engine (two RPM-pitched loops cross-faded by load, muffled in the cab), shift clunk, reverse beeper, horn. ✅ headset-tested 2026-10-17
 - [x] Real tractive force: done with the physics block (drive force limited by engine power and tyre grip)
-- [ ] Torque curve (power depends on engine speed), hand throttle (batch 2)
+- [x] Torque curve (880 Nm at 1500–1600 rpm, 145 kW rated, 151 kW peak at 1800): the drive force is limited by the power at the current
+  engine speed; AUTO skip-shifts, shifts down when lugging, and revs up to peak torque when pulling away under load.
+  Hand throttle (panel / CommandCenter / [ ]): AUTO holds the engine there, manual drives at the gear's speed for that engine speed.
+  Built 2026-10-21 in batch 2, ⏳ headset check
 
 ### Physics (block 1)
 - [x] Replace the kinematic model with real wheel physics: Rigidbody + custom raycast suspension (spring-damper per wheel), tyre forces with a friction circle, 90 Hz physics + interpolation. Built 2026-10-17, ✅ headset-tested 2026-10-17
@@ -93,7 +102,8 @@ First block, chosen 2026-10-17: **steering wheel + drivetrain** (biggest effect 
 - [x] Grab the steering wheel (grip button, fist or pinch), one or two hands, hand over hand; stays put when let go. ✅ Controllers; hand tracking works (shake/drops fixed) but still a bit fussy, see the improvements below
 - [x] Grab the speed lever on the armrest (the shift lever + knob pieces + stem, cut out of the cab mesh, pivot inside the gate): forward = drive, back = reverse, stays set (cruise). ✅ Controllers; hand tracking as for the wheel
 - [x] Cab panel at the right front corner (touch buttons): view, recenter, comfort, gearbox, hitch/front up/down, PTO, attach, seat adjust/reset, units, reset tractor. ✅ headset-tested 2026-10-17
-- [ ] Grab the hydraulic remote levers / hitch control on the armrest (batch 2; also listed in phase 3 step 4)
+- [x] Grab the hydraulic remote levers on the armrest: three levers cut out of the cab mesh (knob + handle + stem), spring-centred,
+  1 = rear hitch, 2 = front linkage (pull back = raise, speed ∝ deflection), 3 = trailer tipping → batch 3. Built 2026-10-21 in batch 2, ⏳ headset check
 
 Hand-control improvements (from the hand-tracking tests, built 2026-10-18 in batch 1, ✅ headset-checked 2026-10-18):
 - [x] Highlight the steering wheel rim / lever knob when a hand is in reach, brighter while held
@@ -126,7 +136,7 @@ hydraulic levers, pressable switches, lights, and keep the cab panel. Order (eac
 - [ ] Ploughing turns the ground to "ploughed" (grip, draft, look)
 
 ### Step 4: cab buttons
-- [ ] The three hydraulic remote levers on the armrest: grabbable, move the hitch / front linkage / trailer tipping
+- [x] The three hydraulic remote levers on the armrest: grabbable, move the hitch / front linkage (done in phase 2 batch 2); trailer tipping with batch 3
 - [ ] Pressable switches and knobs on the console and corner post: lights, PTO, 4WD, diff lock, hazards, beacon
 - [ ] Working lights (headlights, work lights, beacon, indicators), day / dusk option
 - [ ] Keep the cab panel as the easy way to reach everything

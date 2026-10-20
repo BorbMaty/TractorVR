@@ -10,7 +10,8 @@ using UnityEngine;
 /// <summary>
 /// Plays the real scene in the editor (no headset) for ~25 s with scripted input and reports any runtime error.
 /// Everything runs as in the game: Awake / Start / Update / FixedUpdate of every component, the terrain build, the HUD, the cab panel.
-/// Script: settle → drive off → steer → stop button → every cab panel button (except reset) → hitch down/up → done.
+/// Script: settle → drive off → steer → stop button → every cab panel button (except reset) → CommandCenter hand throttle
+/// → hitch down/up → done.
 ///   Menu: Tractor VR > Run Play Mode Test
 ///   CLI : Unity.exe -batchmode -projectPath . -executeMethod PlayModeTest.Run   (no -quit: it exits by itself, code 1 on errors)
 /// Entering play mode reloads the scripts, so the run state lives in SessionState.
@@ -107,6 +108,11 @@ public static class PlayModeTest
                 press(); press(); n++;
             }
             log.AppendLine($"{t:0.0}s pressed {n} panel buttons twice");
+            var cc = Object.FindAnyObjectByType<CommandCenter>();
+            cc.Press(1f, 1f);
+            var drive = tractor.GetComponent<Drivetrain>();
+            log.AppendLine($"{t:0.0}s CommandCenter THROTTLE + for 1 s → hand throttle {drive.HandThrottleRpm:0} rpm");
+            cc.Press(-1f, 5f);
         });
         Once("hitchDown", 19, t, () => input.scriptedHitch = -1f);
         Once("hitchUp", 22, t, () => input.scriptedHitch = 1f);
@@ -115,6 +121,8 @@ public static class PlayModeTest
             input.scriptedHitch = 0f;
             var hitch = tractor.GetComponent<Hitch>();
             log.AppendLine($"{t:0.0}s hitch at {hitch.RearPosition:0.00}, {frames} frames ({frames / t:0} fps in the editor)");
+            var drive = tractor.GetComponent<Drivetrain>();
+            log.AppendLine($"{t:0.0}s fuel {drive.FuelLitres:0.0} L ({drive.FuelRateLph:0.0} L/h), coolant {drive.CoolantC:0.0} °C, doors open {tractor.GetComponent<CabControls>().DoorsOpen}");
             Finish(null);
         });
     }
