@@ -1,0 +1,6 @@
+Textures from Poly Haven (https://polyhaven.com), licence CC0 (public domain).
+Downloaded by tools/fetch_polyhaven.py at 1k.
+
+- weathered_plank_siding: https://polyhaven.com/a/weathered_plank_siding (barn walls, doors (vertical boards), 1.57 x 1.57 m)
+- clay_roof_tiles_02: https://polyhaven.com/a/clay_roof_tiles_02 (roofs (red clay tiles), 2.5 x 2.5 m)
+- white_rough_plaster: https://polyhaven.com/a/white_rough_plaster (whitewashed plinths (flaking), 1.0 x 1.0 m)

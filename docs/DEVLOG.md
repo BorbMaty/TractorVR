@@ -911,3 +911,38 @@ fixed width (6.4 rows), so long labels (WORK: FRONT+REAR, STOP / NEUTRAL, FULLSC
 the widest label seen (measured with `GUIStyle.CalcSize`, kept until the window is resized so the menu doesn't jump when a label
 changes), rows are taller (screen / 32) and the font a bit bigger. Checked on a 1920×1080 screenshot of the exe; `PlayModeTest` passes.
 (Screenshots of the exe from a script need `SetProcessDPIAware`, or Windows' 125 % scaling crops the right and bottom of the window.)
+
+## 2026-10-31: Phase 5 step 0 — Blender → Unity pipeline, first asset (barn)
+**Pipeline** (all scripted, so assets can be rebuilt like the scene):
+- `tools/fetch_polyhaven.py`: downloads the listed Poly Haven textures (CC0) at 1k into `Assets/Textures/Env/` (albedo + OpenGL normal
+  map), writes `sizes.json` (real-world size from the API) and `LICENSE.txt`. First set: `weathered_plank_siding` (boards, timber),
+  `clay_roof_tiles_02` (roof), `white_rough_plaster` (flaking whitewash on the plinth). `white_plaster_rough_02` was tried first: despite
+  its name it is green with moss, so it was swapped.
+- `tools/blender/tvr.py`: shared library. Assets are described in **Unity coordinates**; `U()` converts to Blender. Measured with a test
+  export (forward −Z, up Y, *bake space transform*): Unity (x, y, z) = Blender (−x, z, −y), identity transform, scale 1, so the importer
+  keeps the file as it is. Solids (`box`, `gable`) are built as grids of ~1 m (Full) / 3 m (Light) cells, because the **AO is baked into the
+  vertex colour** (Cycles AO bake to a corner colour attribute, 2.5 m, with a temporary ground plane as occluder) and needs vertices to
+  live on. UVs are planar per face in metres ÷ texture size, so every texture repeats at its real size; `rot` turns a texture on the
+  face (vertical boards), and `grain` materials run along each box's long axis (stored per face in a bmesh layer: the cells don't know it).
+  Each asset has a **Full** variant (PC tier, every part) and a **Light** one (Quest tier, `detail=True` parts left out, coarse grid),
+  exported together as `Assets/Models/Env/<Asset>.fbx` + `<Asset>.json` (triangles, size) + `env_materials.json`.
+- `tools/blender/build.py`: `blender -b --factory-startup -P tools/blender/build.py -- barn` (3 s) or exec'd in the running Blender
+  through blender-mcp (then it works in a scene of its own, `TVR_Build`).
+- Unity: `ProjectSetup.ImportEnvAssets` sets the texture importers (1024, normal maps, aniso 4), makes one `TractorVR/EnvLit` material per
+  `env_materials.json` entry (`Generated/Env_*.mat`) and remaps the FBX materials onto them by name; `PlaceEnv` puts an asset in the scene
+  with a `TierVariant` on each variant. `QualityTier.ApplyEnvironment` keeps the current tier's variant and switches the global keyword
+  `ENV_NORMALS`.
+- `TractorVR/EnvLit`: Blinn-Phong like the other shaders; on Quest one texture read (albedo × tint × baked AO), on PC + normal map.
+
+**Barn** (`tools/blender/barn.py`, replaces the grey block barn at the same place, 14 × 24 m): whitewashed plinth, vertical boards
+on a dark timber frame (sill, wall plate, corner posts, studs), 40° clay-tile roof with ridge 11.9 m (the old one was 9 m with a flat
+look), double doors with Z braces facing the yard, louvred vents in the gables. Full 11 148 triangles, Light 1 636 (no studs, braces,
+fascia / barge boards or vents); 5 materials each = 5 draw calls. Mean AO 0.43 / 0.41. Collider: one box on the wall block.
+`PlayModeTest` at both levels: PC → `Barn_Full`, normal maps on; Quest → `Barn_Light`, off (the test now fails if a variant of the
+wrong tier is active). Previews `barn_pc / barn_quest / barn_close_*` (`docs/images/phase5_barn.png`).
+
+Found on the way:
+- The Light variant first baked to a mean AO of 0.07: it was baked while standing inside the Full one (both at the origin). The bake
+  now hides the other meshes.
+- The first preview of the PC variant came out black: the first render with a newly needed shader variant (`ENV_NORMALS`) is black in
+  batch mode (like the grey first render). The barn previews render twice.

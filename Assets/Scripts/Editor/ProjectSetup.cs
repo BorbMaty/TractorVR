@@ -264,6 +264,7 @@ public static class ProjectSetup
     {
         var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
         var log = new StringBuilder();
+        ImportEnvAssets();   // Blender assets (tools/blender/build.py) + their materials, fresh every scene build
 
         // Light + sky
         var sun = new GameObject("Sun").AddComponent<Light>();
@@ -515,12 +516,9 @@ public static class ProjectSetup
     {
         var parent = new GameObject("Farmyard").transform;
         parent.gameObject.isStatic = true;
-        var boards = SaveMat(new Material(LitShader) { color = new Color(0.42f, 0.12f, 0.08f) }, "Barn_Boards");
-        boards.SetFloat("_Smoothness", 0.15f);
+        foreach (var old in new[] { "Barn_Boards", "Barn_Door", "Barn_Trim" }) AssetDatabase.DeleteAsset($"{GenDir}/{old}.mat");
         var roof = SaveMat(new Material(LitShader) { color = new Color(0.26f, 0.27f, 0.28f) }, "Barn_Roof");
         roof.SetFloat("_Smoothness", 0.35f); roof.SetFloat("_Metallic", 0.4f);
-        var door = SaveMat(new Material(LitShader) { color = new Color(0.30f, 0.09f, 0.06f) }, "Barn_Door");
-        var trim = SaveMat(new Material(LitShader) { color = new Color(0.85f, 0.84f, 0.80f) }, "Barn_Trim");
         var shedWall = SaveMat(new Material(LitShader) { color = new Color(0.33f, 0.40f, 0.35f) }, "Shed_Wall");
         shedWall.SetFloat("_Smoothness", 0.3f); shedWall.SetFloat("_Metallic", 0.3f);
         var steelMat = SaveMat(new Material(LitShader) { color = new Color(0.45f, 0.46f, 0.47f) }, "Shed_Steel");
@@ -539,18 +537,13 @@ public static class ProjectSetup
             return go.transform;
         }
 
-        // Barn: 14 × 24 m, 6 m walls, gable roof (ridge 9 m) along its length.
+        // Barn: 14 × 24 m, made in Blender (tools/blender/barn.py), Full / Light variant per tier. The collider is the wall block.
         var b = WorldLayout.Barn;
         Vector2 bc = b.Centre; float bw = b.x1 - b.x0, bl = b.z1 - b.z0;
-        Block("Barn walls", new Vector3(bc.x, 3f, bc.y), new Vector3(bw, 6f, bl), boards);
-        float rise = 3f, half = bw * 0.5f + 0.4f, slope = Mathf.Atan2(rise, bw * 0.5f) * Mathf.Rad2Deg;
-        float plane = Mathf.Sqrt(half * half + rise * rise);
-        Block("Barn roof W", new Vector3(bc.x - half * 0.5f, 6f + rise * 0.5f, bc.y), new Vector3(plane, 0.2f, bl + 0.8f), roof, new Vector3(0f, 0f, slope), false);
-        Block("Barn roof E", new Vector3(bc.x + half * 0.5f, 6f + rise * 0.5f, bc.y), new Vector3(plane, 0.2f, bl + 0.8f), roof, new Vector3(0f, 0f, -slope), false);
-        Block("Barn gable N", new Vector3(bc.x, 7.4f, b.z1 - 0.05f), new Vector3(bw * 0.7f, 2.8f, 0.1f), boards, default, false);
-        Block("Barn gable S", new Vector3(bc.x, 7.4f, b.z0 + 0.05f), new Vector3(bw * 0.7f, 2.8f, 0.1f), boards, default, false);
-        Block("Barn door", new Vector3(b.x1 + 0.06f, 2.4f, bc.y), new Vector3(0.1f, 4.8f, 5f), door, default, false);
-        Block("Barn door trim", new Vector3(b.x1 + 0.08f, 2.4f, bc.y), new Vector3(0.06f, 0.15f, 5.2f), trim, new Vector3(45f, 0f, 0f), false);
+        var barn = PlaceEnv("Barn", parent, new Vector3(bc.x, 0f, bc.y), 0f);
+        var barnBox = barn.gameObject.AddComponent<BoxCollider>();
+        barnBox.center = new Vector3(0f, 3f, 0f);
+        barnBox.size = new Vector3(bw + 0.12f, 6f, bl + 0.12f);
 
         // Machine shed: back and side walls, a roof on posts, open to the yard (north).
         var s = WorldLayout.Shed;
@@ -561,6 +554,91 @@ public static class ProjectSetup
         Block("Shed roof", new Vector3(sc.x, 5.3f, sc.y), new Vector3(sw + 1f, 0.2f, sd + 1.2f), roof, new Vector3(-6f, 0f, 0f));
         for (int i = 1; i < 4; i++)
             Block("Shed post", new Vector3(s.x0 + i * sw / 4f, 2.6f, s.z1 - 0.2f), new Vector3(0.25f, 5.2f, 0.25f), steelMat);
+    }
+
+    // ------------------------------------------------------------------ environment assets (phase 5, Blender)
+    // tools/blender/build.py writes Assets/Models/Env/<Asset>.fbx with two objects, <Asset>_Full (PC tier) and <Asset>_Light
+    // (Quest tier), plus env_materials.json (material name -> Poly Haven texture, tint, smoothness). Axes and scale already
+    // match Unity (checked with a test export), so the importer keeps the file's transform as it is.
+    const string EnvDir = "Assets/Models/Env";
+    const string EnvTexDir = "Assets/Textures/Env";
+
+    [System.Serializable] class EnvMat { public string name, tex; public float[] tint; public float smoothness; }
+    [System.Serializable] class EnvMatList { public EnvMat[] materials; }
+
+    static System.Collections.Generic.Dictionary<string, Material> envMats;
+
+    /// <summary>EnvLit materials from env_materials.json, texture import settings, then every Env FBX remapped onto them.</summary>
+    static void ImportEnvAssets()
+    {
+        foreach (var path in Directory.GetFiles(EnvTexDir, "*.jpg").Select(p => p.Replace('\\', '/')))
+        {
+            var ti = (TextureImporter)AssetImporter.GetAtPath(path);
+            bool normal = path.EndsWith("_nor.jpg");
+            ti.textureType = normal ? TextureImporterType.NormalMap : TextureImporterType.Default;
+            ti.sRGBTexture = !normal;
+            ti.maxTextureSize = 1024;
+            ti.anisoLevel = normal ? 1 : 4;   // roofs and walls are seen at grazing angles from the yard
+            ti.mipmapEnabled = true;
+            ti.SaveAndReimport();
+        }
+
+        var list = JsonUtility.FromJson<EnvMatList>(File.ReadAllText($"{EnvDir}/env_materials.json"));
+        var shader = Shader.Find("TractorVR/EnvLit");
+        envMats = new System.Collections.Generic.Dictionary<string, Material>();
+        foreach (var e in list.materials)
+        {
+            var m = new Material(shader);
+            m.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>($"{EnvTexDir}/{e.tex}_diff.jpg"));
+            m.SetTexture("_NormalMap", AssetDatabase.LoadAssetAtPath<Texture2D>($"{EnvTexDir}/{e.tex}_nor.jpg"));
+            m.SetColor("_BaseColor", new Color(e.tint[0], e.tint[1], e.tint[2]));
+            m.SetFloat("_Smoothness", e.smoothness);
+            m.enableInstancing = true;
+            envMats[e.name] = SaveMat(m, e.name);
+        }
+
+        foreach (var path in Directory.GetFiles(EnvDir, "*.fbx").Select(p => p.Replace('\\', '/')))
+        {
+            var imp = (ModelImporter)AssetImporter.GetAtPath(path);
+            imp.globalScale = 1f;
+            imp.useFileScale = true;
+            imp.bakeAxisConversion = false;
+            imp.importCameras = imp.importLights = imp.importBlendShapes = imp.importVisibility = false;
+            imp.importAnimation = false;
+            imp.animationType = ModelImporterAnimationType.None;
+            imp.importNormals = ModelImporterNormals.Import;
+            imp.importTangents = ModelImporterTangents.CalculateMikk;
+            imp.generateSecondaryUV = false;
+            imp.isReadable = false;
+            imp.meshCompression = ModelImporterMeshCompression.Off;
+            imp.materialImportMode = ModelImporterMaterialImportMode.ImportViaMaterialDescription;
+            foreach (var (name, m) in envMats)
+                imp.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), name), m);
+            imp.SaveAndReimport();
+        }
+    }
+
+    /// <summary>Instance of an Env asset: both variants as children with a <see cref="TierVariant"/>, static, casting shadows
+    /// (buildings are the one environment shadow the Quest tier keeps). QualityTier picks the variant at start.</summary>
+    static Transform PlaceEnv(string asset, Transform parent, Vector3 position, float yaw)
+    {
+        if (envMats == null) ImportEnvAssets();
+        var fbx = AssetDatabase.LoadAssetAtPath<GameObject>($"{EnvDir}/{asset}.fbx");
+        var go = (GameObject)PrefabUtility.InstantiatePrefab(fbx);
+        PrefabUtility.UnpackPrefabInstance(go, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+        go.name = asset;
+        go.transform.SetParent(parent, false);
+        go.transform.localPosition = position;
+        go.transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
+        foreach (var r in go.GetComponentsInChildren<MeshRenderer>(true))
+        {
+            bool full = r.name.EndsWith("_Full");
+            r.gameObject.AddComponent<TierVariant>().tier = full ? QualityTier.Tier.PC : QualityTier.Tier.Quest;
+            r.shadowCastingMode = ShadowCastingMode.On;
+            r.gameObject.SetActive(full == (QualityTier.Current == QualityTier.Tier.PC));
+        }
+        foreach (var t in go.GetComponentsInChildren<Transform>(true)) t.gameObject.isStatic = true;
+        return go.transform;
     }
 
     // ------------------------------------------------------------------ tractor
@@ -2909,6 +2987,20 @@ public static class ProjectSetup
         // The farmyard from above, a stretch of the main road, and the gate into the north field (mud, soil, grass).
         Vector3 At(float x, float z, float up) => new Vector3(x, TerrainGenerator.Height(x, z) + up, z);
         Shot("farmyard.png", new Vector3(42f, 28f, -60f), Quaternion.LookRotation(new Vector3(-8f, 0f, -6f) - new Vector3(42f, 28f, -60f)));
+        // Blender barn from the yard, both variants (PC: Full + normal maps, Quest: Light), at the editor's quality level.
+        // Each shot twice: the first render with a newly needed shader variant (ENV_NORMALS) comes out black.
+        Vector3 barnCam = new Vector3(-12f, 2.8f, 16f), barnAt = new Vector3(-31f, 4.5f, -2f);
+        Vector3 closeCam = new Vector3(-27.5f, 1.7f, 4.5f), closeAt = new Vector3(-30f, 2.2f, 0.5f);
+        foreach (var t in new[] { QualityTier.Tier.PC, QualityTier.Tier.Quest })
+        {
+            QualityTier.ApplyEnvironment(t);
+            for (int k = 0; k < 2; k++)
+            {
+                Shot($"barn_{t.ToString().ToLower()}.png", barnCam, Quaternion.LookRotation(barnAt - barnCam));
+                Shot($"barn_close_{t.ToString().ToLower()}.png", closeCam, Quaternion.LookRotation(closeAt - closeCam));
+            }
+        }
+        QualityTier.ApplyEnvironment(QualityTier.Current);
         Shot("road.png", At(77f, -30f, 2.5f), Quaternion.LookRotation(At(80f, 60f, 0f) - At(77f, -30f, 2.5f)));
         Shot("field_gate.png", At(-6f, 96f, 3f), Quaternion.LookRotation(At(4f, 135f, 0f) - At(-6f, 96f, 3f)));
         Shot("ground_close.png", At(3f, 110f, 1.6f), Quaternion.LookRotation(At(3.5f, 116f, 0f) - At(3f, 110f, 1.6f)));

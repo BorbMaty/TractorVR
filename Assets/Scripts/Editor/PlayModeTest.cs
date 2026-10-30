@@ -91,6 +91,11 @@ public static class PlayModeTest
             log.AppendLine($"{t:0.0}s quality {QualityTier.Current}: shadow stand-in {(tier.shadowProxy.enabled ? "on" : "off")}, " +
                            $"{tier.modelRenderers.Count(r => r.shadowCastingMode != UnityEngine.Rendering.ShadowCastingMode.Off)} model renderers cast; " +
                            $"desktop mode {(DesktopMode.Active ? "on" : "off")}, {Object.FindObjectsByType<MeshCollider>(FindObjectsSortMode.None).Count(c => c.gameObject.layer == DesktopMode.PickLayer)} pick proxies");
+            var env = Object.FindObjectsByType<TierVariant>(FindObjectsInactive.Include);
+            log.AppendLine($"{t:0.0}s environment variants active: {string.Join(", ", env.Where(v => v.gameObject.activeInHierarchy).Select(v => v.name))} " +
+                           $"({env.Count(v => v.gameObject.activeInHierarchy)}/{env.Length}), normal maps {(Shader.IsKeywordEnabled("ENV_NORMALS") ? "on" : "off")}");
+            if (env.Any(v => v.gameObject.activeInHierarchy != (v.tier == QualityTier.Current)))
+                Debug.LogError("[PlayModeTest] environment variant of the wrong tier is active");
             log.AppendLine($"{t:0.0}s drive off");
         });
         Once("speed", 8, t, () => log.AppendLine($"{t:0.0}s speed {tractor.SpeedKmh:0.0} km/h on {tractor.GroundLabel}, gear {tractor.GetComponent<Drivetrain>().GearName}, {tractor.GetComponent<Drivetrain>().Rpm:0} rpm"));

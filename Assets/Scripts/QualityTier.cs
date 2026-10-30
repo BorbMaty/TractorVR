@@ -6,6 +6,8 @@ using UnityEngine.Rendering;
 /// Setup makes the two levels, each with its own URP asset (MSAA, render scale, shadow map). This component applies the rest:
 /// on PC the tractor model casts its own shadows and the low-poly <c>ShadowProxy</c> is switched off.
 /// Environment assets (phase 5) read their budget from <see cref="Current"/>: draw distance, vegetation density.
+/// Blender assets come in two variants (<see cref="TierVariant"/>): only the current tier's stays active, and the
+/// global keyword <c>ENV_NORMALS</c> turns on their normal maps (TractorVR/EnvLit) on PC.
 /// </summary>
 public class QualityTier : MonoBehaviour
 {
@@ -36,5 +38,14 @@ public class QualityTier : MonoBehaviour
         if (shadowProxy != null) shadowProxy.enabled = !pc;
         foreach (var r in modelRenderers)
             if (r != null) r.shadowCastingMode = pc ? ShadowCastingMode.On : ShadowCastingMode.Off;
+        ApplyEnvironment(tier);
+    }
+
+    public static void ApplyEnvironment(Tier tier)
+    {
+        if (tier == Tier.PC) Shader.EnableKeyword("ENV_NORMALS");
+        else Shader.DisableKeyword("ENV_NORMALS");
+        foreach (var v in FindObjectsByType<TierVariant>(FindObjectsInactive.Include))
+            v.gameObject.SetActive(v.tier == tier);
     }
 }

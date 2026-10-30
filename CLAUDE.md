@@ -50,6 +50,9 @@ See `README.md` for controls, `docs/ROADMAP.md` for what's next and `docs/DEVLOG
 | `Assets/Scripts/Editor/BuildPC.cs` | Windows build → `Builds/PC/TractorVR.exe` (`-buildTarget StandaloneWindows64`) |
 | `Assets/Scripts/DesktopMode.cs` | PC desktop version in the same exe: VR if the OpenXR session is focused within 6 s, else XR off + monitor (`-desktop` / `-vr`, F9); mouse look / orbit, mouse fed into `VRHands` as the right hand (pick proxies on layer 30), on-screen menu from `CabPanel` entries |
 | `Assets/Scripts/QualityTier.cs` | Quest / PC tier at start: PC = model renderers cast shadows, `ShadowProxy` off; `CurrentBudget` for environment assets |
+| `tools/blender/` (`tvr.py`, `build.py`, one script per asset e.g. `barn.py`) | Phase 5 environment assets, modelled by script in Blender: Unity coordinates, Full (PC) + Light (Quest) variant, AO baked into the vertex colour → `Assets/Models/Env/<Asset>.fbx` + `.json`, `env_materials.json`. Run headless: `blender -b --factory-startup -P tools/blender/build.py -- barn` (or `all`) |
+| `tools/fetch_polyhaven.py` | Poly Haven (CC0) textures at 1k → `Assets/Textures/Env/` (+ `sizes.json`, `LICENSE.txt`); the list must match `tvr.MATERIALS` |
+| `Assets/Shaders/EnvLit.shader` + `Assets/Scripts/TierVariant.cs` | Env asset shader (albedo × tint × baked AO; normal map only with the global keyword `ENV_NORMALS` = PC tier). `TierVariant` marks the Full / Light child; `QualityTier.ApplyEnvironment` switches both |
 | `Assets/Scripts/PerfBenchmark.cs` | Version benchmark: fixed machine state, scripted 63 s drive, per-frame frame / CPU / GPU / XR runtime times → `persistentDataPath/Benchmark/` (summary, CSV, stills). Results in `docs/benchmark/` (Quest: `adb pull /sdcard/Android/data/com.sapientia.tractorvr/files/Benchmark`, with `MSYS_NO_PATHCONV=1` in Git Bash) |
 | `tools/benchmark_charts.py` | README charts (light + dark PNGs) from the `docs/benchmark/` runs listed in `RUNS`; needs matplotlib |
 | `Assets/Scripts/Editor/VersionStills.cs` + `tools/compare_stills.py` | Fixed-viewpoint stills at both quality levels → `Logs/Quality/`, then side-by-side sheets → `docs/images/quality_*.png` |
@@ -198,7 +201,13 @@ $u = "C:\Program Files\Unity\Hub\Editor\6000.6.3f1\Editor\Unity.exe"
 - Long-running accumulators (fuel, engine hours) are doubles: one 90 Hz step of idle fuel use is below float precision at ~300 L.
 - Don't `CreatePrimitive` under the tractor at runtime: its MeshCollider lands on the dynamic Rigidbody until the deferred `Destroy` (physics error,
   caught by `PlayModeTest`). Use a GameObject + MeshFilter with `Resources.GetBuiltinResource<Mesh>("Quad.fbx")` (see `CommandCenter.Quad`).
-- The first render in a batch-mode session comes out grey, so `RenderPreviews` throws a warm-up shot away.
+- The first render in a batch-mode session comes out grey, so `RenderPreviews` throws a warm-up shot away. The first render that needs a
+  new shader variant (e.g. `ENV_NORMALS` switched on) comes out **black**: render such shots twice.
+- **Blender → Unity axes**: FBX export forward −Z, up Y, bake space transform → Unity (x, y, z) = Blender (−x, z, −y), scale 1. The asset
+  scripts use Unity coordinates only (`tvr.U`). Placement in the scene: `ProjectSetup.PlaceEnv(asset, parent, position, yaw)`; the
+  materials come from `env_materials.json` (don't edit `Generated/Env_*.mat`). Change an asset → run `build.py`, then the scene setup.
+- Baking AO in Blender: bake each variant alone (the variants share the origin and would occlude each other), keep the grid fine enough
+  (vertex AO), and keep the 0.3 m of plinth below ground out of sight.
 - If a preview PNG is open in a viewer, Windows locks it and `RenderPreviews` fails with `IOException ... 1224`. Delete or close the old images first.
 - Quest blocks a launch via adb with a "controllers required" dialog while the headset sleeps. That isn't a crash.
 - Killing the editor also kills its adb server. A fresh adb server must be re-authorized on the headset (tick *Always allow from this computer*).

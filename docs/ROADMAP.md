@@ -2,7 +2,10 @@
 
 ## ▶ Where we left off (2026-10-31)
 **Phase 5 started**: plan agreed with the user (see phase 5 below): Transylvanian look, Poly Haven + Blender scripts, implements
-remade, farmyard first, plus speed bumps and steep practice slopes. Next: step 0 (pipeline + one asset measured on the Quest).
+remade, farmyard first, plus speed bumps and steep practice slopes.
+**Step 0 (pipeline) built the same day**: Blender scripts → FBX with a Full / Light variant → `ProjectSetup` → `TractorVR/EnvLit`;
+first asset = the barn (replaces the grey block barn), `PlayModeTest` passes at both quality levels. Next: the Quest benchmark run with
+the barn in (needs the headset on), then step 1.
 Still open from phase 4: the desktop screen UI item is marked "⏳ user test".
 
 ## ▶ Where we left off (2026-10-30, end of day)
@@ -224,8 +227,11 @@ version per asset. Quest budget ~4 ms GPU (phase 4): baked AO in the vertex colo
 repeated things, no shadows on Quest except buildings, impostors for far trees, `QualityTier.CurrentBudget` distances (120 m / 400 m).
 
 ### Step 0: pipeline
-- [ ] Blender → Unity pipeline: script layout, export settings (metric, +Z forward), full / light versions, import in `ProjectSetup`
-- [ ] One asset end to end, measured on the Quest (GPU ms) before making the rest
+- [x] Blender → Unity pipeline: script layout, export settings (metric, +Z forward), full / light versions, import in `ProjectSetup`.
+  Built 2026-10-31: `tools/blender/` (`tvr.py` library, one script per asset, `build.py` headless or through blender-mcp),
+  `tools/fetch_polyhaven.py` (textures + licence list), `TractorVR/EnvLit` shader, `TierVariant` + `QualityTier.ApplyEnvironment`
+- [ ] One asset end to end, measured on the Quest (GPU ms) before making the rest. Barn built 2026-10-31 (Full 11.1k / Light 1.6k
+  triangles, `docs/images/phase5_barn.png`), `PlayModeTest` passes at both levels; ⏳ Quest benchmark run with the headset on
 
 ### Step 1: farmyard
 - [ ] Barn, open-front machine shed with marked parking bays per implement (tutorial spots), farmhouse

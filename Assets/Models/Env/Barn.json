@@ -1,0 +1,38 @@
+{
+  "asset": "Barn",
+  "notes": "Barn, 14 x 24 m, ridge 11.9 m, roof 40 deg. Collider: BoxCollider on the wall block (ProjectSetup).",
+  "variants": {
+    "Full": {
+      "triangles": 11148,
+      "vertices": 6113,
+      "materials": [
+        "Env_Plaster",
+        "Env_Boards",
+        "Env_Timber",
+        "Env_RoofTiles",
+        "Env_BoardsDark"
+      ],
+      "size_unity": [
+        15.387,
+        12.514,
+        25.1
+      ]
+    },
+    "Light": {
+      "triangles": 1636,
+      "vertices": 939,
+      "materials": [
+        "Env_Plaster",
+        "Env_Boards",
+        "Env_Timber",
+        "Env_RoofTiles",
+        "Env_BoardsDark"
+      ],
+      "size_unity": [
+        15.304,
+        12.514,
+        25.1
+      ]
+    }
+  }
+}
