@@ -28,6 +28,7 @@ plt.rcParams["font.family"] = ["Segoe UI", "DejaVu Sans"]
 
 def load(run):
     rows = list(csv.DictReader(open(f"docs/benchmark/{run}/frames.csv", encoding="utf-8")))
+    rows = [r for r in rows if r["phase"] in ("cab", "third")]   # the drive (runs since phase 5 also stand at the barn)
     t = [float(r["t_s"]) for r in rows]
     frame = [float(r["frame_ms"]) for r in rows]
     gpu = [float(r["gpu_ms"]) for r in rows]

@@ -15,9 +15,12 @@ using XRStats = UnityEngine.XR.Provider.XRStats;
 ///   Start ... cab panel / screen menu BENCHMARK, F8, or <c>-benchmark</c> on the command line (starts once the mode is decided, quits at the end).
 ///   Run ..... the tractor is reset to the start (automatic gearbox, hand throttle idle, PTO off), day, cab view; 3 s settle, then 30 s driving straight out of the yard in the cab view
 ///             ("cab"), then 30 s in the third-person view with a gentle left turn ("third"). In VR: look straight ahead and keep still.
+///             Then (phase 5), standing in the yard facing the barn in the third-person view (the drive leaves the yard northwards and
+///             never shows it): 10 s with the environment assets ("env"), 10 s with them hidden ("noenv"); the difference is their cost.
+///             "all" = the drive only, comparable with the phase 4 runs.
 ///   Data .... per frame: frame time (unscaled delta), Unity FrameTimingManager CPU / GPU time, and in VR the runtime's own counters
 ///             (XR_META_performance_metrics through XRStats: app CPU / GPU, compositor GPU, dropped frames).
-///   Output .. Application.persistentDataPath/Benchmark/&lt;version&gt;_&lt;time&gt;/: summary.txt, frames.csv, cab.png, third.png
+///   Output .. Application.persistentDataPath/Benchmark/&lt;version&gt;_&lt;time&gt;/: summary.txt, frames.csv, cab.png, third.png, env.png
 ///             (the stills come from a separate 1600×900 camera at a 60° field of view, so all versions are framed alike; taken
 ///             outside the timed drive: cab standing in the yard before it, third person where it ends).
 /// </summary>
@@ -30,7 +33,9 @@ public class PerfBenchmark : MonoBehaviour
     public TractorHud hud;
     public Camera cam;
 
-    public const float Settle = 3f, PhaseLength = 30f;
+    public const float Settle = 3f, PhaseLength = 30f, EnvLength = 10f;
+    /// <summary>Env phase spot: yard, 16 m east of the barn's doors, facing them (west).</summary>
+    static readonly Vector3 EnvSpot = new Vector3(WorldLayout.Barn.x1 + 16f, 0f, WorldLayout.Barn.Centre.y);
 
     public static bool Running { get; private set; }
     /// <summary>Folder of the last finished run (null before).</summary>
@@ -128,6 +133,35 @@ public class PerfBenchmark : MonoBehaviour
 
         Still(Path.Combine(dir, "third.png"));
         input.scriptedThrottle = 0f; input.scriptedSteer = 0f;
+
+        // Env: parked in front of the barn, third person (the rig is still in it).
+        hud.Show("BENCHMARK: FARMYARD, LOOK AHEAD");
+        tractor.TeleportTo(new Vector3(EnvSpot.x, tractor.SpawnPosition.y, EnvSpot.z), Quaternion.Euler(0f, -90f, 0f));
+        tractor.RequestStop();
+        rig.SnapFollow();
+        if (desktop && DesktopMode.Active) desktop.ResetLook();
+        yield return new WaitForSeconds(1.5f);
+        var variants = FindObjectsByType<TierVariant>(FindObjectsInactive.Include);
+        float envStart = Time.unscaledTime;
+        foreach (var phase in new[] { "env", "noenv" })
+        {
+            if (phase == "noenv")
+            {
+                Still(Path.Combine(dir, "env.png"));
+                foreach (var v in variants) v.gameObject.SetActive(false);
+                yield return new WaitForSeconds(1f);
+            }
+            float phaseStart = Time.unscaledTime;
+            skip = 1;
+            while (Time.unscaledTime - phaseStart < EnvLength)
+            {
+                yield return null;
+                if (skip > 0) skip--;
+                else frames.Add(Sample(2f * PhaseLength + Time.unscaledTime - envStart, phase, display, droppedStart));
+            }
+        }
+        QualityTier.ApplyEnvironment(QualityTier.Current);
+        tractor.ResetTractor();
         tractor.GetComponent<CabControls>().Neutral();
         tractor.RequestStop();
         input.scripted = false;
@@ -189,7 +223,7 @@ public class PerfBenchmark : MonoBehaviour
         s.AppendLine($"Display        {hz:0.#} Hz, frame budget {1000f / hz:0.0} ms, render target {res}");
         s.AppendLine($"Rendering      render scale {(urp ? urp.renderScale : 1f):0.0#}, MSAA {(urp ? urp.msaaSampleCount : 1)}×, shadows {(urp ? urp.mainLightShadowmapResolution : 0)} px / {(urp ? urp.shadowDistance : 0):0} m, " +
                       $"mesh LOD threshold {QualitySettings.meshLodThreshold:0.0}, foveation {(Application.platform == RuntimePlatform.Android ? Foveation.Names[Foveation.Level] : "n/a")}");
-        s.AppendLine($"Drive          {Settle:0} s settle, {PhaseLength:0} s cab view straight out of the yard, {PhaseLength:0} s third person with a gentle left turn");
+        s.AppendLine($"Drive          {Settle:0} s settle, {PhaseLength:0} s cab view straight out of the yard, {PhaseLength:0} s third person with a gentle left turn; env / noenv: {EnvLength:0} s each parked facing the barn, with / without the environment assets");
         return s.ToString();
     }
 
@@ -199,14 +233,14 @@ public class PerfBenchmark : MonoBehaviour
         var s = new StringBuilder();
         s.AppendLine();
         s.AppendLine("Phase   frames   fps    frame ms avg / p95 / p99 / max   over budget   CPU ms avg / p95   GPU ms avg / p95   XR app GPU ms   XR compositor GPU ms   dropped");
-        foreach (var phase in new[] { "cab", "third", "all" })
+        foreach (var phase in new[] { "cab", "third", "all", "env", "noenv" })
         {
-            var fs = frames.Where(f => phase == "all" || f.phase == phase).ToList();
+            var fs = frames.Where(f => phase == "all" ? f.phase == "cab" || f.phase == "third" : f.phase == phase).ToList();
             if (fs.Count == 0) continue;
             var ft = fs.Select(f => f.frameMs).ToList();
             string Pair(IEnumerable<float> xs) { var l = xs.Where(x => x >= 0f).ToList(); return l.Count == 0 ? "n/a" : $"{l.Average():0.0} / {Percentile(l, 0.95f):0.0}"; }
             string Avg(IEnumerable<float> xs) { var l = xs.Where(x => x > 0f).ToList(); return l.Count == 0 ? "n/a" : $"{l.Average():0.0}"; }
-            int dropped = fs.Max(f => f.dropped);
+            int dropped = phase.EndsWith("env") && fs.Min(f => f.dropped) >= 0 ? fs.Max(f => f.dropped) - fs.Min(f => f.dropped) : fs.Max(f => f.dropped);
             float over = 100f * ft.Count(x => x > budget * 1.1f) / ft.Count;
             s.AppendLine($"{phase,-6} {fs.Count,7} {1000f / ft.Average(),6:0.0}    {ft.Average(),5:0.0} / {Percentile(ft, 0.95f),5:0.0} / {Percentile(ft, 0.99f),5:0.0} / {ft.Max(),6:0.0}   {over,8:0.0} %   " +
                          $"{Pair(fs.Select(f => f.cpuMs)),-17}  {Pair(fs.Select(f => f.gpuMs)),-17}  {Avg(fs.Select(f => f.xrAppGpu)),-14}  {Avg(fs.Select(f => f.xrCompGpu)),-21}  {(dropped >= 0 ? dropped.ToString() : "n/a")}");
@@ -214,6 +248,7 @@ public class PerfBenchmark : MonoBehaviour
         s.AppendLine();
         s.AppendLine($"over budget = frames longer than 110 % of the {budget:0.0} ms budget. CPU / GPU = Unity FrameTimingManager (-1 / n/a where the platform doesn't report it).");
         s.AppendLine("XR values come from the runtime (XR_META_performance_metrics); dropped = frames the compositor dropped during the run.");
+        s.AppendLine("all = the drive (cab + third), comparable with runs before phase 5; env / noenv = standing in the yard facing the barn with / without the phase 5 assets.");
         return s.ToString();
     }
 

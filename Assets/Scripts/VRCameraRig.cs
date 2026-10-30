@@ -94,6 +94,13 @@ public class VRCameraRig : MonoBehaviour
         ViewChanged?.Invoke(view);
     }
 
+    /// <summary>Third person: jump to behind the tractor's current heading (after a teleport) instead of swinging round.</summary>
+    public void SnapFollow()
+    {
+        followYaw = tractor.transform.eulerAngles.y;
+        followYawVel = 0f;
+    }
+
     public void ResetSeat()
     {
         seatAnchor.localPosition = seatHome;

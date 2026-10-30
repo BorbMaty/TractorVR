@@ -203,12 +203,17 @@ public class TractorController : MonoBehaviour
         if (upsideDownTime > 3f || transform.position.y < -50f) ResetTractor();
     }
 
-    public void ResetTractor()
+    public Vector3 SpawnPosition => spawnPos;
+
+    public void ResetTractor() => TeleportTo(spawnPos, spawnRot);
+
+    /// <summary>Puts the tractor at rest at <paramref name="groundPos"/> (spawn height if it is on the flat yard), like a reset.</summary>
+    public void TeleportTo(Vector3 groundPos, Quaternion rotation)
     {
         // The transform too, so the mounts are in their new place for a coupled trailer right away.
-        transform.SetPositionAndRotation(spawnPos + Vector3.up * 0.2f, spawnRot);
+        transform.SetPositionAndRotation(groundPos + Vector3.up * 0.2f, rotation);
         rb.position = transform.position;
-        rb.rotation = spawnRot;
+        rb.rotation = rotation;
         rb.linearVelocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
         speedCmd = 0f;

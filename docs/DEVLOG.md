@@ -946,3 +946,14 @@ Found on the way:
   now hides the other meshes.
 - The first preview of the PC variant came out black: the first render with a newly needed shader variant (`ENV_NORMALS`) is black in
   batch mode (like the grey first render). The barn previews render twice.
+
+**Quest run 1 with the barn** (`docs/benchmark/QuestStandalone_2026-10-31_01-43-30`): drive GPU 9.48 ms (cab 9.76, third 9.20) against
+9.55 ms (9.96 / 9.15) before, both without the leading repeated readings (38 frames before, 9 now). Every frame within budget, 1 dropped
+frame. No regression, but it doesn't measure the barn: the drive leaves the yard northwards and the barn stands west of it, in neither still.
+So `PerfBenchmark` got a **barn phase** after the drive: the tractor is parked in the yard 16 m from the barn doors, facing them, third
+person (`TractorController.TeleportTo`, which `ResetTractor` now uses too; `VRCameraRig.SnapFollow`), 10 s with the environment assets
+(`env`) and 10 s with every `TierVariant` hidden (`noenv`); still `env.png`. The difference is the assets' GPU cost. `all` stays the drive
+only, so new runs compare with the phase 4 ones, and `benchmark_charts.py` plots the drive only. Desktop check: env 1.4 / noenv 1.3 ms.
+`PhysicsTest` and `PlayModeTest` pass.
+
+Phase 4's last open item closed: the user checked the desktop screen UI (after the wider-buttons fix).

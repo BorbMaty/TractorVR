@@ -4,9 +4,9 @@
 **Phase 5 started**: plan agreed with the user (see phase 5 below): Transylvanian look, Poly Haven + Blender scripts, implements
 remade, farmyard first, plus speed bumps and steep practice slopes.
 **Step 0 (pipeline) built the same day**: Blender scripts → FBX with a Full / Light variant → `ProjectSetup` → `TractorVR/EnvLit`;
-first asset = the barn (replaces the grey block barn), `PlayModeTest` passes at both quality levels. Next: the Quest benchmark run with
-the barn in (needs the headset on), then step 1.
-Still open from phase 4: the desktop screen UI item is marked "⏳ user test".
+first asset = the barn (replaces the grey block barn), `PlayModeTest` passes at both quality levels. First Quest run: no change on the
+drive (it never shows the barn), so the benchmark got a barn phase (`env` / `noenv`). Next: one more Quest run (headset on), then step 1.
+Phase 4 has no open items left (desktop screen UI ✅ user, 2026-10-31).
 
 ## ▶ Where we left off (2026-10-30, end of day)
 **Phase 3 is complete** (user's headset check, 2026-10-30): reset-with-trailer bug fixed, step 1 ground + layout, step 2 traction,
@@ -207,7 +207,7 @@ PC desktop:
 - [x] Non-VR camera rig: mouse look in the cab (right mouse, zoom), third-person orbit; keyboard / gamepad driving. Same exe: VR when the headset
   is in use, the monitor otherwise (`DesktopMode`, 2026-10-30). ✅ user: "works flawlessly"
 - [x] Screen UI instead of the in-cab panel (same 31 buttons, M), mouse clicks on the switches and drags on the wheel / levers (the mouse is a
-  `VRHands` hand; pick proxies on layer 30). Built 2026-10-30, ⏳ user test
+  `VRHands` hand; pick proxies on layer 30). Built 2026-10-30, ✅ user 2026-10-31 (after the wider-buttons fix)
 - [x] Desktop quality level (the PC level), windowed 1600×900 resizable / fullscreen (F11 or the menu), vSync. Built 2026-10-30
 
 Shared:
@@ -231,7 +231,9 @@ repeated things, no shadows on Quest except buildings, impostors for far trees, 
   Built 2026-10-31: `tools/blender/` (`tvr.py` library, one script per asset, `build.py` headless or through blender-mcp),
   `tools/fetch_polyhaven.py` (textures + licence list), `TractorVR/EnvLit` shader, `TierVariant` + `QualityTier.ApplyEnvironment`
 - [ ] One asset end to end, measured on the Quest (GPU ms) before making the rest. Barn built 2026-10-31 (Full 11.1k / Light 1.6k
-  triangles, `docs/images/phase5_barn.png`), `PlayModeTest` passes at both levels; ⏳ Quest benchmark run with the headset on
+  triangles, `docs/images/phase5_barn.png`), `PlayModeTest` passes at both levels. Quest run 1 (2026-10-31): drive GPU 9.48 ms vs 9.55
+  before = no regression, but the drive never shows the barn; benchmark now has `env` / `noenv` (10 s each facing the barn, with / without
+  the env assets; desktop: 1.4 vs 1.3 ms). ⏳ Quest run with the new phase
 
 ### Step 1: farmyard
 - [ ] Barn, open-front machine shed with marked parking bays per implement (tutorial spots), farmhouse
