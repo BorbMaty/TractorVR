@@ -18,7 +18,8 @@ using XRStats = UnityEngine.XR.Provider.XRStats;
 ///   Data .... per frame: frame time (unscaled delta), Unity FrameTimingManager CPU / GPU time, and in VR the runtime's own counters
 ///             (XR_META_performance_metrics through XRStats: app CPU / GPU, compositor GPU, dropped frames).
 ///   Output .. Application.persistentDataPath/Benchmark/&lt;version&gt;_&lt;time&gt;/: summary.txt, frames.csv, cab.png, third.png
-///             (the stills come from a separate 1600×900 camera at a 60° field of view, so all versions are framed alike).
+///             (the stills come from a separate 1600×900 camera at a 60° field of view, so all versions are framed alike; taken
+///             outside the timed drive: cab standing in the yard before it, third person where it ends).
 /// </summary>
 public class PerfBenchmark : MonoBehaviour
 {
@@ -95,12 +96,15 @@ public class PerfBenchmark : MonoBehaviour
         input.scriptedSteer = 0f; input.scriptedThrottle = 0f;
         hud.Show("BENCHMARK: SETTLING, LOOK AHEAD");
         yield return new WaitForSeconds(Settle);
+        // Stills outside the timed drive: on the Quest one costs ~20 frames. Cab: standing in the yard; third person: where the drive ends.
+        Still(Path.Combine(dir, "cab.png"));
+        yield return new WaitForSeconds(1f);
 
         string summaryHeader = Header();
         var display = Display();
         int droppedStart = DroppedFrames(display);
-        bool shotCab = false, shotThird = false, switched = false;
-        int skip = 1;   // frames not counted: the first one, and the two after a still (reading it back stalls the next frame)
+        bool switched = false;
+        int skip = 1;   // the first frame is not counted
         float start = Time.unscaledTime;
         input.scriptedThrottle = 0.55f;
         hud.Show("BENCHMARK: CAB");
@@ -117,13 +121,12 @@ public class PerfBenchmark : MonoBehaviour
                 input.scriptedSteer = -0.3f;
                 hud.Show("BENCHMARK: THIRD PERSON");
             }
-            if (!shotCab && t > 5f) { shotCab = true; skip = 2; Still(Path.Combine(dir, "cab.png")); }
-            if (!shotThird && t > PhaseLength + 5f) { shotThird = true; skip = 2; Still(Path.Combine(dir, "third.png")); }
             yield return null;
             if (skip > 0) skip--;
             else frames.Add(Sample(t, phase, display, droppedStart));
         }
 
+        Still(Path.Combine(dir, "third.png"));
         input.scriptedThrottle = 0f; input.scriptedSteer = 0f;
         tractor.GetComponent<CabControls>().Neutral();
         tractor.RequestStop();
@@ -241,7 +244,9 @@ public class PerfBenchmark : MonoBehaviour
         c.transform.SetPositionAndRotation(cam.transform.position, cam.transform.rotation);
         var data = go.AddComponent<UniversalAdditionalCameraData>();
         data.renderPostProcessing = false;
-        var rt = new RenderTexture(1600, 900, 24) { antiAliasing = Mathf.Max(1, UniversalRenderPipeline.asset ? UniversalRenderPipeline.asset.msaaSampleCount : 1) };
+        // Single-sampled target: URP still renders with the pipeline's MSAA and resolves into it. Reading back a multisampled
+        // target came out black on the Quest (Vulkan), though it worked on the PC.
+        var rt = new RenderTexture(1600, 900, 24);
         c.targetTexture = rt;
         c.Render();
         var prev = RenderTexture.active;
