@@ -24,13 +24,15 @@ See `README.md` for controls, `docs/ROADMAP.md` for what's next and `docs/DEVLOG
 | `Assets/Scripts/VRHands.cs` | Per side: tracked hand (XR Hands: palm, fist, index tip) or controller (grip pose, grip button, aim tip) |
 | `Assets/Scripts/CabControls.cs` | Grab the wheel (rim angle in `SteeringColumn` space → `TractorController.HoldSteer`), the speed lever (→ `TractorInput.leverThrottle`), and `Swing`s: the 3 remote levers (→ `Hitch.MenuLift`) and the doors |
 | `Assets/Scripts/CabPanel.cs` | Rig-locked touch panel (built at runtime from materials set by setup); also sets `CabPanel.Mph` |
+| `Assets/Scripts/CabSwitches.cs` | Pressable console switches cut out of the cab (rockers / push buttons / knob): poke → `Press(id)` → TractorLights / 4WD / diff lock / PTO; state shown by the switch + its lamp |
+| `Assets/Scripts/TractorLights.cs` + `Assets/Shaders/Halo.shader` | Lamp groups (lens discs + halos + spot lights), indicators (stalk, self-cancel, tick), brake lights, beacons; DAY / DUSK / NIGHT (sun, ambient probe, fog, skybox, glass) |
 | `Assets/Scripts/CommandCenter.cs` | Tractor-mounted display on the right corner post (fuel, coolant, power, linkage, PTO, hours) + hand throttle touch buttons; built at runtime |
 | `Assets/Scripts/Editor/QuestManifest.cs` | Gradle post-process: HAND_TRACKING permission + handtracking feature in the Quest manifest |
 | `Assets/Shaders/TriplanarLit.shader` | URP lit with triplanar detail + normal map in object space (metres), vertex-colour AO; UsePass Lit shadow/depth |
 | `Assets/Scripts/Ground.cs` | `WorldLayout` (yard, barn, shed, fields, roads, mud spots) + `GroundMap` (surface per m²: grip, rolling, draft; control texture) |
 | `Assets/Shaders/GroundLit.shader` | Terrain: grass / soil / mud blended by the control texture, world-XZ tiling, macro variation |
 | `Assets/Scripts/TerrainGenerator.cs` | Hills built at runtime from `Height(x,z)` (8×8 chunks, 5 m grid, MeshColliders) |
-| `Assets/Scripts/Editor/PlayModeTest.cs` | Real scene in editor play mode, 25 s scripted (drive, steer, STOP, every panel button, hitch); exits by itself, code 1 on runtime errors → `Logs/PlayModeTest.txt` |
+| `Assets/Scripts/Editor/PlayModeTest.cs` | Real scene in editor play mode, 25 s scripted (drive, steer, STOP, every panel button, console switches, lights at night, hitch); exits by itself, code 1 on runtime errors → `Logs/PlayModeTest.txt` |
 | `Assets/Scripts/Editor/PhysicsTest.cs` | Offline driving test (scripted sticks, manual `Physics.Simulate`) → `Logs/PhysicsTest.txt` |
 | `Assets/Scripts/VRCameraRig.cs` | Cab / third-person views, recenter, seat calibration (PlayerPrefs) |
 | `Assets/Scripts/Drivetrain.cs` | Engine RPM/load, torque curve (`AvailableKW`), hand throttle, fuel + coolant, 20F/20R gearbox (auto with skip-shift / manual), caps the controller's speed in manual |
@@ -78,6 +80,13 @@ $u = "C:\Program Files\Unity\Hub\Editor\6000.6.3f1\Editor\Unity.exe"
   The right console also has three **hydraulic remote levers**, each three pieces: knob (~2 cm tall), handle (~8 cm), stem (~10 cm), knobs at x 0.42/0.47/0.52, z 0.50.
   `SplitSteeringWheel` finds them by height in the box x 0.38–0.58, y 2.15–2.4, z 0.47–0.53, sorts each kind by x and zips them. Hinges
   `Tractor/RemoteLever_1..3` at the stem bottoms (y 2.155–2.199), swing around X like the speed lever.
+- **Console switches** (right-hand side console, panel faces −X; its top face is at y ≈ 2.40): knob (0.627, 2.403, 0.470) + pointer piece, flat round
+  button (0.633, 2.398, 0.508), rockers 1 × 3.5 × 2 cm at (0.576, 2.314, 0.392), (0.558, 2.311, 0.257), (0.553, 2.280, 0.220), (0.601, 2.316, 0.520), wide
+  button (0.601, 2.285, 0.574), double rocker (0.604, 2.329, 0.594). Big HVAC knobs at z 0.23 / 0.30 / 0.36 (not used). Cut out as `Tractor/Switch_<id>`.
+  **Indicator stalk**: pieces left of the column at y 2.27–2.335, z 1.11–1.16, x −0.125 … −0.30, pivot (−0.129, 2.308, 1.136) → `Tractor/IndicatorStalk`.
+- **Lamps** (from the lamp materials): grille headlights (±0.19, 1.88, 3.33), cab-front lamps (±0.87, 2.29, 1.93), side lights (±0.96, 2.12, 1.96),
+  front indicators (±1.05, 2.12, 1.96), front roof work lights (±0.24 / ±0.36, 2.98, 1.50), rear roof work lights (±0.46 / ±0.56, 2.99, 0.0),
+  beacons (±0.68, 3.27, 1.32), rear clusters (±0.77, 2.21, −0.45), 24 cm wide (split: tail inner, brake middle, indicator outer).
 - **UVs:** the cab plastics / dashboard have degenerate UVs (median 0.04–0.09 UV units per metre, many zero-area triangles: made for plain colours).
   Only seat cloth (4.6 UV/m), pedals and floor have real UVs. Hence `TractorVR/TriplanarLit` for detail (`ProjectSetup.ApplyDetailMaterials`,
   textures written as PNGs to `Generated/Textures`, normal maps imported as NormalMap). `_ao` material variants are used on meshes with baked AO.
@@ -137,6 +146,12 @@ $u = "C:\Program Files\Unity\Hub\Editor\6000.6.3f1\Editor\Unity.exe"
 - **Traction**: lateral tyre force has priority, the drive / brake force gets the rest of the friction circle. Wheel speed (`Wheel.wheelSpeed`)
   is its own state (slip from `GroundMap.Surface.slipK`), drives the wheel animation and, via `WheelSpeedMs`, the drivetrain RPM.
   `Shortfall` = share of the force the tyres couldn't put down; a wheel at its grip with a shortfall spins (drive) or locks (brake).
+- **Lights**: lamp glass materials are shared across lamps, so lamps light via generated lens discs + `TractorVR/Halo` quads (`Tractor/Lamps`).
+  Halos face +Z = the lamp's direction (Z scale ~0 = all round). Real lights: headlight spot, two work-light spots (placed beyond the bonnet / hitch so
+  they don't blow out the tractor seen from the cab), cab light; no shadows. `TractorLights` changes the shared skybox material's `_Exposure`:
+  editor code that cycles the sky must put it back to DAY (`OnDestroy` does it in play mode). The unlit cab glass is dimmed per material slot
+  (`SetPropertyBlock(block, index)`) at dusk / night.
+- In edit mode (tests, renders) `TractorInput`'s actions don't exist: set `input.scripted = true` before calling `TractorLights.FrameUpdate`.
 - **Quest GPU budget** (13.9 ms at 72 Hz): the app is GPU-bound. Measure with `adb logcat -s VrApi` (look at `FPS=`, `App=` ms, `GPU%`) while the
   headset is worn (it only renders then). In place: fixed foveated rendering (`Foveation`, OpenXR Foveated Rendering feature without eye tracking),
   GroundLit samples only the layers present + Blinn-Phong, TriplanarLit projects from the dominant axis only, terrain casts no shadows,

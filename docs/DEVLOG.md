@@ -698,3 +698,38 @@ pull 30+ kN. V (STOP at 18.5 km/h entering mud): all-wheel brakes ~5 % brake sli
 (standing crops cut by the mower, the ploughed-ground look) is moved to a new ROADMAP section "Environment art (with Blender, later)",
 together with phase 2's "field with crop rows". Ploughed ground already has its own grip, draft and slip since steps 1–2. Next: step 4
 (cab buttons + lights).
+
+## 2026-10-30 (later): Phase 3 step 4, cab buttons + lights
+Built and tested in the editor, APK installed on the headset, ⏳ headset check.
+
+**Switches from the model.** The right-hand side console of the cab interior has real switch pieces: rockers (1 × 3.5 × 2 cm), a
+double rocker, a flat round button and a small knob on its top, next to three big HVAC knobs. Setup cuts eight of them out of the
+interior mesh like the levers (found by their centres, within 8 mm) and gives each a hinge: rockers tip ±7° around a hinge behind their
+face, push buttons sink 3 mm, the knob turns 45° per step. `CabSwitches` pokes them like the cab panel buttons (fingertip or controller
+tip; each hand only the switch its tip is deepest in, and it has to move 3 cm clear before the next push). Each switch shows its state
+and has a small lamp (green / amber / red). Functions: road-light knob (OFF / SIDE / HEAD), hazards (round button), front work lights, rear
+work lights, beacon, 4WD, diff lock, PTO. The corner post has no switches in the model (the CommandCenter is there).
+
+**Indicator stalk.** Left of the column at hub height, five pieces (the ribbed end included) out to x −0.29; the column's switch
+housing stays. It is a `CabControls.Swing` (axis −Z, ±12°, + = up = right) with a small grab reach (2.5 cm), and the rim wins when the hand
+is closer to it (they are ~5 cm apart). `TractorLights` reads it while held and moves it to match the indicator otherwise (cancel, keys,
+panel). The indicator cancels when the wheels come back below 3° after being turned more than 10° its way.
+
+**Lamps.** The lamp glass of the model shares a few materials across all lamps (`headlights_cap01` is the grille lights *and* the
+roof work lights), so no lamp can light up on its own. Setup measures each lamp from the lamp materials, then lays a lens disc on its
+glass (a ray from in front against temporary colliders of the lamp parts; 22 of 22 found) and adds a halo: a camera-facing quad
+(`TractorVR/Halo`, billboarded per eye in the vertex shader, additive, computed falloff) that shows at dusk / night and only from the
+front of the lamp (it glared into the cab from the cab-front lamps). Beacons are spheres over the domes, pulsing as a rotating reflector.
+Real light only where it matters (Quest per-object light budget): one spot for the headlights, one for each work-light set, a dim cab
+light at dusk / night. The work-light spots start beyond the bonnet / hitch: from the roof they lit the bonnet 1–2 m away so brightly
+that the whole view from the cab was washed out.
+
+**Day / dusk / night.** `TractorLights` keeps the day settings and scales sun (dusk: 6° high, orange; night: weak bluish moonlight),
+ambient colours and the ambient probe, fog colour, reflection intensity and the skybox exposure. The cab glass is unlit, so it stayed
+day-bright and laid a grey veil over the night view: it is now dimmed per material slot with the ambient light. The skybox is a shared
+asset, so it is put back to day when the component goes away (editor play mode).
+
+Also: brake lights from `TractorController.Braking` (braking harder than coasting); indicator tell-tales `<<` / `>>` on the CommandCenter;
+cab panel 31 buttons in three columns (LIGHTS, WORK, BEACON, HAZARDS, < INDICATOR, INDICATOR >, SKY); keys G / N / O / Y / , / . / U.
+PlayModeTest presses all 31 panel buttons and the 8 console switches, then drives on at night with lights, beacon and indicator: OK.
+PhysicsTest unchanged.

@@ -15,6 +15,8 @@ using UnityEngine;
 ///   speed proportional to the deflection. 1 = rear hitch, 2 = front linkage, 3 = tipping trailer body.
 ///   Doors (rear-hinged): grab anywhere on the inside and swing them open / closed; they stay where they are let go.
 ///   The cab panel's DOORS button opens / closes both.
+///   Indicator stalk (left of the column): grab it and push it up (right) / down (left); TractorLights reads it and moves it
+///   back to the middle when the indicator cancels. It sits next to the rim, so the rim wins when the hand is closer to it.
 /// Feedback: the rim / knob lights up softly when a hand is in reach and brighter while held, and a tracked hand is shown
 /// snapped onto what it holds (hides tracking jitter).
 /// </summary>
@@ -31,6 +33,7 @@ public class CabControls : MonoBehaviour
     public AudioSource click;
     public Swing[] remotes = new Swing[0];
     public Swing[] doors = new Swing[0];
+    public Swing stalk;                   // indicator stalk (+ = up = right); no hinge = none
     public float doorSpeed = 90f;         // degrees per second when opened / closed from the panel
     public Color hoverGlow = new Color(0.04f, 0.10f, 0.04f), heldGlow = new Color(0.08f, 0.22f, 0.08f);
 
@@ -45,6 +48,7 @@ public class CabControls : MonoBehaviour
         public float min = -20f, max = 20f;   // degrees
         public bool springBack;           // returns to 0 when let go (remote levers)
         public AudioSource sound;         // a door clicks when it shuts and when it comes off the latch
+        public float reach;               // > 0: grab distance from the grab box instead of the usual reach (small parts)
 
         [System.NonSerialized] public float angle, offset;
         [System.NonSerialized] public Vector3 grabLocal;   // where the hand took hold (hinge space), for the hand snap
@@ -121,6 +125,7 @@ public class CabControls : MonoBehaviour
     {
         foreach (var r in remotes) yield return r;
         foreach (var d in doors) yield return d;
+        if (stalk != null && stalk.hinge) yield return stalk;
     }
 
     /// <summary>Open both doors if they're closed, else close them (cab panel).</summary>
@@ -158,6 +163,12 @@ public class CabControls : MonoBehaviour
 
     bool NearKnob(VRHands.Hand h) => Vector3.Distance(h.GrabPoint, speedLever.TransformPoint(knobLocal)) < Reach(h) + 0.02f;
 
+    float RimDistance(VRHands.Hand h)
+    {
+        Vector3 p = column.InverseTransformPoint(h.GrabPoint);
+        return new Vector2(new Vector2(p.x, p.y).magnitude - rimRadius, p.z).magnitude;
+    }
+
     bool NearRim(VRHands.Hand h)
     {
         Vector3 p = column.InverseTransformPoint(h.GrabPoint);
@@ -175,7 +186,7 @@ public class CabControls : MonoBehaviour
     bool NearSwing(VRHands.Hand h, Swing sw)
     {
         var box = sw.grabBox;
-        box.Expand(2f * Reach(h));
+        box.Expand(2f * (sw.reach > 0f ? sw.reach : Reach(h)));
         return box.Contains(sw.hinge.InverseTransformPoint(h.GrabPoint));
     }
 
@@ -198,6 +209,7 @@ public class CabControls : MonoBehaviour
             if (sw.Held || !NearSwing(h, sw)) continue;
             Vector3 local = sw.hinge.InverseTransformPoint(h.GrabPoint);
             float d = Vector3.Distance(sw.grabBox.ClosestPoint(local), local);
+            if (sw.reach > 0f && NearRim(h) && RimDistance(h) < d) continue;   // the stalk sits right behind the rim
             if (d < bestDistance) { best = sw; bestDistance = d; }
         }
         float knobDistance = leverHand == null && NearKnob(h) ? Vector3.Distance(h.GrabPoint, speedLever.TransformPoint(knobLocal)) : float.MaxValue;

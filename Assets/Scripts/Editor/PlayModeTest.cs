@@ -10,7 +10,8 @@ using UnityEngine;
 /// <summary>
 /// Plays the real scene in the editor (no headset) for ~25 s with scripted input and reports any runtime error.
 /// Everything runs as in the game: Awake / Start / Update / FixedUpdate of every component, the terrain build, the HUD, the cab panel.
-/// Script: settle → drive off → steer → stop button → every cab panel button (except reset) → CommandCenter hand throttle
+/// Script: settle → drive off → steer → stop button → every cab panel button (except reset) → console switches, lights at night
+/// → CommandCenter hand throttle
 /// → hitch down/up, trailer body tipped (pours its load) → done.
 ///   Menu: Tractor VR > Run Play Mode Test
 ///   CLI : Unity.exe -batchmode -projectPath . -executeMethod PlayModeTest.Run   (no -quit: it exits by itself, code 1 on errors)
@@ -108,6 +109,16 @@ public static class PlayModeTest
                 press(); press(); n++;
             }
             log.AppendLine($"{t:0.0}s pressed {n} panel buttons twice");
+            // Console switches (the knob three times round), then lights for the rest of the run: SKY and LIGHTS have three
+            // settings, so after the panel's two presses it is night with headlights on.
+            var switches = tractor.GetComponent<CabSwitches>();
+            foreach (var s in switches.switches)
+                for (int k = 0; k < (s.kind == CabSwitches.Kind.Knob ? 3 : 2); k++) switches.Press(s.id);
+            var lights = tractor.GetComponent<TractorLights>();
+            lights.SetBeacon(true);
+            lights.SetWorkFront(true);
+            lights.SetIndicator(-1);
+            log.AppendLine($"{t:0.0}s pressed {switches.switches.Length} console switches; sky {lights.TimeOfDay}, lights {lights.RoadLights}, beacon, work front, indicator left");
             var cc = Object.FindAnyObjectByType<CommandCenter>();
             cc.Press(1f, 1f);
             var drive = tractor.GetComponent<Drivetrain>();
@@ -122,6 +133,9 @@ public static class PlayModeTest
             input.scriptedHitch = 0f;
             var hitch = tractor.GetComponent<Hitch>();
             log.AppendLine($"{t:0.0}s hitch at {hitch.RearPosition:0.00}, {frames} frames ({frames / t:0} fps in the editor)");
+            var lt = tractor.GetComponent<TractorLights>();
+            log.AppendLine($"{t:0.0}s lights: sky {lt.TimeOfDay}, road {lt.RoadLights}, indicator {lt.Indicator}, stalk at {tractor.GetComponent<CabControls>().stalk.angle:0}°");
+            while (lt.TimeOfDay != TractorLights.Sky.Day) lt.CycleSky();
             var drive = tractor.GetComponent<Drivetrain>();
             var tipper = Object.FindAnyObjectByType<Tipper>();
             log.AppendLine($"{t:0.0}s trailer body {tipper.Angle:0}°, load {tipper.LoadKg:0} kg left, {Object.FindObjectsByType<MeshFilter>(FindObjectsSortMode.None).Count(m => m.name == "SoilHeap")} heap(s)");

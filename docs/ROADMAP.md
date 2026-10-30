@@ -3,7 +3,17 @@
 ## ▶ Where we left off (2026-10-30)
 The reset-with-trailer bug is fixed and **phase 3 step 2 (traction) is done**, ✅ headset-checked 2026-10-30.
 Environment work (phase 3 step 3, fields + crops) is moved to "Environment art (with Blender, later)" below: the user will do it
-with Blender. **Next: phase 3 step 4 (cab buttons + lights).**
+with Blender.
+
+**Phase 3 step 4 (cab buttons + lights) is built**, in the APK installed on the headset, ⏳ headset check. What to try:
+- the switches on the right-hand console (touch them): the knob on top (OFF / SIDE / HEAD), the round button next to it (hazards),
+  the rockers (front work lights, rear work lights, beacon), and at the front 4WD, diff lock, PTO; each has a small lamp;
+- the indicator stalk left of the steering column (grip it, push up / down), then turn and straighten up: it should cancel;
+- panel SKY → DUSK / NIGHT, with headlights, work lights and beacons on; check the view from the cab and the frame rate at night
+  (up to 4 extra lights);
+- whether a switch flips by accident while grabbing the remote levers or the steering wheel next to the stalk.
+
+After that check, phase 3 is done (step 3 moved to the Blender section).
 
 ## Earlier: end of day 2026-10-21
 **Phases 1 and 2 are complete** (user's headset test, 2026-10-21). Batches 1–3 finished every open item:
@@ -151,9 +161,12 @@ Skipped by the user's decision: environment work will be done with Blender. Both
 
 ### Step 4: cab buttons
 - [x] The three hydraulic remote levers on the armrest: grabbable, move the hitch / front linkage / trailer tipping (done in phase 2, batches 2 and 3)
-- [ ] Pressable switches and knobs on the console and corner post: lights, PTO, 4WD, diff lock, hazards, beacon
-- [ ] Working lights (headlights, work lights, beacon, indicators), day / dusk option
-- [ ] Keep the cab panel as the easy way to reach everything
+- [x] Pressable switches on the right-hand console, cut out of the cab model: road-light knob, hazards button, front / rear work lights,
+  beacon, 4WD, diff lock, PTO (a lamp in each), plus the indicator stalk on the column (grab, up / down, self-cancelling).
+  Built 2026-10-30, ⏳ headset check. (The corner post has no switches in the model: the CommandCenter sits there.)
+- [x] Lights: headlights, side + tail lights, brake lights, indicators + hazards (ticking), front / rear work lights, two rotating
+  beacons; lens discs + halos, real spot lights for head / work lights; DAY / DUSK / NIGHT. Built 2026-10-30, ⏳ headset check
+- [x] Keep the cab panel as the easy way to reach everything (31 buttons in three columns now)
 
 ## PC VR build (Quest Link), alongside the standalone build (planned 2026-10-19, not scheduled yet)
 Two builds from the same project: the optimised **standalone Android** build stays the main deliverable, and a **PC VR** build renders on the

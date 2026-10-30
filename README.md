@@ -32,7 +32,8 @@ Docs: [Roadmap](docs/ROADMAP.md) · [Development log](docs/DEVLOG.md) · [CLAUDE
 1. ✅ **Ground + layout**: farmyard, roads, fields, mud; grip and rolling resistance per surface
 2. ✅ **Traction**: wheel slip per tyre and ground, wheels that spin and throw clods, 4WD on/off, diff lock, all-wheel / rear brakes
 3. ↪ **Fields + crops**: moved to "Environment art" (to be done with Blender later)
-4. ⏳ **Cab buttons**: pressable switches, working lights (the hydraulic levers came with phase 2; the cab panel stays)
+4. ✅ **Cab buttons + lights** (built, headset check pending): pressable console switches (road-light knob, work lights, beacon, hazards,
+   4WD, diff lock, PTO), indicator stalk, headlights / side + tail / brake lights / indicators / work lights / beacons, DAY / DUSK / NIGHT
 
 Future ideas (working mirrors, original model textures, hand-control improvements): see the [Roadmap](docs/ROADMAP.md).
 
@@ -152,6 +153,10 @@ The panel's MENU tab is always visible at the right front of the cab.
 | Panel 4WD | F | Front axle drive on / off |
 | Panel DIFF LOCK | L | Diff lock (lets go above 12° steering or 15 km/h) |
 | Panel BRAKES | B | Brakes on all wheels ↔ rear only |
+| Touch a console switch (right side console) | — | Fingertip / controller tip: road-light knob (OFF / SIDE / HEAD), front and rear work lights, beacon, hazards (top), 4WD, diff lock, PTO; a lamp in the switch shows it's on |
+| **Grip** on the indicator stalk (left of the column) | , / . | Push up = right, down = left; cancels when the steering comes back |
+| Panel LIGHTS / WORK / BEACON / HAZARDS | G / N / O / Y | Road lights (off / side / head), work lights (off / front / front + rear), beacon, hazards |
+| Panel SKY | U | Time of day: day / dusk / night |
 
 ## Project layout
 ```
@@ -166,6 +171,8 @@ Assets/Scripts/VRHands.cs             hands from controllers or hand tracking (g
 Assets/Scripts/CabControls.cs         grab the steering wheel, the speed lever, the remote levers and the doors
 Assets/Scripts/CabPanel.cs            cab panel with touch buttons
 Assets/Scripts/CommandCenter.cs       display on the right corner post (fuel, temperature, power, hand throttle)
+Assets/Scripts/CabSwitches.cs         pressable switches on the right-hand console
+Assets/Scripts/TractorLights.cs       lamps, work lights, beacons, indicators, brake lights; day / dusk / night
 Assets/Models/Hands/                  hand models (XR Hands sample, Unity Package Distribution License)
 Assets/Scripts/Editor/PhysicsTest.cs  offline driving test         (menu: Tractor VR > Run Physics Test)
 Assets/Scripts/VRCameraRig.cs         cab / third-person views, recenter, seat calibration

@@ -31,6 +31,8 @@ public class TractorHud : MonoBehaviour
         drivetrain.Message += Show;
         hitch.Message += Show;
         tractor.Message += Show;
+        var lights = tractor.GetComponent<TractorLights>();
+        if (lights) lights.Message += Show;
     }
 
     // Coupled implements with their linkage position, the PTO, or the distance to the nearest implement while lining up.

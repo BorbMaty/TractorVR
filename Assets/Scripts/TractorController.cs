@@ -105,6 +105,8 @@ public class TractorController : MonoBehaviour
     public float PowerFraction { get; private set; }
     /// <summary>The drive force is capped by the engine's power right now (the drivetrain shifts down when it lugs).</summary>
     public bool PowerLimited { get; private set; }
+    /// <summary>Braking harder than coasting (brake lights).</summary>
+    public bool Braking { get; private set; }
     public bool Grounded { get; private set; }
     /// <summary>Surface under the rear wheels (HUD, tests).</summary>
     public string GroundLabel { get; private set; } = "";
@@ -365,6 +367,7 @@ public class TractorController : MonoBehaviour
         // Lateral grip first: a tractor sliding sideways is the worst thing for comfort, so the drive / brake force
         // gets what is left of each tyre's friction circle.
         bool braking = !driving && !holding;
+        Braking = braking && wanted < -1.2f;   // coasting is 0.8 m/s²
         // Parked: park lock + front axle engaged, all four hold. Braking: all wheels with all-wheel brakes (or 4WD engaged).
         bool frontTakes = holding || fourWheelDrive || (braking && allWheelBrakes);
         float takeLoad = 0f;

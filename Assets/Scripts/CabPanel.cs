@@ -42,6 +42,7 @@ public class CabPanel : MonoBehaviour
     Font font;
 
     const float W = 0.105f, H = 0.042f, Gap = 0.008f;
+    const int Cols = 3;   // 31 buttons: three columns keep the panel about as tall as the seat-to-knee distance
 
     void Start()
     {
@@ -50,6 +51,7 @@ public class CabPanel : MonoBehaviour
         body = new GameObject("Buttons").transform;
         body.SetParent(transform, false);
 
+        var lights = tractor.GetComponent<TractorLights>();
         var items = new (string id, System.Func<string> text, System.Action press, bool repeat)[]
         {
             ("view",     () => rig.view == VRCameraRig.View.Cab ? "VIEW: CAB" : "VIEW: 3RD", () => rig.ToggleView(), false),
@@ -77,19 +79,26 @@ public class CabPanel : MonoBehaviour
             ("fourWd",   () => tractor.fourWheelDrive ? "4WD: ON" : "4WD: OFF", () => tractor.SetFourWheelDrive(!tractor.fourWheelDrive), false),
             ("diffLock", () => tractor.DiffLock ? "DIFF LOCK: ON" : "DIFF LOCK: OFF", () => tractor.SetDiffLock(!tractor.DiffLock), false),
             ("brakes",   () => tractor.allWheelBrakes ? "BRAKES: ALL" : "BRAKES: REAR", () => tractor.SetAllWheelBrakes(!tractor.allWheelBrakes), false),
+            ("lights",   () => "LIGHTS: " + (lights.RoadLights == TractorLights.Road.Off ? "OFF" : lights.RoadLights == TractorLights.Road.Side ? "SIDE" : "HEAD"), () => lights.CycleRoadLights(), false),
+            ("work",     () => "WORK: " + (lights.WorkRear ? "FRONT+REAR" : lights.WorkFront ? "FRONT" : "OFF"), () => lights.CycleWorkLights(), false),
+            ("beacon",   () => lights.Beacon ? "BEACON: ON" : "BEACON: OFF", () => lights.SetBeacon(!lights.Beacon), false),
+            ("hazards",  () => lights.Hazards ? "HAZARDS: ON" : "HAZARDS: OFF", () => lights.SetHazards(!lights.Hazards), false),
+            ("indLeft",  () => lights.Indicator < 0 ? "< INDICATOR *" : "< INDICATOR", () => lights.ToggleIndicator(-1), false),
+            ("indRight", () => lights.Indicator > 0 ? "* INDICATOR >" : "INDICATOR >", () => lights.ToggleIndicator(1), false),
+            ("sky",      () => "SKY: " + lights.TimeOfDay.ToString().ToUpperInvariant(), () => lights.CycleSky(), false),
         };
-        int rows = (items.Length + 1) / 2;
-        var bg = Quad("Background", transform, new Vector3(0f, 0f, 0.004f), new Vector2(2 * W + 3 * Gap, rows * (H + Gap) + Gap), panelMat);
+        int rows = (items.Length + Cols - 1) / Cols;
+        var bg = Quad("Background", transform, new Vector3(0f, 0f, 0.004f), new Vector2(Cols * W + (Cols + 1) * Gap, rows * (H + Gap) + Gap), panelMat);
         bg.transform.SetParent(body, true);
         for (int i = 0; i < items.Length; i++)
         {
-            int col = i % 2, row = i / 2;
-            var pos = new Vector3((col - 0.5f) * (W + Gap), ((rows - 1) * 0.5f - row) * (H + Gap), 0f);
+            int col = i % Cols, row = i / Cols;
+            var pos = new Vector3((col - (Cols - 1) * 0.5f) * (W + Gap), ((rows - 1) * 0.5f - row) * (H + Gap), 0f);
             buttons.Add(MakeButton(items[i].id, body, pos, new Vector2(W, H), items[i].text, items[i].press, items[i].repeat, 0.011f));
         }
         // The tab sits just above the panel and is always shown.
         float top = rows * 0.5f * (H + Gap) + Gap;
-        tab = MakeButton("tab", transform, new Vector3(W * 0.5f + Gap * 1.5f, top + 0.018f, 0f), new Vector2(0.07f, 0.03f),
+        tab = MakeButton("tab", transform, new Vector3((Cols - 1) * 0.5f * (W + Gap), top + 0.018f, 0f), new Vector2(0.07f, 0.03f),
             () => open ? "CLOSE" : "MENU", Toggle, false, 0.009f);
         SetOpen(false);
     }

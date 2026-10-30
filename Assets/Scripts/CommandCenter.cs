@@ -16,6 +16,7 @@ public class CommandCenter : MonoBehaviour
 
     public const float W = 0.24f, H = 0.15f;   // screen size (m), about a 10" display
 
+    TractorLights lights;
     TextMesh rpmText, handText, fuelText, tempText, useText, powerText, linkText, hoursText, slipText, driveText;
     Transform fuelBar, tempBar;
     MeshRenderer fuelFill, tempFill;
@@ -181,7 +182,10 @@ public class CommandCenter : MonoBehaviour
             // Wheel slip as the real display shows it (radar vs. wheel speed); red above 20 %.
             slipText.text = $"SLIP {tractor.Slip * 100f:0}%";
             slipText.color = tractor.Slip > 0.2f ? new Color(1f, 0.35f, 0.25f) : new Color(0.92f, 0.94f, 0.9f);
-            driveText.text = (tractor.fourWheelDrive ? "4WD" : "2WD") + (tractor.DiffLock ? "  DIFF LOCK" : "") + (tractor.allWheelBrakes ? "" : "  REAR BRAKES");
+            // Indicator tell-tales blink either side of the drive state.
+            if (!lights) lights = tractor.GetComponent<TractorLights>();
+            bool left = lights && lights.BlinkOn && (lights.Hazards || lights.Indicator < 0), right = lights && lights.BlinkOn && (lights.Hazards || lights.Indicator > 0);
+            driveText.text = (left ? "<<  " : "") + (tractor.fourWheelDrive ? "4WD" : "2WD") + (tractor.DiffLock ? "  DIFF LOCK" : "") + (tractor.allWheelBrakes ? "" : "  REAR BRAKES") + (right ? "  >>" : "");
         }
     }
 

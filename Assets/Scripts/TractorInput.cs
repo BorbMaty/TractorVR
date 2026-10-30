@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -21,6 +22,8 @@ using UnityEngine.InputSystem;
 ///   Left stick click .... attach / detach implement
 ///   Hand throttle ....... cab panel / CommandCenter buttons (keyboard ] / [, gamepad d-pad up / down)
 ///   Trailer tipping ..... remote lever 3 / cab panel TIP buttons (keyboard I / K)
+///   Lights .............. console switches / cab panel (keyboard G road lights, N work lights, O beacon, Y hazards,
+///                         , / . indicators, U day / dusk / night)
 /// Runs before the other tractor scripts so the per-frame flick events are ready when they read them.
 /// </summary>
 [DefaultExecutionOrder(-100)]
@@ -36,6 +39,7 @@ public class TractorInput : MonoBehaviour
     InputAction hornAction;
     InputAction frontLinkageAction, ptoAction, attachAction, menuAction, handThrottleAction, tipAction;
     InputAction fourWdAction, diffLockAction, brakeModeAction;
+    InputAction lightsAction, workLightsAction, beaconAction, hazardsAction, indicatorLeftAction, indicatorRightAction, skyAction;
     int flick;          // -1 / 0 / +1: where the right stick X was held last frame
 
     public Vector2 LeftStick => steerAction.ReadValue<Vector2>();
@@ -80,6 +84,13 @@ public class TractorInput : MonoBehaviour
     public bool FourWheelDrivePressed => !scripted && fourWdAction.WasPressedThisFrame();
     public bool DiffLockPressed => !scripted && diffLockAction.WasPressedThisFrame();
     public bool BrakeModePressed => !scripted && brakeModeAction.WasPressedThisFrame();
+    public bool LightsPressed => !scripted && lightsAction.WasPressedThisFrame();
+    public bool WorkLightsPressed => !scripted && workLightsAction.WasPressedThisFrame();
+    public bool BeaconPressed => !scripted && beaconAction.WasPressedThisFrame();
+    public bool HazardsPressed => !scripted && hazardsAction.WasPressedThisFrame();
+    public bool IndicatorLeftPressed => !scripted && indicatorLeftAction.WasPressedThisFrame();
+    public bool IndicatorRightPressed => !scripted && indicatorRightAction.WasPressedThisFrame();
+    public bool SkyPressed => !scripted && skyAction.WasPressedThisFrame();
     public bool ShiftUpPressed { get; private set; }
     public bool ShiftDownPressed { get; private set; }
 
@@ -159,6 +170,21 @@ public class TractorInput : MonoBehaviour
         fourWdAction = new InputAction("FourWD", InputActionType.Button, "<Keyboard>/f");
         diffLockAction = new InputAction("DiffLock", InputActionType.Button, "<Keyboard>/l");
         brakeModeAction = new InputAction("BrakeMode", InputActionType.Button, "<Keyboard>/b");
+
+        // Lights + time of day (keyboard only; in the headset: console switches, indicator stalk, cab panel).
+        lightsAction = new InputAction("Lights", InputActionType.Button, "<Keyboard>/g");
+        workLightsAction = new InputAction("WorkLights", InputActionType.Button, "<Keyboard>/n");
+        beaconAction = new InputAction("Beacon", InputActionType.Button, "<Keyboard>/o");
+        hazardsAction = new InputAction("Hazards", InputActionType.Button, "<Keyboard>/y");
+        indicatorLeftAction = new InputAction("IndicatorLeft", InputActionType.Button, "<Keyboard>/comma");
+        indicatorRightAction = new InputAction("IndicatorRight", InputActionType.Button, "<Keyboard>/period");
+        skyAction = new InputAction("Sky", InputActionType.Button, "<Keyboard>/u");
+    }
+
+    IEnumerable<InputAction> LightActions()
+    {
+        yield return lightsAction; yield return workLightsAction; yield return beaconAction; yield return hazardsAction;
+        yield return indicatorLeftAction; yield return indicatorRightAction; yield return skyAction;
     }
 
     void Update()
@@ -192,6 +218,7 @@ public class TractorInput : MonoBehaviour
         fourWdAction.Enable();
         diffLockAction.Enable();
         brakeModeAction.Enable();
+        foreach (var a in LightActions()) a.Enable();
     }
 
     void OnDisable()
@@ -213,5 +240,6 @@ public class TractorInput : MonoBehaviour
         fourWdAction.Disable();
         diffLockAction.Disable();
         brakeModeAction.Disable();
+        foreach (var a in LightActions()) a.Disable();
     }
 }

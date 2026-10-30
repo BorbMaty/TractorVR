@@ -597,8 +597,10 @@ public static class ProjectSetup
 
         // 6) Steering wheel cut out of the cab interior mesh, instrument cluster on the column, drivetrain.
         ctrl.steeringWheel = SplitSteeringWheel(root.transform, Part("Cab_Interier_01"), log, out Pose clusterPose, out Vector2 clusterSize,
-            out Transform speedLever, out Vector3 leverKnob, out CabControls.Swing[] remotes);
+            out Transform speedLever, out Vector3 leverKnob, out CabControls.Swing[] remotes, out CabSwitches.Switch[] switches, out CabControls.Swing stalk);
         var cabControls = root.AddComponent<CabControls>();
+        cabControls.stalk = stalk;
+        root.AddComponent<CabSwitches>().switches = switches;
         cabControls.speedLever = speedLever;
         cabControls.knobLocal = speedLever.InverseTransformPoint(root.transform.TransformPoint(leverKnob));
         cabControls.remotes = remotes;
@@ -610,12 +612,15 @@ public static class ProjectSetup
 
         // 7) Interior detail: baked ambient occlusion on the cab interior, wheel and lever, then textured materials.
         var aoTargets = new[] { Part("Cab_Interier_01").GetComponent<MeshFilter>(), ctrl.steeringWheel.GetComponentInChildren<MeshFilter>(), speedLever.GetComponentInChildren<MeshFilter>() }
-            .Concat(remotes.Select(r => r.hinge.GetComponentInChildren<MeshFilter>())).ToArray();
+            .Concat(remotes.Select(r => r.hinge.GetComponentInChildren<MeshFilter>()))
+            .Concat(switches.Select(sw => sw.hinge.Find("Mesh").GetComponent<MeshFilter>()))
+            .Concat(stalk != null ? new[] { stalk.hinge.Find("Mesh").GetComponent<MeshFilter>() } : new MeshFilter[0]).ToArray();
         BakeAmbientOcclusion(root.transform, aoTargets, log);
         ApplyDetailMaterials(root.transform, new System.Collections.Generic.HashSet<Mesh>(aoTargets.Select(t => t.sharedMesh)), log);
         var drivetrain = root.AddComponent<Drivetrain>();
         BuildLinkage(root.transform, Part, log);
         BuildDashboard(root.transform, clusterPose, clusterSize, ctrl, drivetrain, log);
+        BuildLights(root.transform, model.transform, log);
 
         log.AppendLine("Nodes:");
         foreach (var t in model.GetComponentsInChildren<Transform>(true))
@@ -725,7 +730,7 @@ public static class ProjectSetup
     // gives the steering column axis. Every piece lying flat inside the rim (spokes, hub cap) goes with it.
     // The result is two new meshes: the interior without the wheel, and the wheel in its own pivot frame.
     static Transform SplitSteeringWheel(Transform root, Transform interior, StringBuilder log, out Pose clusterPose, out Vector2 clusterSize,
-        out Transform lever, out Vector3 leverKnob, out CabControls.Swing[] remotes)
+        out Transform lever, out Vector3 leverKnob, out CabControls.Swing[] remotes, out CabSwitches.Switch[] switches, out CabControls.Swing stalk)
     {
         var mf = interior.GetComponent<MeshFilter>();
         var renderer = interior.GetComponent<MeshRenderer>();
@@ -858,8 +863,114 @@ public static class ProjectSetup
         else Debug.LogWarning("[Setup] Hydraulic remote levers not found, they stay part of the cab");
         remotes = remoteList.ToArray();
 
+        // Console switches (phase 3 step 4): rockers and push buttons on the right-hand side console, the road-light knob on
+        // its top, the indicator stalk left of the column. Found by their centres, measured from the model (CLAUDE.md).
+        var inCut = new bool[p.Length];
+        bool Free(int[] g) => !inWheel[g[0]] && !inLever[g[0]] && !inRemote[g[0]] && !inCut[g[0]];
+        int[] PieceAt(Vector3 c, float tol) => parts.Where(g => Free(g) && PartBounds(g).size.magnitude < 0.09f && Vector3.Distance(PartBounds(g).center, c) < tol)
+            .OrderBy(g => Vector3.Distance(PartBounds(g).center, c)).FirstOrDefault();
+        Transform CutOut(string name, System.Collections.Generic.List<int[]> pieces, Vector3 pivot)
+        {
+            var sel = new bool[p.Length];
+            foreach (var g in pieces) foreach (int i in g) sel[i] = inCut[i] = true;
+            var hinge = new GameObject(name).transform;
+            hinge.SetParent(root, false);
+            hinge.localPosition = pivot;
+            var h = hinge;
+            Mesh m = SubsetMesh(src, sel, true, v => h.InverseTransformPoint(interior.TransformPoint(v)), renderer.sharedMaterials, out Material[] cutMats,
+                n => h.InverseTransformDirection(interior.TransformDirection(n)));
+            m.name = name;
+            var go = new GameObject("Mesh");
+            go.transform.SetParent(hinge, false);
+            go.AddComponent<MeshFilter>().sharedMesh = SaveMesh(m, name);
+            go.AddComponent<MeshRenderer>().sharedMaterials = cutMats;
+            return hinge;
+        }
+        Bounds HingeBounds(Transform h, System.Collections.Generic.IEnumerable<int[]> pieces)
+        {
+            var all = pieces.SelectMany(g => g).Select(i => h.InverseTransformPoint(root.TransformPoint(p[i]))).ToArray();
+            var b = new Bounds(all[0], Vector3.zero);
+            foreach (var v in all) b.Encapsulate(v);
+            return b;
+        }
+        var lampMat = SaveMat(new Material(Shader.Find("Universal Render Pipeline/Unlit")), "SwitchLamp");
+        var switchList = new System.Collections.Generic.List<CabSwitches.Switch>();
+        Color green = new Color(0.3f, 1f, 0.35f), amber = new Color(1f, 0.6f, 0.1f), red = new Color(1f, 0.15f, 0.1f);
+        var defs = new (string id, CabSwitches.Kind kind, Vector3 at, Color lamp)[]
+        {
+            ("lights",    CabSwitches.Kind.Knob,   new Vector3(0.627f, 2.403f, 0.470f), Color.black),
+            ("hazards",   CabSwitches.Kind.Push,   new Vector3(0.633f, 2.398f, 0.508f), red),
+            ("workFront", CabSwitches.Kind.Rocker, new Vector3(0.576f, 2.314f, 0.392f), green),
+            ("workRear",  CabSwitches.Kind.Rocker, new Vector3(0.558f, 2.311f, 0.257f), green),
+            ("beacon",    CabSwitches.Kind.Rocker, new Vector3(0.553f, 2.280f, 0.220f), amber),
+            ("fourWd",    CabSwitches.Kind.Rocker, new Vector3(0.601f, 2.316f, 0.520f), green),
+            ("diffLock",  CabSwitches.Kind.Push,   new Vector3(0.601f, 2.285f, 0.574f), amber),
+            ("pto",       CabSwitches.Kind.Push,   new Vector3(0.604f, 2.329f, 0.594f), amber),
+        };
+        foreach (var d in defs)
+        {
+            var piece = PieceAt(d.at, 0.008f);
+            if (piece == null) { Debug.LogWarning($"[Setup] Console switch '{d.id}' not found near {d.at:F3}; it stays part of the cab"); continue; }
+            var b = PartBounds(piece);
+            var cut = new System.Collections.Generic.List<int[]> { piece };
+            // The knob's pointer is a separate piece on top of it.
+            if (d.kind == CabSwitches.Kind.Knob)
+                cut.AddRange(parts.Where(g => g != piece && Free(g) && PartBounds(g).size.magnitude < 0.04f && Vector3.Distance(PartBounds(g).center, b.center) < 0.02f));
+            bool top = b.center.y > 2.38f;                      // on the console's top face (knob, hazards) or its side panel
+            Vector3 outward = top ? Vector3.up : Vector3.left;   // the side panel faces the driver (-X)
+            // Rockers tip around a hinge behind their face; knobs turn and buttons move about their centre.
+            Vector3 at = d.kind == CabSwitches.Kind.Rocker ? b.center - outward * b.size.x * 0.5f : b.center;
+            var hinge = CutOut("Switch_" + d.id, cut, at);
+            var sw = new CabSwitches.Switch { id = d.id, kind = d.kind, hinge = hinge, pokeBox = HingeBounds(hinge, cut), lampColor = d.lamp };
+            if (d.kind == CabSwitches.Kind.Rocker) { sw.axis = b.size.y >= b.size.z ? Vector3.forward : Vector3.up; sw.travel = 7f; }
+            else if (d.kind == CabSwitches.Kind.Knob) { sw.axis = Vector3.up; sw.travel = 45f; }
+            else { sw.axis = outward; sw.travel = 3f; }
+            if (d.kind != CabSwitches.Kind.Knob)
+            {
+                // Indicator lamp: a small window in the upper part of a rocker, the middle of a button.
+                var lamp = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                Object.DestroyImmediate(lamp.GetComponent<Collider>());
+                lamp.name = "Lamp";
+                lamp.transform.SetParent(hinge, false);
+                var lb = sw.pokeBox;
+                Vector3 face = top ? new Vector3(lb.center.x, lb.max.y + 0.0008f, lb.center.z) : new Vector3(lb.min.x - 0.0008f, lb.center.y, lb.center.z);
+                if (d.kind == CabSwitches.Kind.Rocker) face.y += lb.size.y * 0.28f;
+                lamp.transform.localPosition = face;
+                lamp.transform.localRotation = Quaternion.LookRotation(-outward);
+                lamp.transform.localScale = d.kind == CabSwitches.Kind.Rocker ? new Vector3(Mathf.Min(0.008f, lb.size.z * 0.5f), 0.004f, 1f) : new Vector3(0.008f, 0.008f, 1f);
+                var lr = lamp.GetComponent<MeshRenderer>();
+                lr.sharedMaterial = lampMat;
+                lr.shadowCastingMode = ShadowCastingMode.Off;
+                sw.lamp = lr;
+            }
+            switchList.Add(sw);
+            log.AppendLine($"Console switch {d.id} ({d.kind}): centre {b.center:F3}, size {b.size * 100f:F1} cm, {cut.Sum(g => g.Length)} vertices");
+        }
+        switches = switchList.ToArray();
+
+        // Indicator stalk: the pieces out to the left of the column at hub height (the column's switch housing stays).
+        stalk = null;
+        var stalkParts = parts.Where(g =>
+        {
+            var b = PartBounds(g);
+            return Free(g) && b.center.x < -0.125f && b.center.x > -0.30f && b.center.y > 2.27f && b.center.y < 2.335f
+                && b.center.z > 1.11f && b.center.z < 1.16f && b.size.magnitude < 0.09f;
+        }).ToList();
+        if (stalkParts.Count > 0)
+        {
+            var verts = stalkParts.SelectMany(g => g).ToArray();
+            float inner = verts.Max(i => p[i].x);
+            var rootVerts = verts.Where(i => p[i].x > inner - 0.008f).ToArray();
+            Vector3 stalkPivot = Vector3.zero; foreach (int i in rootVerts) stalkPivot += p[i]; stalkPivot /= rootVerts.Length;
+            var hinge = CutOut("IndicatorStalk", stalkParts, stalkPivot);
+            stalk = new CabControls.Swing { name = "Indicator stalk", hinge = hinge, axis = Vector3.back, grabBox = HingeBounds(hinge, stalkParts),
+                min = -12f, max = 12f, springBack = false, reach = 0.025f };
+            log.AppendLine($"Indicator stalk: {stalkParts.Count} pieces, {verts.Length} vertices, pivot {stalkPivot:F3}, tip x {verts.Min(i => p[i].x):F3}");
+        }
+        else Debug.LogWarning("[Setup] Indicator stalk not found, it stays part of the cab");
+
         var removed = new bool[p.Length];
-        for (int i = 0; i < p.Length; i++) removed[i] = inWheel[i] || inLever[i] || inRemote[i];
+        for (int i = 0; i < p.Length; i++) removed[i] = inWheel[i] || inLever[i] || inRemote[i] || inCut[i];
 
         // Pivot frame: SteeringColumn (fixed, Z = axis) > SteeringWheel (spins around local Z) > mesh.
         var column = new GameObject("SteeringColumn").transform;
@@ -1138,6 +1249,179 @@ public static class ProjectSetup
     }
 
     // Black face with two tick rings. Angle convention matches Dashboard.Needle: 0 at -135° (lower left), full scale at +135°.
+    // Lights (phase 3 step 4). The model's lamp glass shares a few materials across all lamps, so each lamp gets its own
+    // lens disc (unlit, shown when on) laid on its glass, found by a ray from in front against the lamp parts, plus a halo
+    // (TractorVR/Halo) for dusk / night. Real spot lights only for the headlights and the work lights (Quest light budget).
+    // Lamp positions measured from the model's lamp materials (headlights_cap*, flasher, backlights_cap; CLAUDE.md).
+    static void BuildLights(Transform root, Transform model, StringBuilder log)
+    {
+        var lights = root.gameObject.AddComponent<TractorLights>();
+        var unlit = Shader.Find("Universal Render Pipeline/Unlit");
+        var lensMat = SaveMat(new Material(unlit), "LampLens");
+        var haloMat = SaveMat(new Material(Shader.Find("TractorVR/Halo")), "LampHalo");
+        var disc = DiscMesh(24);
+        var quad = Resources.GetBuiltinResource<Mesh>("Quad.fbx");
+
+        // Temporary colliders on the lamp parts (world-space copies at the scene root, like the AO bake).
+        var temp = new System.Collections.Generic.List<GameObject>();
+        foreach (var r in model.GetComponentsInChildren<MeshRenderer>(true))
+        {
+            var mf = r.GetComponent<MeshFilter>();
+            if (mf == null || mf.sharedMesh == null) continue;
+            var tris = new System.Collections.Generic.List<int>();
+            for (int s = 0; s < mf.sharedMesh.subMeshCount && s < r.sharedMaterials.Length; s++)
+            {
+                string n = r.sharedMaterials[s] ? r.sharedMaterials[s].name : "";
+                if (n.Contains("headlights_cap") || n.Contains("flasher") || n.Contains("backlights_cap") || n.Contains("Emitter"))
+                    tris.AddRange(mf.sharedMesh.GetTriangles(s));
+            }
+            if (tris.Count == 0) continue;
+            var cm = new Mesh { indexFormat = IndexFormat.UInt32, vertices = mf.sharedMesh.vertices.Select(x => r.transform.TransformPoint(x)).ToArray() };
+            cm.SetTriangles(tris, 0);
+            var go = new GameObject("Lamp collider");
+            go.AddComponent<MeshCollider>().sharedMesh = cm;
+            temp.Add(go);
+        }
+        Physics.SyncTransforms();
+
+        var lampRoot = new GameObject("Lamps").transform;
+        lampRoot.SetParent(root, false);
+        int placed = 0, missed = 0;
+        TractorLights.Lamp Lamp(string name, Vector3 at, Vector3 normal, Vector2 size, Color color, float halo, bool sphere = false)
+        {
+            var lamp = new TractorLights.Lamp { color = color };
+            Vector3 pos = at;
+            if (!sphere)
+            {
+                // Onto the front of the glass: the first lamp surface a ray from in front meets within 10 cm of the centre.
+                Vector3 from = root.TransformPoint(at + normal * 0.5f);
+                var hits = Physics.RaycastAll(from, root.TransformDirection(-normal), 0.62f);
+                if (hits.Length > 0) { pos = root.InverseTransformPoint(hits.OrderBy(h => h.distance).First().point) + normal * 0.003f; placed++; }
+                else { pos = at + normal * 0.01f; missed++; log.AppendLine($"   lamp {name}: no glass found in front of {at:F3}"); }
+            }
+            var lens = new GameObject(name + "_Lens");
+            lens.transform.SetParent(lampRoot, false);
+            lens.transform.localPosition = pos;
+            lens.transform.localRotation = Quaternion.LookRotation(-normal);
+            lens.transform.localScale = sphere ? new Vector3(size.x, size.y, size.x) : new Vector3(size.x, size.y, 1f);
+            lens.AddComponent<MeshFilter>().sharedMesh = sphere ? Resources.GetBuiltinResource<Mesh>("Sphere.fbx") : disc;
+            var lr = lens.AddComponent<MeshRenderer>();
+            lr.sharedMaterial = lensMat;
+            lr.shadowCastingMode = ShadowCastingMode.Off;
+            lr.receiveShadows = false;
+            lr.enabled = false;
+            lamp.lens = lr;
+            var h = new GameObject(name + "_Halo");
+            h.transform.SetParent(lampRoot, false);
+            h.transform.localPosition = pos + normal * 0.02f;
+            h.transform.localRotation = Quaternion.LookRotation(normal);   // +Z = the way the lamp shines
+            h.transform.localScale = sphere ? new Vector3(halo, halo, 0.001f) : Vector3.one * halo;   // Z ~0: a beacon shines all round
+            h.AddComponent<MeshFilter>().sharedMesh = quad;
+            var hr = h.AddComponent<MeshRenderer>();
+            hr.sharedMaterial = haloMat;
+            hr.shadowCastingMode = ShadowCastingMode.Off;
+            hr.receiveShadows = false;
+            hr.enabled = false;
+            lamp.halo = hr;
+            return lamp;
+        }
+        Color white = new Color(1f, 0.97f, 0.88f), amber = new Color(1f, 0.55f, 0.08f), red = new Color(1f, 0.08f, 0.05f);
+        Color tail = new Color(0.55f, 0.03f, 0.02f), side = new Color(1f, 0.95f, 0.85f) * 0.8f;
+        var list = new System.Collections.Generic.List<TractorLights.Lamp>();
+        var L = new System.Collections.Generic.List<TractorLights.Lamp>(); var R = new System.Collections.Generic.List<TractorLights.Lamp>();
+        foreach (float sx in new[] { -1f, 1f })
+        {
+            string lr = sx < 0f ? "L" : "R";
+            lights.head.lamps = lights.head.lamps.Concat(new[]
+            {
+                Lamp("Head_Grille_" + lr, new Vector3(0.19f * sx, 1.88f, 3.33f), Vector3.forward, new Vector2(0.28f, 0.14f), white, 0.9f),
+                Lamp("Head_Cab_" + lr, new Vector3(0.87f * sx, 2.29f, 1.93f), Vector3.forward, new Vector2(0.10f, 0.10f), white, 0.7f),
+            }).ToArray();
+            lights.side.lamps = lights.side.lamps.Concat(new[]
+            {
+                Lamp("Side_" + lr, new Vector3(0.96f * sx, 2.12f, 1.96f), Vector3.forward, new Vector2(0.075f, 0.10f), side, 0.25f),
+                Lamp("Tail_" + lr, new Vector3(0.69f * sx, 2.21f, -0.45f), Vector3.back, new Vector2(0.065f, 0.08f), tail, 0.3f),
+            }).ToArray();
+            lights.brake.lamps = lights.brake.lamps.Concat(new[] { Lamp("Brake_" + lr, new Vector3(0.77f * sx, 2.21f, -0.45f), Vector3.back, new Vector2(0.065f, 0.08f), red, 0.45f) }).ToArray();
+            var ind = sx < 0f ? L : R;
+            ind.Add(Lamp("Indicator_Front_" + lr, new Vector3(1.05f * sx, 2.12f, 1.96f), Vector3.forward, new Vector2(0.075f, 0.10f), amber, 0.4f));
+            ind.Add(Lamp("Indicator_Rear_" + lr, new Vector3(0.85f * sx, 2.21f, -0.45f), Vector3.back, new Vector2(0.065f, 0.08f), amber, 0.4f));
+            lights.workFront.lamps = lights.workFront.lamps.Concat(new[]
+            {
+                Lamp("Work_Front_Inner_" + lr, new Vector3(0.24f * sx, 2.98f, 1.51f), Vector3.forward, new Vector2(0.07f, 0.07f), white, 0.6f),
+                Lamp("Work_Front_Outer_" + lr, new Vector3(0.36f * sx, 2.98f, 1.50f), Vector3.forward, new Vector2(0.07f, 0.07f), white, 0.6f),
+            }).ToArray();
+            lights.workRear.lamps = lights.workRear.lamps.Concat(new[]
+            {
+                Lamp("Work_Rear_Inner_" + lr, new Vector3(0.46f * sx, 2.99f, -0.01f), Vector3.back, new Vector2(0.07f, 0.07f), white, 0.6f),
+                Lamp("Work_Rear_Outer_" + lr, new Vector3(0.56f * sx, 2.99f, 0.01f), Vector3.back, new Vector2(0.07f, 0.07f), white, 0.6f),
+            }).ToArray();
+            lights.beacon.lamps = lights.beacon.lamps.Concat(new[] { Lamp("Beacon_" + lr, new Vector3(0.68f * sx, 3.27f, 1.32f), Vector3.forward, new Vector2(0.15f, 0.13f), amber, 0.7f, sphere: true) }).ToArray();
+        }
+        lights.indicatorLeft.lamps = L.ToArray();
+        lights.indicatorRight.lamps = R.ToArray();
+        foreach (var t in temp) Object.DestroyImmediate(t);
+
+        Light Spot(string name, Vector3 pos, Vector3 euler, float angle, float range, float intensity, Color color, LightType type = LightType.Spot)
+        {
+            var l = new GameObject(name).AddComponent<Light>();
+            l.transform.SetParent(lampRoot, false);
+            l.transform.SetLocalPositionAndRotation(pos, Quaternion.Euler(euler));
+            l.type = type;
+            l.spotAngle = angle;
+            l.innerSpotAngle = angle * 0.55f;
+            l.range = range;
+            l.intensity = intensity;
+            l.color = color;
+            l.shadows = LightShadows.None;
+            l.enabled = false;
+            return l;
+        }
+        lights.head.lights = new[] { Spot("Headlight", new Vector3(0f, 1.9f, 3.5f), new Vector3(5f, 0f, 0f), 70f, 70f, 120f, white) };
+        // The work lights' light starts beyond the bonnet / the hitch: from the roof it lit the bonnet 1-2 m away so brightly that
+        // the view from the cab was washed out (no light layers on the Quest build to leave the tractor out).
+        lights.workFront.lights = new[] { Spot("WorkLight_Front", new Vector3(0f, 2.9f, 3.6f), new Vector3(30f, 0f, 0f), 110f, 35f, 45f, white) };
+        lights.workRear.lights = new[] { Spot("WorkLight_Rear", new Vector3(0f, 2.9f, -1.6f), new Vector3(30f, 180f, 0f), 110f, 35f, 45f, white) };
+        lights.cabLight = Spot("CabLight", new Vector3(0.3f, 2.75f, 0.6f), Vector3.zero, 0f, 1.2f, 0.25f, new Color(1f, 0.85f, 0.65f), LightType.Point);
+        lights.head.name = "head"; lights.side.name = "side"; lights.brake.name = "brake"; lights.workFront.name = "workFront";
+        lights.workRear.name = "workRear"; lights.beacon.name = "beacon"; lights.indicatorLeft.name = "indicatorLeft"; lights.indicatorRight.name = "indicatorRight";
+
+        // Indicator tick (behind the dash) and the console switches' click.
+        var clip = ClickClip();
+        var tick = new GameObject("IndicatorTick").AddComponent<AudioSource>();
+        tick.transform.SetParent(root, false);
+        tick.transform.localPosition = new Vector3(0f, 2.2f, 1.25f);
+        tick.playOnAwake = false; tick.spatialBlend = 0.7f; tick.volume = 0.35f; tick.clip = clip;
+        lights.tick = tick;
+        var switches = root.GetComponent<CabSwitches>();
+        if (switches)
+        {
+            var src = new GameObject("SwitchClick").AddComponent<AudioSource>();
+            src.transform.SetParent(root, false);
+            src.transform.localPosition = new Vector3(0.58f, 2.33f, 0.42f);
+            src.playOnAwake = false; src.spatialBlend = 0.8f; src.volume = 0.5f; src.pitch = 1.2f; src.clip = clip;
+            switches.click = src;
+        }
+        log.AppendLine($"Lights: {placed} lens discs on the glass, {missed} not found (placed at the measured centre); 3 spot lights + cab light");
+    }
+
+    // A flat disc of radius 0.5 facing -Z (like the built-in quad), centre-to-rim UVs.
+    static Mesh DiscMesh(int segments)
+    {
+        var v = new System.Collections.Generic.List<Vector3> { Vector3.zero };
+        var t = new System.Collections.Generic.List<int>();
+        for (int i = 0; i < segments; i++)
+        {
+            float a = i * Mathf.PI * 2f / segments;
+            v.Add(new Vector3(Mathf.Cos(a) * 0.5f, Mathf.Sin(a) * 0.5f, 0f));
+            t.Add(0); t.Add(1 + (i + 1) % segments); t.Add(1 + i);   // clockwise seen from -Z = front face
+        }
+        var m = new Mesh { name = "LampDisc", vertices = v.ToArray(), triangles = t.ToArray() };
+        m.normals = v.Select(_ => Vector3.back).ToArray();
+        m.RecalculateBounds();
+        return SaveMesh(m, "LampDisc");
+    }
+
     static Texture2D DashTexture(float aspect)
     {
         int th = 256, tw = Mathf.RoundToInt(th * aspect);
