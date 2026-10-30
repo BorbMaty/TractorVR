@@ -817,3 +817,10 @@ and the window (the headset mirror) stayed black. Not a crash, but a black scree
 
 Tests: `PlayModeTest` (batch mode has no XR, so it now runs in desktop mode: 34 pick proxies) OK; `PhysicsTest` OK; Windows build OK.
 The exe started with `-desktop` renders the cab on the monitor (`docs/images/desktop_cab.png`). Mouse interaction still needs the user's test.
+
+## 2026-10-30 (night): First Link try: grey / stuck on the loading screen
+After the driver rollback (591.86) the user reports: desktop version works flawlessly; in VR the headset stays black / grey and hangs
+on the Link loading screen. Player.log: three sessions, each READY → SYNCHRONIZED and never VISIBLE / FOCUSED, then STOPPING after
+6–10 s. The stop was `DesktopMode`'s own fallback: it shut XR down while Link was still loading, which leaves the headset stuck there.
+Changes: the wait is now 20 s, and the waiting hint names the likely cause. A Link session that stays SYNCHRONIZED for a self-built app
+usually means **Unknown Sources** is off in the Meta Horizon Link app (Settings → General), the open laptop-setup item. ⏳ user check.

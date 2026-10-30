@@ -9,7 +9,8 @@ using TrackedPoseDriver = UnityEngine.InputSystem.XR.TrackedPoseDriver;
 
 /// <summary>
 /// PC desktop version (phase 4): the same Windows build plays on the monitor when no headset is in use.
-///   Start-up ... Windows / editor: VR if the OpenXR session gets focus within <see cref="waitSeconds"/> (headset on, Link running);
+///   Start-up ... Windows / editor: VR if the OpenXR session gets focus within <see cref="waitSeconds"/> (headset on, Link running,
+///                Unknown Sources allowed in the Link app: without it the session stays SYNCHRONIZED on the loading screen);
 ///                otherwise XR is shut down and the game renders to the window. <c>-desktop</c> / <c>-vr</c> on the command line force
 ///                a mode. F9 tries VR again later (put the headset on first). Android (Quest) never uses this.
 ///   Camera ..... cab: hold the right mouse button to look around, wheel = zoom; third person: right mouse orbits, wheel = distance.
@@ -31,7 +32,7 @@ public class DesktopMode : MonoBehaviour
     public Transform hud;
     public CabPanel panel;
     public ComfortVignette vignette;
-    public float waitSeconds = 6f;
+    public float waitSeconds = 20f;   // Link can sit on its loading screen for a while; stopping XR during it leaves the headset stuck there
     public float lookSpeed = 0.15f;   // degrees per pixel
 
     public static bool Active { get; private set; }
@@ -301,7 +302,8 @@ public class DesktopMode : MonoBehaviour
         {
             Styles();
             GUI.Label(new Rect(20, 20, Screen.width - 40, 200),
-                "Waiting for the headset (Quest Link)…  Put it on to play in VR, or press D to play on the monitor.", labelStyle);
+                "Waiting for the headset (Quest Link)…  Put it on to play in VR, or press D to play on the monitor.\n" +
+                "Stuck on the Link loading screen? Meta Horizon Link app → Settings → General → Unknown Sources must be on.", labelStyle);
             return;
         }
         if (!Active) return;
