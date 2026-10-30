@@ -1,0 +1,14 @@
+Tractor VR benchmark  2026-10-30 23:40
+Version        PCDesktop  (quality level PC)
+Device         Nitro AN515-45 (Acer) / NVIDIA GeForce RTX 3060 Laptop GPU (Direct3D11) / AMD Ryzen 7 5800H with Radeon Graphics 
+Display        144 Hz, frame budget 6,9 ms, render target 1920×1080
+Rendering      render scale 1,2, MSAA 4×, shadows 4096 px / 80 m, mesh LOD threshold 0,5, foveation n/a
+Drive          3 s settle, 30 s cab view straight out of the yard, 30 s third person with a gentle left turn
+
+Phase   frames   fps    frame ms avg / p95 / p99 / max   over budget   CPU ms avg / p95   GPU ms avg / p95   XR app GPU ms   XR compositor GPU ms   dropped
+cab       4295  143,9      7,0 /   6,9 /   7,0 /   34,7        0,0 %   7,0 / 7,0          1,4 / 2,1          n/a             n/a                    n/a
+third     4301  144,0      6,9 /   7,0 /   7,0 /    7,0        0,0 %   7,0 / 7,1          1,1 / 1,7          n/a             n/a                    n/a
+all       8596  143,9      6,9 /   7,0 /   7,0 /   34,7        0,0 %   7,0 / 7,0          1,3 / 1,9          n/a             n/a                    n/a
+
+over budget = frames longer than 110 % of the 6,9 ms budget. CPU / GPU = Unity FrameTimingManager (-1 / n/a where the platform doesn't report it).
+XR values come from the runtime (XR_META_performance_metrics); dropped = frames the compositor dropped during the run.

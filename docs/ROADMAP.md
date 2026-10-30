@@ -181,8 +181,8 @@ PC VR (planned 2026-10-19):
   (2026-10-30: the Meta Horizon Link app is installed and already the active OpenXR runtime; NVIDIA driver rolled back to 591.86 as the Link app asks;
   High-performance GPU preference set for the Link programs, TractorVR.exe and Unity; the AMD switchable-graphics Vulkan layer hid the RTX 3060 and
   crashed the Link dashboard: disabled with the user variable `DISABLE_LAYER_AMD_SWITCHABLE_GRAPHICS_1=1`. ✅ Link works, the PC build runs in the headset)
-- [ ] Cable: currently USB 2 (the Link app says "USB 3 recommended"); works. Better: USB-C with USB 3 data (Link cable or a good 3–5 m cable); Air Link is an option: a 5 GHz Wi-Fi network is available (best with the laptop on Ethernet to the router, headset close to it)
-- [ ] Play mode through Link in the Editor (faster test loop, no APK install)
+- [x] Cable: USB 2 (the Link app says "USB 3 recommended"); works, and stays for now (user's decision 2026-10-30). Better: USB-C with USB 3 data (Link cable or a good 3–5 m cable); Air Link is an option: a 5 GHz Wi-Fi network is available (best with the laptop on Ethernet to the router, headset close to it)
+- [x] Play mode through Link in the Editor (faster test loop, no APK install). ✅ user, 2026-10-30
 - [x] Windows Standalone build profile: OpenXR + Oculus Touch profiles, quality level "PC", Mono + D3D11, windowed; `BuildPC.Build` → `Builds/PC/TractorVR.exe`. Built 2026-10-30
 - [x] PC quality: full model (mesh LOD threshold 0.5), real model shadows instead of the `ShadowProxy` (`QualityTier`), MSAA 4×, render scale 1.2,
   soft shadows, 4096 shadow map, 80 m. Built 2026-10-30, ✅ seen in the headset over Link 2026-10-30

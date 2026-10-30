@@ -62,7 +62,7 @@ public class DesktopMode : MonoBehaviour
     {
         if (Application.platform == RuntimePlatform.Android) yield break;
         var args = System.Environment.GetCommandLineArgs();
-        bool forceDesktop = args.Contains("-desktop"), forceVR = args.Contains("-vr");
+        bool forceDesktop = args.Contains("-desktop") || Application.isBatchMode, forceVR = args.Contains("-vr");   // batch-mode tests: never wait for a headset
         if (!forceDesktop) yield return WaitForHeadset(forceVR ? float.PositiveInfinity : waitSeconds);
         if (!(XRRunning && OpenXRUtility.IsSessionFocused)) Enter();
     }

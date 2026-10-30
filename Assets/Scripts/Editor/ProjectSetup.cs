@@ -81,6 +81,7 @@ public static class ProjectSetup
         PlayerSettings.defaultScreenHeight = 900;
         PlayerSettings.resizableWindow = true;
         PlayerSettings.runInBackground = true;
+        PlayerSettings.enableFrameTimingStats = true;   // CPU / GPU frame times for PerfBenchmark (FrameTimingManager)
 
         // Active Input Handling = Input System package (new). 0 = old, 1 = new, 2 = both.
         var ps = AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/ProjectSettings.asset").FirstOrDefault();
@@ -2632,6 +2633,16 @@ public static class ProjectSetup
         desktop.panel = rig.GetComponentInChildren<CabPanel>();
         desktop.vignette = hud.comfort;
         hands.desktop = desktop;
+
+        // Benchmark for the version comparison (cab panel / menu BENCHMARK, F8, -benchmark).
+        var bench = rig.AddComponent<PerfBenchmark>();
+        bench.tractor = ctrl;
+        bench.input = vr.input;
+        bench.rig = vr;
+        bench.desktop = desktop;
+        bench.hud = hud;
+        bench.cam = cam;
+        desktop.panel.benchmark = bench;
 
         log.AppendLine("Rig built.");
     }

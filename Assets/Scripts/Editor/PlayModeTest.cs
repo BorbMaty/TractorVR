@@ -113,7 +113,7 @@ public static class PlayModeTest
                 var bt = b.GetType();
                 var press = (System.Action)bt.GetField("press").GetValue(b);
                 var label = ((System.Func<string>)bt.GetField("text").GetValue(b))();
-                if (label.StartsWith("RESET")) continue;
+                if (label.StartsWith("RESET") || label.StartsWith("BENCHMARK")) continue;   // both teleport the tractor
                 press(); press(); n++;
             }
             log.AppendLine($"{t:0.0}s pressed {n} panel buttons twice");

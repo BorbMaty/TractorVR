@@ -17,6 +17,7 @@ public class CabPanel : MonoBehaviour
     public ComfortVignette comfort;
     public TractorInput input;
     public VRHands hands;
+    public PerfBenchmark benchmark;
     public Material buttonMat, buttonHotMat, panelMat, textMat;
     public AudioSource click;
 
@@ -42,7 +43,7 @@ public class CabPanel : MonoBehaviour
     Font font;
 
     const float W = 0.105f, H = 0.042f, Gap = 0.008f;
-    const int Cols = 3;   // 31 buttons: three columns keep the panel about as tall as the seat-to-knee distance
+    const int Cols = 3;   // 32 buttons: three columns keep the panel about as tall as the seat-to-knee distance
 
     void Start()
     {
@@ -86,6 +87,7 @@ public class CabPanel : MonoBehaviour
             ("indLeft",  () => lights.Indicator < 0 ? "< INDICATOR *" : "< INDICATOR", () => lights.ToggleIndicator(-1), false),
             ("indRight", () => lights.Indicator > 0 ? "* INDICATOR >" : "INDICATOR >", () => lights.ToggleIndicator(1), false),
             ("sky",      () => "SKY: " + lights.TimeOfDay.ToString().ToUpperInvariant(), () => lights.CycleSky(), false),
+            ("bench",    () => PerfBenchmark.Running ? "BENCHMARK..." : "BENCHMARK", () => benchmark.Begin(), false),
         };
         int rows = (items.Length + Cols - 1) / Cols;
         var bg = Quad("Background", transform, new Vector3(0f, 0f, 0.004f), new Vector2(Cols * W + (Cols + 1) * Gap, rows * (H + Gap) + Gap), panelMat);

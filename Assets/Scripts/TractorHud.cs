@@ -48,7 +48,7 @@ public class TractorHud : MonoBehaviour
         return s.ToString().Trim();
     }
 
-    void Show(string msg)
+    public void Show(string msg)
     {
         message = msg;
         messageUntil = Time.time + 2.5f;
