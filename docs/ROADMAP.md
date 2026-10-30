@@ -1,12 +1,9 @@
 # Roadmap
 
 ## ▶ Where we left off (2026-10-30)
-The reset-with-trailer bug is fixed and **phase 3 step 2 (traction) is built**; both are in the APK installed on the headset, ⏳ headset check.
-What to try: RESET TRACTOR with the trailer coupled (it should come back on the drawbar and detach normally); ploughing with
-4WD on / off (CommandCenter SLIP); the mud at the north field gate (x 0, z 116) with 2WD and an open diff (one wheel spins and throws clods),
-then DIFF LOCK and 4WD; braking in mud with BRAKES: REAR.
-
-Next after the check: phase 3 step 3 (fields + crops).
+The reset-with-trailer bug is fixed and **phase 3 step 2 (traction) is done**, ✅ headset-checked 2026-10-30.
+Environment work (phase 3 step 3, fields + crops) is moved to "Environment art (with Blender, later)" below: the user will do it
+with Blender. **Next: phase 3 step 4 (cab buttons + lights).**
 
 ## Earlier: end of day 2026-10-21
 **Phases 1 and 2 are complete** (user's headset test, 2026-10-21). Batches 1–3 finished every open item:
@@ -17,11 +14,11 @@ cylinders, tipping trailer, front weight, better models).
 **Known bug (found in the headset test, 2026-10-21; fix first next session):**
 - [x] RESET TRACTOR with the trailer coupled: the trailer disappears but stays coupled, and it can't be detached afterwards.
   Fixed 2026-10-30: the reset brings a coupled trailer along, straight on the drawbar and at rest, and also clears the parking-brake
-  anchor (it pulled towards the old spot after a teleport). PhysicsTest T. ⏳ headset check
+  anchor (it pulled towards the old spot after a teleport). PhysicsTest T. ✅ headset-checked 2026-10-30
 
 **Next session:**
-1. Fix the reset-with-trailer bug above
-2. Phase 3 step 2 (traction)
+1. Fix the reset-with-trailer bug above ✅
+2. Phase 3 step 2 (traction) ✅
 
 Planned (2026-10-19): a second, PC VR build over Quest Link next to the standalone one, see "PC VR build" below.
 
@@ -86,7 +83,7 @@ First block, chosen 2026-10-17: **steering wheel + drivetrain** (biggest effect 
 - [x] Mass 7.5 t, centre of gravity (40 % front), grip μ 0.8, slopes (195 hp power limit on climbs), parking brake that holds on a slope, collisions (pushable hay bales). Built 2026-10-17, ✅ headset-tested 2026-10-17
 - [x] Offline physics test in the editor (`PhysicsTest`): settle, acceleration, turns, steepest hill, parking, bale push
 - [x] Soil types: done in phase 3 step 1 (GroundMap: grip, rolling resistance, draft per surface)
-- [ ] Wheel slip / spin visuals → moved to phase 3 step 2 (traction)
+- [x] Wheel slip / spin visuals → moved to phase 3 step 2 (traction), done there 2026-10-30
 - [x] Ballast: 900 kg front weight for the front linkage (cast slabs on a carrier). Front axle +12.6 kN, rear −3.8 kN (expected +12.3 / −3.5).
   The centre of mass now follows the linkage positions every frame. Built 2026-10-21 in batch 3, ✅ headset-checked 2026-10-21
 
@@ -108,7 +105,7 @@ First block, chosen 2026-10-17: **steering wheel + drivetrain** (biggest effect 
 ### Environment
 - [x] Terrain with gentle hills (2 × 2 km, generated at runtime, slopes up to ~11°, flat start area), haze, lower sun. Built 2026-10-17, ✅ headset-tested 2026-10-17
 - [x] Roads and a farmyard: done in phase 3 step 1
-- [ ] Field with crop rows → moved to phase 3 step 3
+- [ ] Field with crop rows → moved to phase 3 step 3, then to "Environment art (with Blender, later)" (2026-10-30)
 
 ### VR interaction (block 3)
 - [x] Real Quest 2 controller models
@@ -144,13 +141,13 @@ hydraulic levers, pressable switches, lights, and keep the cab panel. Order (eac
 ### Step 2: traction
 - [x] Wheel slip: driven wheels spin when the ground can't take the force (slip % on the CommandCenter + HUD), wheels turn at their own
   speed (faster when spinning, still when locked), soil clods from wheels slipping hard on soft ground, engine RPM follows the wheels.
-  Built 2026-10-30, ⏳ headset check
+  Built 2026-10-30, ✅ headset-checked 2026-10-30
 - [x] Brakes (all wheels / rear only), 4WD (front axle drive) on/off, diff lock (open diffs: the wheel with less grip limits the axle;
-  locks off above 12° steering or 15 km/h): panel buttons + F / L / B. Built 2026-10-30, ⏳ headset check
+  locks off above 12° steering or 15 km/h): panel buttons + F / L / B. Built 2026-10-30, ✅ headset-checked 2026-10-30
 
-### Step 3: fields + crops
-- [ ] Standing crop rows on the crop field, cut by the mower
-- [ ] Ploughing turns the ground to "ploughed" (grip, draft, look)
+### Step 3: fields + crops → moved (2026-10-30)
+Skipped by the user's decision: environment work will be done with Blender. Both items are in "Environment art (with Blender, later)".
+(Ploughed ground already gets its own grip and draft since step 1; what is left is the look and the crops.)
 
 ### Step 4: cab buttons
 - [x] The three hydraulic remote levers on the armrest: grabbable, move the hitch / front linkage / trailer tipping (done in phase 2, batches 2 and 3)
@@ -168,6 +165,12 @@ laptop (RTX 3060 Laptop 6 GB, Ryzen 7 5800H, 16 GB) and streams to the Quest 2 o
 - [ ] PC quality: LOD0 / full model, real model shadows instead of the `ShadowProxy`, MSAA 4×, higher render scale, 90 Hz
 - [ ] Platform-specific settings so the Android build keeps its optimisations (foveation, LODs, shadow stand-in)
 - [ ] Measure and compare both builds (frame time, image quality, latency) for the documentation
+
+## Environment art (with Blender, later; moved here 2026-10-30)
+The user will do the environment with Blender. Moved from phase 3 step 3 and phase 2:
+- [ ] Standing crop rows on the crop field, cut by the mower
+- [ ] Ploughed ground look (furrows, darker soil) where the plough has been
+- [ ] Field with crop rows (phase 2 environment item)
 
 ## Future ideas / reference (not scheduled)
 - **Working mirrors**: the model has three parts with the `mirror` material. One small render-texture camera per mirror (mono, from the reflected

@@ -30,8 +30,8 @@ Docs: [Roadmap](docs/ROADMAP.md) · [Development log](docs/DEVLOG.md) · [CLAUDE
 
 ### Phase 3: physics, terrain, cab buttons 🚧 in progress
 1. ✅ **Ground + layout**: farmyard, roads, fields, mud; grip and rolling resistance per surface
-2. ✅ **Traction** (built, headset check pending): wheel slip per tyre and ground, wheels that spin and throw clods, 4WD on/off, diff lock, all-wheel / rear brakes
-3. ⏳ **Fields + crops**: standing crop rows the mower cuts, ploughing changes the field
+2. ✅ **Traction**: wheel slip per tyre and ground, wheels that spin and throw clods, 4WD on/off, diff lock, all-wheel / rear brakes
+3. ↪ **Fields + crops**: moved to "Environment art" (to be done with Blender later)
 4. ⏳ **Cab buttons**: pressable switches, working lights (the hydraulic levers came with phase 2; the cab panel stays)
 
 Future ideas (working mirrors, original model textures, hand-control improvements): see the [Roadmap](docs/ROADMAP.md).

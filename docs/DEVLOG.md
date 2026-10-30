@@ -658,7 +658,7 @@ it stays coupled and can't be detached. The optional original-textures item of p
 Next: fix that bug, then phase 3 step 2 (traction).
 
 ## 2026-10-30: Reset-with-trailer bug fixed; phase 3 step 2 (traction)
-Both built and tested in the editor, APK (66 MB) installed on the headset, ⏳ headset check.
+Both built and tested in the editor, APK (66 MB) installed on the headset, ✅ headset-checked 2026-10-30 ("looks good").
 
 **RESET TRACTOR with the trailer coupled.** The reset moved only the tractor's Rigidbody. The trailer stayed on its joint ~120 m away;
 the joint yanked it across the map, and it ended up out of sight and too far round for "STRAIGHTEN UP TO DETACH". Now the reset also sets
@@ -693,3 +693,8 @@ PhysicsTest U (plough at work, 30 kN draft on the crop field, 7 km/h): slip 16 %
 crawl; 4WD open diffs: both left wheels spin, stuck; 4WD + diff lock: pulls away (4 km/h) but bogs down: half the tractor in mud can't
 pull 30+ kN. V (STOP at 18.5 km/h entering mud): all-wheel brakes ~5 % brake slip, rear only ~20 %; no lock-up at the comfort rate
 (2.5 m/s²), both stop in 5.2 m. All other scenarios unchanged. PlayModeTest OK (24 buttons pressed twice).
+
+**Plan change (2026-10-30, after the headset check).** The user will do the environment work with Blender, so phase 3 step 3
+(standing crops cut by the mower, the ploughed-ground look) is moved to a new ROADMAP section "Environment art (with Blender, later)",
+together with phase 2's "field with crop rows". Ploughed ground already has its own grip, draft and slip since steps 1–2. Next: step 4
+(cab buttons + lights).
