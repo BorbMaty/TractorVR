@@ -178,7 +178,8 @@ GPU); a **PC desktop** build runs on the monitor without a headset (confirmed by
 
 PC VR (planned 2026-10-19):
 - [ ] Laptop setup: install the Meta Quest Link app, set it as the active OpenXR runtime, allow unknown sources; force OVRServer and Unity / the build onto the NVIDIA GPU
-  (2026-10-30: the Meta Horizon Link app is installed and already the active OpenXR runtime; unknown sources + NVIDIA GPU still to check)
+  (2026-10-30: the Meta Horizon Link app is installed and already the active OpenXR runtime; NVIDIA driver rolled back to 591.86 as the Link app asks;
+  High-performance GPU preference set for the Link programs, TractorVR.exe and Unity: the Link dashboard crashed on Vulkan init; unknown sources still to check)
 - [ ] Cable: USB-C with USB 3 data (Link cable or a good 3–5 m cable); Air Link is an option: a 5 GHz Wi-Fi network is available (best with the laptop on Ethernet to the router, headset close to it)
 - [ ] Play mode through Link in the Editor (faster test loop, no APK install)
 - [x] Windows Standalone build profile: OpenXR + Oculus Touch profiles, quality level "PC", Mono + D3D11, windowed; `BuildPC.Build` → `Builds/PC/TractorVR.exe`. Built 2026-10-30

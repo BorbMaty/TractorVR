@@ -824,3 +824,14 @@ on the Link loading screen. Player.log: three sessions, each READY → SYNCHRONI
 6–10 s. The stop was `DesktopMode`'s own fallback: it shut XR down while Link was still loading, which leaves the headset stuck there.
 Changes: the wait is now 20 s, and the waiting hint names the likely cause. A Link session that stays SYNCHRONIZED for a self-built app
 usually means **Unknown Sources** is off in the Meta Horizon Link app (Settings → General), the open laptop-setup item. ⏳ user check.
+
+## 2026-10-30 (late): Link grey screen: the Link dashboard can't start Vulkan (laptop GPU)
+After a restart, Link still showed only grey and the game's session stayed SYNCHRONIZED for 24 s. Meta's own logs
+(`%LOCALAPPDATA%\Oculus\`): `OculusDash.exe` (the Link dashboard, app 1438194916201007) restarts about once a second, each time with
+`ovrError_InitializeVulkan` (VK_INCOMPLETE) in the Client log and "Missing entitlement for 1438194916201007" in the Service log as it is
+closed. The laptop has two GPUs (Ryzen's AMD Radeon iGPU, AMD Radeon Software installed, plus the RTX 3060), and no Windows GPU
+preference was set for any Link program. Likely cause: Link starting on the AMD chip. With no dashboard, nothing becomes visible, our app included.
+Fix (the ROADMAP "force onto the NVIDIA GPU" item): Windows per-app GPU preference **High performance** (`HKCU\Software\Microsoft\DirectX\
+UserGpuPreferences`, `GpuPreference=2;`, the same as Settings → System → Display → Graphics) for `OVRServer_x64.exe`, `OVRRedir.exe`,
+`OculusDash.exe`, `OculusClient.exe`, `Builds\PC\TractorVR.exe` and `Unity.exe`. Needs a Link restart. ⏳ user check.
+Also from the Link app: the headset is on a USB 2 connection ("USB 3 recommended").
