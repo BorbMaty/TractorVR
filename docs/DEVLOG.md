@@ -761,5 +761,5 @@ are tied to places. The old "PC VR build" and "Environment art" sections of the 
 blender-mcp (github.com/ahujasid/blender-mcp, add-on v1.8): Blender 5.2 and uv were already installed. The MCP server is registered
 with Claude Code (`claude mcp add blender -- uvx blender-mcp`, local config for `Irum_proj`; connects). The add-on was read before
 installing: socket server on localhost:9876 that runs what the MCP client sends, telemetry off by default, optional online asset
-sources (Poly Haven, Sketchfab, generators) off unless switched on. Copied to `%APPDATA%\Blender Foundation\Blender.2\scriptsddonsblender_mcp_addon.py`; it still has to be enabled once in Blender (Preferences → Add-ons), the command-line enable was blocked.
+sources (Poly Haven, Sketchfab, generators) off unless switched on. Copied to `%APPDATA%\Blender Foundation\Blender\5.2\scripts\addons\blender_mcp_addon.py`; it still has to be enabled once in Blender (Preferences → Add-ons), the command-line enable was blocked.
 
