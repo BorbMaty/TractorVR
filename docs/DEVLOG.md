@@ -905,3 +905,9 @@ Brainstorm with the user, decisions:
   steep parts to practise driving up and down (the generated hills stop at ~11°).
 - Noted: the mower is a grass mower, so the cuttable crop is a meadow; a maize / wheat field stands next to it for the look.
 - Budget from phase 4: ~4 ms of Quest GPU left. Every asset gets a full (PC) and a light (Quest) version.
+
+**Desktop menu fix** (same day, user: "in the menu the texts are cut off, we need bigger buttons"): the on-screen menu's buttons had a
+fixed width (6.4 rows), so long labels (WORK: FRONT+REAR, STOP / NEUTRAL, FULLSCREEN (F11)) were cut. Now the buttons are as wide as
+the widest label seen (measured with `GUIStyle.CalcSize`, kept until the window is resized so the menu doesn't jump when a label
+changes), rows are taller (screen / 32) and the font a bit bigger. Checked on a 1920×1080 screenshot of the exe; `PlayModeTest` passes.
+(Screenshots of the exe from a script need `SetProcessDPIAware`, or Windows' 125 % scaling crops the right and bottom of the window.)

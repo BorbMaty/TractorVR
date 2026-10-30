@@ -285,13 +285,16 @@ public class DesktopMode : MonoBehaviour
     }
 
     int styledHeight;
+    float buttonWidth;   // widest label seen so far (labels change with state, e.g. WORK: FRONT+REAR), so the menu doesn't jump
 
     void Styles()
     {
         if (buttonStyle != null && styledHeight == Screen.height) return;   // rebuilt when the window is resized
         styledHeight = Screen.height;
-        int size = Mathf.RoundToInt(Screen.height / 60f);
+        buttonWidth = 0f;
+        int size = Mathf.RoundToInt(Screen.height / 55f);
         buttonStyle = new GUIStyle(GUI.skin.button) { fontSize = size, fontStyle = FontStyle.Bold };
+        buttonStyle.padding = new RectOffset(size / 2, size / 2, 2, 2);
         labelStyle = new GUIStyle(GUI.skin.label) { fontSize = size, wordWrap = true };
         labelStyle.normal.textColor = new Color(1f, 0.95f, 0.75f);
         boxStyle = new GUIStyle(GUI.skin.box);
@@ -309,12 +312,16 @@ public class DesktopMode : MonoBehaviour
         }
         if (!Active) return;
         Styles();
-        float u = Screen.height / 45f;   // row height
+        float u = Screen.height / 32f;   // row height
 
-        // Menu: the cab panel's buttons, three columns at the right edge of the screen.
-        float bw = u * 6.4f, gap = u * 0.2f;
+        // Menu: the cab panel's buttons, three columns at the right edge of the screen, as wide as the longest label.
         int n = panel.EntryCount, cols = 3, rows = (n + cols - 1) / cols + 1;
-        menuRect = new Rect(Screen.width - cols * (bw + gap) - gap * 3f, u, cols * (bw + gap) + gap, rows * (u + gap) + u * 1.6f);
+        float Fit(string s) => buttonWidth = Mathf.Max(buttonWidth, buttonStyle.CalcSize(new GUIContent(s)).x + u * 0.6f);
+        for (int i = 0; i < n; i++) Fit(panel.Entry(i).label);
+        Fit("FULLSCREEN (F11)");
+        Fit("TRY VR (F9)");
+        float gap = u * 0.2f, bw = Mathf.Min(buttonWidth, (Screen.width - gap * 6f) / cols);
+        menuRect = new Rect(Screen.width - cols * (bw + gap) - gap * 3f, u, cols * (bw + gap) + gap, rows * (u + gap) + gap);
         Rect tab = new Rect(Screen.width - u * 5.5f - gap * 2f, panel.Open ? menuRect.yMax + gap : u, u * 5.5f, u);
         if (GUI.Button(tab, panel.Open ? "CLOSE (M)" : "MENU (M)", buttonStyle)) panel.ToggleOpen();
         if (panel.Open)
