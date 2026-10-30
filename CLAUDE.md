@@ -51,6 +51,7 @@ See `README.md` for controls, `docs/ROADMAP.md` for what's next and `docs/DEVLOG
 | `Assets/Scripts/DesktopMode.cs` | PC desktop version in the same exe: VR if the OpenXR session is focused within 6 s, else XR off + monitor (`-desktop` / `-vr`, F9); mouse look / orbit, mouse fed into `VRHands` as the right hand (pick proxies on layer 30), on-screen menu from `CabPanel` entries |
 | `Assets/Scripts/QualityTier.cs` | Quest / PC tier at start: PC = model renderers cast shadows, `ShadowProxy` off; `CurrentBudget` for environment assets |
 | `Assets/Scripts/PerfBenchmark.cs` | Version benchmark: fixed machine state, scripted 63 s drive, per-frame frame / CPU / GPU / XR runtime times → `persistentDataPath/Benchmark/` (summary, CSV, stills). Results in `docs/benchmark/` (Quest: `adb pull /sdcard/Android/data/com.sapientia.tractorvr/files/Benchmark`, with `MSYS_NO_PATHCONV=1` in Git Bash) |
+| `tools/benchmark_charts.py` | README charts (light + dark PNGs) from the `docs/benchmark/` runs listed in `RUNS`; needs matplotlib |
 | `Assets/Scripts/Editor/VersionStills.cs` + `tools/compare_stills.py` | Fixed-viewpoint stills at both quality levels → `Logs/Quality/`, then side-by-side sheets → `docs/images/quality_*.png` |
 | `Assets/Scenes/TractorFlat.unity` | Generated scene (do not hand-edit, see below) |
 

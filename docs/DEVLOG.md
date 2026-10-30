@@ -868,8 +868,8 @@ kept for reference: its third-person phase also had a 3 s GPU peak of 19 ms in t
 | fps cab / third person | 71.8 / 71.8 | 89.7 / 89.7 | 143.9 / 144.0 |
 | Frame time p99 | 13.9 ms | 11.2 ms | 7.0 ms |
 | Frames over budget (>110 %) | 0.0 % | 0.1 % | 0.0 % |
-| GPU time avg (p95) | 9.7 ms (10.4) | 2.1 ms (2.6) | 2.0 ms (3.5) |
-| GPU share of the budget | 70 % | 19 % | 29 % |
+| GPU time avg (p95) | 9.6 ms (10.4) | 2.1 ms (2.6) | 2.0 ms (3.5) |
+| GPU share of the budget | 69 % | 18 % | 29 % |
 | Compositor GPU | 1.4 ms | 0.8 ms | – |
 | Dropped frames (60 s) | 5 | 0 | – |
 
@@ -885,3 +885,11 @@ Visible differences: on PC the tractor shadows itself (exhaust and cab on the bo
 of the stand-in's blocks; full-detail meshes up close; soft shadows reaching 80 m (the machine shed's shadow shows in the far view).
 
 **Phase 4 closed (2026-10-31).**
+
+**Charts** (same day): `tools/benchmark_charts.py` (matplotlib, installed with `pip --user`) draws two charts in a light and a dark variant
+for the README (`<picture>` picks the one matching the GitHub theme): GPU time against each frame budget, and frame / GPU time over the
+drive as one panel per version on a shared axis. Colours from the dataviz reference palette (its first two categorical slots, documented as
+validated in both modes; the validator itself needs Node.js, which isn't installed). Found while drawing: on the Quest, Unity's
+`FrameTimingManager` repeats its previous GPU reading (the still rendered just before the timer) for the first 38 frames (21.3 ms while the frame
+time is a steady 13.9 ms). The charts drop that leading run; without it the Quest GPU average is 9.55 ms (69 %), not 9.65 (70 %), and the table
+above is corrected. The summary.txt files keep the raw values.

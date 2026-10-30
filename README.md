@@ -313,7 +313,20 @@ Same scripted 60 s drive in each version (cab panel / menu **BENCHMARK**, F8, or
 | Render target | 1440×1584 per eye | 1998×2036 per eye | 1920×1080 |
 | Average fps | 71.8 | 89.7 | 143.9 |
 | Frames over budget | 0.0 % | 0.1 % | 0.0 % |
-| GPU time per frame | 9.7 ms (70 % of 13.9) | 2.1 ms (19 % of 11.1) | 2.0 ms |
+| GPU time per frame | 9.6 ms (69 % of 13.9) | 2.1 ms (18 % of 11.1) | 2.0 ms (29 % of 6.9) |
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/bench_gpu_dark.png">
+  <img alt="GPU time per frame against the frame budget: Quest 9.6 of 13.9 ms, PC VR 2.1 of 11.1 ms, PC desktop 2.0 of 6.9 ms" src="docs/images/bench_gpu_light.png">
+</picture>
+
+Every version holds its refresh rate for the whole drive (the frame time sits on the budget line); the GPU line shows the headroom.
+Charts: `python tools/benchmark_charts.py`.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/bench_timeline_dark.png">
+  <img alt="Frame time and GPU time over the 60 s drive, one panel per version" src="docs/images/bench_timeline_light.png">
+</picture>
 
 The same viewpoints at the two quality levels (PC VR and desktop use the PC level): real tractor shadows instead of a stand-in,
 full-detail meshes, soft shadows out to 80 m.
