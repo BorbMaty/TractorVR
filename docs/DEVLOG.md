@@ -893,3 +893,15 @@ validated in both modes; the validator itself needs Node.js, which isn't install
 `FrameTimingManager` repeats its previous GPU reading (the still rendered just before the timer) for the first 38 frames (21.3 ms while the frame
 time is a steady 13.9 ms). The charts drop that leading run; without it the Quest GPU average is 9.55 ms (69 %), not 9.65 (70 %), and the table
 above is corrected. The summary.txt files keep the raw values.
+
+## 2026-10-31: Phase 5 kick-off (environment with Blender)
+Brainstorm with the user, decisions:
+- **Look**: Transylvanian countryside (rolling hills, wooden fences, a village with a church spire on the horizon).
+- **Sources**: Poly Haven (CC0: textures, HDRI sky, plants) + models scripted in Blender through blender-mcp (Blender 5.2.3 LTS,
+  addon 1.8). Sketchfab / Poly Pizza (mixed licences) and the AI generators (credits, rough machinery shapes) stay off.
+- **Implements**: remake the four existing ones (plough, mower, trailer, front weight) with the same sizes and coupling points; no new ones.
+- **Order**: pipeline (step 0) → farmyard → implements → fields + crops → landscape → tutorial places.
+- **New items** (user): speed bumps, to see the suspension and hydraulics working (the front axle cylinders are still static), and
+  steep parts to practise driving up and down (the generated hills stop at ~11°).
+- Noted: the mower is a grass mower, so the cuttable crop is a meadow; a maize / wheat field stands next to it for the look.
+- Budget from phase 4: ~4 ms of Quest GPU left. Every asset gets a full (PC) and a light (Quest) version.

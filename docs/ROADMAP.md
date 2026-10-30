@@ -1,5 +1,10 @@
 # Roadmap
 
+## ▶ Where we left off (2026-10-31)
+**Phase 5 started**: plan agreed with the user (see phase 5 below): Transylvanian look, Poly Haven + Blender scripts, implements
+remade, farmyard first, plus speed bumps and steep practice slopes. Next: step 0 (pipeline + one asset measured on the Quest).
+Still open from phase 4: the desktop screen UI item is marked "⏳ user test".
+
 ## ▶ Where we left off (2026-10-30, end of day)
 **Phase 3 is complete** (user's headset check, 2026-10-30): reset-with-trailer bug fixed, step 1 ground + layout, step 2 traction,
 step 4 cab switches + lights (after a fix: pointing at a switch with hand tracking grabbed the remote levers). Step 3 (fields + crops)
@@ -206,15 +211,46 @@ Shared:
 - [x] Quality tiers in setup (Quest / PC) that the environment assets of phase 5 plug into: `QualityTier.CurrentBudget` (detail distance,
   vegetation density, terrain shadows), LOD threshold and shadows per level. Built 2026-10-30
 
-## Phase 5: environment with Blender (planned 2026-10-30)
+## Phase 5: environment with Blender (planned 2026-10-30, started 2026-10-31)
 Made with Blender through blender-mcp, exported to Unity; every asset in a full (PC) and a light (Quest) version, checked on all three builds.
-Moved here from phase 3 step 3 and phase 2:
-- [ ] Standing crop rows on the crop field, cut by the mower
-- [ ] Ploughed ground look (furrows, darker soil) where the plough has been
-- [ ] Field with crop rows (phase 2 environment item)
-New:
-- [ ] Better farmyard (barn, machine shed, fences, details), field edges, trees / hedges, roadside
-- [ ] Places the tutorial needs (phase 6): parking spots for the implements, a practice area
+
+Decisions (user, 2026-10-31): **Transylvanian countryside** look (rolling hills, wooden fences, a village with a church spire on the
+horizon); **Poly Haven** (CC0) for textures, sky and plants, everything else modelled by scripts in Blender; the implements are
+**remade** (same four, no new ones); **farmyard first**. New: speed bumps (to see the suspension and hydraulics work) and steep parts
+to practise driving up and down.
+
+How: Blender Python scripts in `tools/blender/` (reproducible, like `ProjectSetup`), FBX out to `Assets/Models/Env/`, full + light
+version per asset. Quest budget ~4 ms GPU (phase 4): baked AO in the vertex colour, few shared textures, cheap shaders, instancing for
+repeated things, no shadows on Quest except buildings, impostors for far trees, `QualityTier.CurrentBudget` distances (120 m / 400 m).
+
+### Step 0: pipeline
+- [ ] Blender → Unity pipeline: script layout, export settings (metric, +Z forward), full / light versions, import in `ProjectSetup`
+- [ ] One asset end to end, measured on the Quest (GPU ms) before making the rest
+
+### Step 1: farmyard
+- [ ] Barn, open-front machine shed with marked parking bays per implement (tutorial spots), farmhouse
+- [ ] Yard details: grain silos, fuel tank, muck heap / tipping pad for the trailer, bale stack, wooden fences, yard gate
+- [ ] Better yard surface (concrete slabs with wear, dirt at the edges) from Poly Haven textures
+- [ ] Speed bumps (static colliders the wheel rays hit) where the suspension, the front axle cylinders (`Front_Small_Forcer_*`, still
+  static) and a raised implement can be seen working
+- [ ] Steep parts for practice: ramps / embankments up and down (steeper than the hills' ~11°), e.g. a silage clamp in the yard and an
+  earth ramp on the practice area. Check the comfort rules (pitch is seen from the cab) and the physics limits (`PhysicsTest` steepest hill)
+
+### Step 2: implements remade (same sizes and coupling points, so `Hitch` / `Implement` stay)
+- [ ] Plough, disc mower, tipping trailer, front weight in Blender: frames, hoses, bolts, decals, worn edges, dirt
+
+### Step 3: fields + crops (moved here from phase 3 step 3 and phase 2)
+- [ ] Standing crop on the crop field, cut by the mower (a grass / alfalfa meadow: the mower is a grass mower), swath behind it
+- [ ] Ploughed ground look (furrows in the ploughing direction, darker soil) where the plough has been
+- [ ] Field with crop rows (phase 2 environment item): maize or wheat next to the meadow, for the look
+- [ ] Field edges: headlands, gates, ditches, hedges
+
+### Step 4: landscape
+- [ ] Sky (Poly Haven HDRI), tree lines, woods, roadside (poles, signs), grass tufts near the camera
+- [ ] Village silhouette with a church spire on the horizon
+
+### Step 5: tutorial places (phase 6)
+- [ ] Practice area: cones, a reversing bay for the trailer, coupling spots
 
 ## Phase 6: free roam + tutorial modes (planned 2026-10-30)
 - [ ] Start menu: FREE ROAM (as now) / TUTORIAL
