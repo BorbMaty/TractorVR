@@ -750,3 +750,16 @@ panel (from the front: seen from the seat, the 4WD rocker hides behind remote le
 control lands in the picture (`WorldToScreenPoint`, flagged when outside). `tools/annotate_guide.py` puts the render between two label
 columns, stacks the boxes near their control's height without overlaps and draws the arrows. The panel buttons carry their own
 labels, so the README explains them in a table instead.
+
+## 2026-10-30 (evening): Plan for phases 4–6; blender-mcp installed
+The user wants two modes (free roam + tutorial), a better environment made with Blender, and, because the Quest GPU is weak, a
+version where the laptop renders (PC VR over Link) plus a PC desktop version. Agreed order: **phase 4 versions → phase 5 environment →
+phase 6 tutorial**. The versions first, because they set each version's graphics budget before any art is made (every Blender asset gets a
+full and a light version) and editor play through Link speeds up the testing; the environment before the tutorial, whose lessons
+are tied to places. The old "PC VR build" and "Environment art" sections of the ROADMAP became phases 4 and 5.
+
+blender-mcp (github.com/ahujasid/blender-mcp, add-on v1.8): Blender 5.2 and uv were already installed. The MCP server is registered
+with Claude Code (`claude mcp add blender -- uvx blender-mcp`, local config for `Irum_proj`; connects). The add-on was read before
+installing: socket server on localhost:9876 that runs what the MCP client sends, telemetry off by default, optional online asset
+sources (Poly Haven, Sketchfab, generators) off unless switched on. Copied to `%APPDATA%\Blender Foundation\Blender.2\scriptsddonsblender_mcp_addon.py`; it still has to be enabled once in Blender (Preferences → Add-ons), the command-line enable was blocked.
+

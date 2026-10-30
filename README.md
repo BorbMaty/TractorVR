@@ -31,14 +31,21 @@ Docs: [Roadmap](docs/ROADMAP.md) · [Development log](docs/DEVLOG.md) · [CLAUDE
 ### Phase 3: physics, terrain, cab buttons ✅ done
 1. ✅ **Ground + layout**: farmyard, roads, fields, mud; grip and rolling resistance per surface
 2. ✅ **Traction**: wheel slip per tyre and ground, wheels that spin and throw clods, 4WD on/off, diff lock, all-wheel / rear brakes
-3. ↪ **Fields + crops**: moved to "Environment art" (to be done with Blender later)
+3. ↪ **Fields + crops**: moved to phase 5 (environment with Blender)
 4. ✅ **Cab buttons + lights**: pressable console switches (road-light knob, work lights, beacon, hazards,
    4WD, diff lock, PTO), indicator stalk, headlights / side + tail / brake lights / indicators / work lights / beacons, DAY / DUSK / NIGHT
 
-### Next (not scheduled yet)
-- **Environment art** (with Blender): standing crops the mower cuts, the look of ploughed ground, field details
-- **PC VR build** over Quest Link next to the standalone one (full-detail model, real shadows, 90 Hz)
-- Future ideas: working mirrors, original model textures. See the [Roadmap](docs/ROADMAP.md).
+### Phase 4: three versions ⏳ next
+Quest standalone (as now), **PC VR** (the laptop renders, streamed to the headset over Link: full-detail model, real shadows, 90 Hz)
+and a **PC desktop** version on the monitor.
+
+### Phase 5: environment with Blender ⏳ planned
+Crops the mower cuts, the look of ploughed ground, a better farmyard, trees and field edges; each asset in a full and a light version.
+
+### Phase 6: free roam + tutorial ⏳ planned
+A start menu with FREE ROAM and TUTORIAL; step-by-step lessons in the headset that show which control to use.
+
+Future ideas: working mirrors, original model textures. See the [Roadmap](docs/ROADMAP.md).
 
 ## What's in it
 

@@ -3,10 +3,16 @@
 ## ▶ Where we left off (2026-10-30, end of day)
 **Phase 3 is complete** (user's headset check, 2026-10-30): reset-with-trailer bug fixed, step 1 ground + layout, step 2 traction,
 step 4 cab switches + lights (after a fix: pointing at a switch with hand tracking grabbed the remote levers). Step 3 (fields + crops)
-moved to "Environment art (with Blender, later)": the user will do it with Blender.
+moved to phase 5 (environment with Blender).
 
-Not scheduled yet, to choose next: the PC VR build over Quest Link (planned 2026-10-19), the environment art with Blender, or a
-new phase 4.
+**Plan agreed 2026-10-30** (user): two modes, free roam and a tutorial; a better environment made with Blender (blender-mcp);
+three versions because the Quest GPU is weak. Order: **phase 4 versions → phase 5 environment → phase 6 tutorial**:
+- the versions first: they set the graphics budget per version before any art is made (each Blender asset gets a full and a light
+  version from the start), and playing from the editor through Link speeds up all the later testing;
+- the environment second: the tutorial's lessons are tied to places (the shed, the field gate, the fields);
+- the tutorial last, on the final map and controls (the cab guide's control positions can highlight what to touch).
+
+Next: phase 4. blender-mcp installed 2026-10-30 for phase 5.
 
 ## Earlier: end of day 2026-10-21
 **Phases 1 and 2 are complete** (user's headset test, 2026-10-21). Batches 1–3 finished every open item:
@@ -108,7 +114,7 @@ First block, chosen 2026-10-17: **steering wheel + drivetrain** (biggest effect 
 ### Environment
 - [x] Terrain with gentle hills (2 × 2 km, generated at runtime, slopes up to ~11°, flat start area), haze, lower sun. Built 2026-10-17, ✅ headset-tested 2026-10-17
 - [x] Roads and a farmyard: done in phase 3 step 1
-- [ ] Field with crop rows → moved to phase 3 step 3, then to "Environment art (with Blender, later)" (2026-10-30)
+- [ ] Field with crop rows → moved to phase 3 step 3, then to phase 5, environment with Blender (2026-10-30)
 
 ### VR interaction (block 3)
 - [x] Real Quest 2 controller models
@@ -149,7 +155,7 @@ hydraulic levers, pressable switches, lights, and keep the cab panel. Order (eac
   locks off above 12° steering or 15 km/h): panel buttons + F / L / B. Built 2026-10-30, ✅ headset-checked 2026-10-30
 
 ### Step 3: fields + crops → moved (2026-10-30)
-Skipped by the user's decision: environment work will be done with Blender. Both items are in "Environment art (with Blender, later)".
+Skipped by the user's decision: environment work will be done with Blender. Both items are in phase 5 (environment with Blender).
 (Ploughed ground already gets its own grip and draft since step 1; what is left is the look and the crops.)
 
 ### Step 4: cab buttons
@@ -161,9 +167,12 @@ Skipped by the user's decision: environment work will be done with Blender. Both
   beacons; lens discs + halos, real spot lights for head / work lights; DAY / DUSK / NIGHT. Built 2026-10-30, ✅ headset-checked 2026-10-30
 - [x] Keep the cab panel as the easy way to reach everything (31 buttons in three columns now)
 
-## PC VR build (Quest Link), alongside the standalone build (planned 2026-10-19, not scheduled yet)
-Two builds from the same project: the optimised **standalone Android** build stays the main deliverable, and a **PC VR** build renders on the
-laptop (RTX 3060 Laptop 6 GB, Ryzen 7 5800H, 16 GB) and streams to the Quest 2 over Link. The 750k-triangle model is cheap for that GPU.
+## Phase 4: three versions — Quest standalone, PC VR over Link, PC desktop (planned 2026-10-30)
+From the same project: the optimised **Quest standalone** (Android) build stays as it is; a **PC VR** build renders on the laptop
+(RTX 3060 Laptop 6 GB, Ryzen 7 5800H, 16 GB) and streams to the Quest 2 over Link / Air Link (the 750k-triangle model is cheap for that
+GPU); a **PC desktop** build runs on the monitor without a headset (assumed meaning of "standalone PC version": to be confirmed).
+
+PC VR (planned 2026-10-19):
 - [ ] Laptop setup: install the Meta Quest Link app, set it as the active OpenXR runtime, allow unknown sources; force OVRServer and Unity / the build onto the NVIDIA GPU
 - [ ] Cable: USB-C with USB 3 data (Link cable or a good 3–5 m cable); Air Link is an option: a 5 GHz Wi-Fi network is available (best with the laptop on Ethernet to the router, headset close to it)
 - [ ] Play mode through Link in the Editor (faster test loop, no APK install)
@@ -172,11 +181,31 @@ laptop (RTX 3060 Laptop 6 GB, Ryzen 7 5800H, 16 GB) and streams to the Quest 2 o
 - [ ] Platform-specific settings so the Android build keeps its optimisations (foveation, LODs, shadow stand-in)
 - [ ] Measure and compare both builds (frame time, image quality, latency) for the documentation
 
-## Environment art (with Blender, later; moved here 2026-10-30)
-The user will do the environment with Blender. Moved from phase 3 step 3 and phase 2:
+PC desktop:
+- [ ] Non-VR camera rig: mouse look in the cab, third-person orbit; keyboard / gamepad driving (the bindings exist)
+- [ ] Screen UI instead of the in-cab panel (same functions), mouse clicks on the switches and levers
+- [ ] Desktop quality level (as PC VR), windowed / fullscreen, resolution
+
+Shared:
+- [ ] Quality tiers in setup (Quest / PC) that the environment assets of phase 5 plug into (LOD, draw distance, shadows, vegetation density)
+
+## Phase 5: environment with Blender (planned 2026-10-30)
+Made with Blender through blender-mcp, exported to Unity; every asset in a full (PC) and a light (Quest) version, checked on all three builds.
+Moved here from phase 3 step 3 and phase 2:
 - [ ] Standing crop rows on the crop field, cut by the mower
 - [ ] Ploughed ground look (furrows, darker soil) where the plough has been
 - [ ] Field with crop rows (phase 2 environment item)
+New:
+- [ ] Better farmyard (barn, machine shed, fences, details), field edges, trees / hedges, roadside
+- [ ] Places the tutorial needs (phase 6): parking spots for the implements, a practice area
+
+## Phase 6: free roam + tutorial modes (planned 2026-10-30)
+- [ ] Start menu: FREE ROAM (as now) / TUTORIAL
+- [ ] Tutorial engine: steps with a goal and a check (e.g. "start the engine", "drive to the shed", "couple the plough"), in-headset
+  prompts, highlight of the control to use (positions from the cab guide), skip / repeat
+- [ ] Lessons: driving and the cab, gearbox and hand throttle, hitch and implements, ploughing, mowing, trailer and tipping,
+  traction (4WD, diff lock), lights and road driving
+- [ ] Works in all three versions (VR hands / controllers, desktop mouse)
 
 ## Future ideas / reference (not scheduled)
 - **Working mirrors**: the model has three parts with the `mirror` material. One small render-texture camera per mirror (mono, from the reflected
