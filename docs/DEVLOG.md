@@ -841,3 +841,5 @@ Also from the Link app: the headset is on a USB 2 connection ("USB 3 recommended
 own off switch (`DISABLE_LAYER_AMD_SWITCHABLE_GRAPHICS_1=1`, from its manifest `amd-vulkan64.json`) vulkaninfo lists GPU0 = RTX 3060,
 GPU1 = AMD. Set as a **user environment variable** (OVRServer runs as the user). Needs a sign-out or restart to reach the Link processes. ⏳ user check.
 (Also present: a "SudoMaker Virtual Display Adapter" virtual display driver; not touched, a suspect if Link still fails.)
+**Result:** after the restart the Link dashboard starts (no Vulkan errors), and `TractorVR.exe` runs in the headset over Link (USB 2 cable).
+User: "works beautifully". ✅ PC VR over Link working, 2026-10-30.

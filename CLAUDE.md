@@ -168,6 +168,10 @@ $u = "C:\Program Files\Unity\Hub\Editor\6000.6.3f1\Editor\Unity.exe"
 - **Desktop mode**: layer 30 (`DesktopMode.PickLayer`) holds the mouse-pick proxies; ground / wheel rays must leave it out. New cab controls work
   with the mouse for free if they use `VRHands` (GrabPoint / PokeTip) and their mesh is readable (generated). Batch-mode tests have no XR, so
   `PlayModeTest` runs in desktop mode.
+- **Quest Link on this laptop** (AMD iGPU + RTX 3060): NVIDIA driver 591.86 (the Link app warns about newer ones); the AMD driver's
+  `VK_LAYER_AMD_switchable_graphics` hides the RTX 3060 from Vulkan and crash-loops the Link dashboard (grey / loading dots), so the user
+  variable `DISABLE_LAYER_AMD_SWITCHABLE_GRAPHICS_1=1` is set; High-performance GPU preference for the Link exes, TractorVR.exe, Unity.
+  Link problems: read `%LOCALAPPDATA%\Oculus\Client_*.txt` / `Service_*.txt` and the game's `Player.log` (session states), check `vulkaninfo --summary`.
 - **Quality tiers**: anything that should look better on PC goes through the quality level (URP asset, LOD threshold) or `QualityTier`,
   never `#if UNITY_ANDROID`, so the editor can preview both. `PlayModeTest` logs the tier; run it at both levels after tier changes.
 - Run `PhysicsTest` after changing the vehicle, and `PlayModeTest` after changing anything that runs in the game
