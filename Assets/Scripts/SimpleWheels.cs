@@ -90,7 +90,7 @@ public class SimpleWheels : MonoBehaviour
     bool Ray(Vector3 o, Vector3 d, float len, out RaycastHit best)
     {
         best = default;
-        int n = Physics.RaycastNonAlloc(o, d, hits, len, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+        int n = Physics.RaycastNonAlloc(o, d, hits, len, Physics.DefaultRaycastLayers & ~(1 << DesktopMode.PickLayer), QueryTriggerInteraction.Ignore);
         float bd = float.MaxValue;
         for (int i = 0; i < n; i++)
             if (hits[i].rigidbody == null && hits[i].distance < bd) { best = hits[i]; bd = best.distance; }

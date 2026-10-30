@@ -16,7 +16,7 @@ Next: phase 4. blender-mcp installed 2026-10-30 for phase 5.
 
 **Phase 4 started (2026-10-30, night):** two quality levels (Quest / PC) with their own URP assets, `QualityTier` (model shadows on PC,
 budget for phase 5 assets), Windows build (`Builds/PC/TractorVR.exe`). Next: the user's first run through Link (cable or Air Link,
-editor play mode + the exe), then measure; the desktop version waits for what "standalone PC version" means.
+editor play mode + the exe), then measure. Desktop version built the same night (the exe plays on the monitor without a headset): user test.
 
 ## Earlier: end of day 2026-10-21
 **Phases 1 and 2 are complete** (user's headset test, 2026-10-21). Batches 1–3 finished every open item:
@@ -174,7 +174,7 @@ Skipped by the user's decision: environment work will be done with Blender. Both
 ## Phase 4: three versions — Quest standalone, PC VR over Link, PC desktop (planned 2026-10-30)
 From the same project: the optimised **Quest standalone** (Android) build stays as it is; a **PC VR** build renders on the laptop
 (RTX 3060 Laptop 6 GB, Ryzen 7 5800H, 16 GB) and streams to the Quest 2 over Link / Air Link (the 750k-triangle model is cheap for that
-GPU); a **PC desktop** build runs on the monitor without a headset (assumed meaning of "standalone PC version": to be confirmed).
+GPU); a **PC desktop** build runs on the monitor without a headset (confirmed by the user 2026-10-30: monitor, mouse and keyboard, no headset).
 
 PC VR (planned 2026-10-19):
 - [ ] Laptop setup: install the Meta Quest Link app, set it as the active OpenXR runtime, allow unknown sources; force OVRServer and Unity / the build onto the NVIDIA GPU
@@ -190,9 +190,11 @@ PC VR (planned 2026-10-19):
 - [ ] Measure and compare both builds (frame time, image quality, latency) for the documentation
 
 PC desktop:
-- [ ] Non-VR camera rig: mouse look in the cab, third-person orbit; keyboard / gamepad driving (the bindings exist)
-- [ ] Screen UI instead of the in-cab panel (same functions), mouse clicks on the switches and levers
-- [ ] Desktop quality level (as PC VR), windowed / fullscreen, resolution
+- [x] Non-VR camera rig: mouse look in the cab (right mouse, zoom), third-person orbit; keyboard / gamepad driving. Same exe: VR when the headset
+  is in use, the monitor otherwise (`DesktopMode`, 2026-10-30). ⏳ user test
+- [x] Screen UI instead of the in-cab panel (same 31 buttons, M), mouse clicks on the switches and drags on the wheel / levers (the mouse is a
+  `VRHands` hand; pick proxies on layer 30). Built 2026-10-30, ⏳ user test
+- [x] Desktop quality level (the PC level), windowed 1600×900 resizable / fullscreen (F11 or the menu), vSync. Built 2026-10-30
 
 Shared:
 - [x] Quality tiers in setup (Quest / PC) that the environment assets of phase 5 plug into: `QualityTier.CurrentBudget` (detail distance,

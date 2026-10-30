@@ -37,7 +37,7 @@ public class CabPanel : MonoBehaviour
     readonly List<Button> buttons = new List<Button>();
     Button tab;
     Transform body;
-    bool open;
+    bool open, hidden;
     float cooldown;
     Font font;
 
@@ -101,6 +101,27 @@ public class CabPanel : MonoBehaviour
         tab = MakeButton("tab", transform, new Vector3((Cols - 1) * 0.5f * (W + Gap), top + 0.018f, 0f), new Vector2(0.07f, 0.03f),
             () => open ? "CLOSE" : "MENU", Toggle, false, 0.009f);
         SetOpen(false);
+        SetHidden(hidden);
+    }
+
+    // ---- desktop version (DesktopMode): the same buttons as an on-screen menu, the in-cab panel hidden
+    public bool Open => open;
+    public void ToggleOpen() => Toggle();
+    public int EntryCount => buttons.Count;
+    public (string label, bool repeat) Entry(int i) => (buttons[i].text(), buttons[i].repeat);
+
+    public void PressEntry(int i)
+    {
+        if (!buttons[i].repeat && click) click.Play();
+        buttons[i].press();
+    }
+
+    public void SetHidden(bool h)
+    {
+        hidden = h;
+        if (body == null) return;   // before Start: applied there
+        body.gameObject.SetActive(open && !hidden);
+        tab.t.gameObject.SetActive(!hidden);
     }
 
     void ToggleUnits()
@@ -123,7 +144,7 @@ public class CabPanel : MonoBehaviour
     void SetOpen(bool o)
     {
         open = o;
-        body.gameObject.SetActive(o);
+        body.gameObject.SetActive(o && !hidden);
     }
 
     Button MakeButton(string id, Transform parent, Vector3 pos, Vector2 size, System.Func<string> text, System.Action press, bool repeat, float textHeight)
@@ -164,6 +185,7 @@ public class CabPanel : MonoBehaviour
     {
         if (tab == null) return;
         if (input.MenuPressed) Toggle();
+        if (hidden) return;
         cooldown -= Time.deltaTime;
         Poke(tab);
         if (open) foreach (var b in buttons) Poke(b);

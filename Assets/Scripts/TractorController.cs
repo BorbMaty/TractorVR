@@ -314,7 +314,7 @@ public class TractorController : MonoBehaviour
     bool GroundRay(Vector3 origin, Vector3 dir, float length, out RaycastHit best)
     {
         best = default;
-        int n = Physics.RaycastNonAlloc(origin, dir, rayHits, length, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+        int n = Physics.RaycastNonAlloc(origin, dir, rayHits, length, Physics.DefaultRaycastLayers & ~(1 << DesktopMode.PickLayer), QueryTriggerInteraction.Ignore);
         float bestDist = float.MaxValue;
         for (int i = 0; i < n; i++)
             if (rayHits[i].rigidbody == null && rayHits[i].distance < bestDist) { best = rayHits[i]; bestDist = best.distance; }

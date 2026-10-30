@@ -304,6 +304,23 @@ The laptop renders at the **PC** quality level (full model, real shadows, soft 4
 3. Either press Play in the Unity editor (it plays at PC quality; *Tractor VR → Quality: Quest* previews the Quest look),
    or run `Builds/PC/TractorVR.exe` (built with *Tractor VR → Build PC (Windows)*). The PC window shows the mirror view.
 
+## PC desktop (monitor, no headset)
+The same `Builds/PC/TractorVR.exe`: if no headset is in use through Link within a few seconds (or you press **D**, or start it with
+`-desktop`), it plays on the monitor. **F9** (or TRY VR in the menu) switches to the headset later; `-vr` waits for it.
+
+![Desktop cab view](docs/images/desktop_cab.png)
+
+| Input | Action |
+|---|---|
+| W / S | speed up / slow down, reverse (lever) |
+| A / D | steer |
+| Right mouse (hold) | look around in the cab / orbit in third person; mouse wheel = zoom / distance |
+| Left mouse | press console switches and CommandCenter buttons; drag the steering wheel rim, speed lever, remote levers, indicator stalk |
+| M | menu: all cab panel buttons on screen |
+| C | cab / third-person view · R look ahead · F11 fullscreen |
+| Q / E, Left Ctrl | hitch up / down (with Ctrl: front linkage) · P PTO · J attach · T gearbox · H horn |
+| G / N / O / Y / , . / U | road lights, work lights, beacon, hazards, indicators, sky |
+
 ## Notes
 - The FBX references external textures (`tex\*.tif`) that weren't included with the model.
   The setup script rebuilds the look from the material names instead (green paint, yellow rims, clear glass).

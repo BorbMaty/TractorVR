@@ -102,6 +102,7 @@ public class VRCameraRig : MonoBehaviour
 
     public void Recenter()
     {
+        if (DesktopMode.Active) return;   // no headset pose; the desktop camera has its own "look ahead" (R)
         Vector3 p = head.localPosition;
         float headYaw = head.localEulerAngles.y;
         Quaternion inv = Quaternion.Euler(0f, -headYaw, 0f);

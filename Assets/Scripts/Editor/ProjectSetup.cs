@@ -2623,6 +2623,16 @@ public static class ProjectSetup
         hands.rightDriver = BuildHand(offset, false, handMat, log);
         BuildCabPanel(rig.transform, vr, tractor, hud.comfort, hands);
 
+        // PC desktop version: same build, on the monitor when no headset is in use (mouse look, mouse hand, screen menu).
+        var desktop = rig.AddComponent<DesktopMode>();
+        desktop.rig = vr;
+        desktop.cam = cam;
+        desktop.headPose = tpd;
+        desktop.hud = hudGo.transform;
+        desktop.panel = rig.GetComponentInChildren<CabPanel>();
+        desktop.vignette = hud.comfort;
+        hands.desktop = desktop;
+
         log.AppendLine("Rig built.");
     }
 

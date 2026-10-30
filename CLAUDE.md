@@ -48,6 +48,7 @@ See `README.md` for controls, `docs/ROADMAP.md` for what's next and `docs/DEVLOG
 | `Assets/Scripts/Editor/CabGuide.cs` + `tools/annotate_guide.py` | README cab guide: renders seat views + control positions (`Logs/Guide/*.json`), then Python (Pillow) draws text boxes + arrows → `docs/images/guide_*.png`. Re-run both when controls change |
 | `Assets/Scripts/Editor/BuildQuest.cs` | APK build → `Builds/TractorVR.apk` |
 | `Assets/Scripts/Editor/BuildPC.cs` | Windows build → `Builds/PC/TractorVR.exe` (`-buildTarget StandaloneWindows64`) |
+| `Assets/Scripts/DesktopMode.cs` | PC desktop version in the same exe: VR if the OpenXR session is focused within 6 s, else XR off + monitor (`-desktop` / `-vr`, F9); mouse look / orbit, mouse fed into `VRHands` as the right hand (pick proxies on layer 30), on-screen menu from `CabPanel` entries |
 | `Assets/Scripts/QualityTier.cs` | Quest / PC tier at start: PC = model renderers cast shadows, `ShadowProxy` off; `CurrentBudget` for environment assets |
 | `Assets/Scenes/TractorFlat.unity` | Generated scene (do not hand-edit, see below) |
 
@@ -164,6 +165,9 @@ $u = "C:\Program Files\Unity\Hub\Editor\6000.6.3f1\Editor\Unity.exe"
   GroundLit samples only the layers present + Blinn-Phong, TriplanarLit projects from the dominant axis only, terrain casts no shadows,
   shadow map 1024, the tractor's shadow comes from a 416-triangle `ShadowProxy` (model renderers don't cast), FBX mesh LODs (625k → 355k / 233k / 151k),
   `QualitySettings.meshLodThreshold` 1.5. Keep new shaders cheap (few texture reads, Blinn-Phong) and new meshes from casting shadows unless needed.
+- **Desktop mode**: layer 30 (`DesktopMode.PickLayer`) holds the mouse-pick proxies; ground / wheel rays must leave it out. New cab controls work
+  with the mouse for free if they use `VRHands` (GrabPoint / PokeTip) and their mesh is readable (generated). Batch-mode tests have no XR, so
+  `PlayModeTest` runs in desktop mode.
 - **Quality tiers**: anything that should look better on PC goes through the quality level (URP asset, LOD threshold) or `QualityTier`,
   never `#if UNITY_ANDROID`, so the editor can preview both. `PlayModeTest` logs the tier; run it at both levels after tier changes.
 - Run `PhysicsTest` after changing the vehicle, and `PlayModeTest` after changing anything that runs in the game

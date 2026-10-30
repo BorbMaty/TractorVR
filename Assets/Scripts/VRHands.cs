@@ -31,6 +31,7 @@ public class VRHands : MonoBehaviour
     public Transform leftAim, rightAim;             // controller aim poses (the visible controllers)
     public ControllerVisual leftControllerVisual, rightControllerVisual;
     public XRHandSkeletonDriver leftDriver, rightDriver;   // tracked hand meshes (for snapping onto what they hold)
+    public DesktopMode desktop;                     // PC desktop version: the mouse is the right hand
 
     public Hand Left { get; } = new Hand();
     public Hand Right { get; } = new Hand();
@@ -51,6 +52,12 @@ public class VRHands : MonoBehaviour
 
     void Update()
     {
+        if (DesktopMode.Active)
+        {
+            Apply(Left, false, Vector3.zero, false);
+            desktop.FeedHand(Right);
+            return;
+        }
         if (hands == null || !hands.running)
         {
             SubsystemManager.GetSubsystems(found);

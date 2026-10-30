@@ -792,3 +792,28 @@ see them on newer drivers, and Air Link with sliced encoding off is reported to 
 
 Waiting on the user: the cable / Air Link and a first run through Link (editor play mode and the exe), 90 Hz in the Link app, and
 what "standalone PC version" means for the desktop part.
+
+## 2026-10-30 (night): Black PC window; desktop version
+**Black window.** The user started `TractorVR.exe` and saw a black window. Player.log: OpenXR connected to the Link runtime and the
+session went IDLE → READY → SYNCHRONIZED but never VISIBLE / FOCUSED: no headset in use through Link, so the app rendered for nobody
+and the window (the headset mirror) stayed black. Not a crash, but a black screen without a headset is bad, and the user confirmed what
+"standalone PC version" means: **on the monitor, mouse and keyboard, no headset**. So the same exe now does both.
+
+**`DesktopMode`** (on the rig, wired by setup):
+- Start-up on Windows / in the editor: VR if the OpenXR session is focused within 6 s (`OpenXRUtility.IsSessionFocused`), with a
+  "waiting for the headset, D = monitor" hint meanwhile; otherwise the XR loader is stopped and deinitialised and the camera renders
+  to the window. `-desktop` / `-vr` force a mode; F9 / TRY VR re-initialises XR later. Android never uses it.
+- Camera: the head's `TrackedPoseDriver` is off. Cab: right mouse = look (±160° / ±75°, starts 12° down), wheel = zoom (FOV 30–90°).
+  Third person: right mouse orbits a pivot 1.8 m above the tractor, wheel = distance (5–30 m). R = look ahead again. vSync on.
+- **Mouse hand**: instead of new mouse code for every control, the mouse is fed into `VRHands` as the right hand, so `CabControls`,
+  `CabSwitches` and `CommandCenter` work unchanged. The ray hits **pick proxies**: static `MeshCollider`s on layer 30 for the 34 readable
+  (generated) meshes within 1.3 m of the seat, moved onto their parts every frame. They can't be colliders on the parts themselves (the tractor
+  is a dynamic Rigidbody). Layer 30 ignores all collisions, and the wheel rays (`TractorController.GroundRay`, `SimpleWheels`) now leave it out.
+  Grab = left button (the drag stays at the depth where it started); the poke tip exists only while the button is down and stays on the part
+  first clicked, so sweeping the mouse doesn't press every switch on the way.
+- **Screen menu**: the cab panel's 31 buttons as an IMGUI menu (M or the MENU button, top right; `CabPanel.Entry / PressEntry`, the
+  in-cab panel hidden with `SetHidden`), plus FULLSCREEN / WINDOW (F11) and TRY VR (F9). Key help at the bottom left; the HUD moves onto
+  the camera (bottom centre); the comfort vignette is off.
+
+Tests: `PlayModeTest` (batch mode has no XR, so it now runs in desktop mode: 34 pick proxies) OK; `PhysicsTest` OK; Windows build OK.
+The exe started with `-desktop` renders the cab on the monitor (`docs/images/desktop_cab.png`). Mouse interaction still needs the user's test.

@@ -89,7 +89,8 @@ public static class PlayModeTest
             input.scriptedThrottle = 0.5f;
             var tier = Object.FindAnyObjectByType<QualityTier>();
             log.AppendLine($"{t:0.0}s quality {QualityTier.Current}: shadow stand-in {(tier.shadowProxy.enabled ? "on" : "off")}, " +
-                           $"{tier.modelRenderers.Count(r => r.shadowCastingMode != UnityEngine.Rendering.ShadowCastingMode.Off)} model renderers cast");
+                           $"{tier.modelRenderers.Count(r => r.shadowCastingMode != UnityEngine.Rendering.ShadowCastingMode.Off)} model renderers cast; " +
+                           $"desktop mode {(DesktopMode.Active ? "on" : "off")}, {Object.FindObjectsByType<MeshCollider>(FindObjectsSortMode.None).Count(c => c.gameObject.layer == DesktopMode.PickLayer)} pick proxies");
             log.AppendLine($"{t:0.0}s drive off");
         });
         Once("speed", 8, t, () => log.AppendLine($"{t:0.0}s speed {tractor.SpeedKmh:0.0} km/h on {tractor.GroundLabel}, gear {tractor.GetComponent<Drivetrain>().GearName}, {tractor.GetComponent<Drivetrain>().Rpm:0} rpm"));
