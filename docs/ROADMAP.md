@@ -185,15 +185,15 @@ PC VR (planned 2026-10-19):
 - [ ] Play mode through Link in the Editor (faster test loop, no APK install)
 - [x] Windows Standalone build profile: OpenXR + Oculus Touch profiles, quality level "PC", Mono + D3D11, windowed; `BuildPC.Build` → `Builds/PC/TractorVR.exe`. Built 2026-10-30
 - [x] PC quality: full model (mesh LOD threshold 0.5), real model shadows instead of the `ShadowProxy` (`QualityTier`), MSAA 4×, render scale 1.2,
-  soft shadows, 4096 shadow map, 80 m. Built 2026-10-30; still to see in the headset
-- [ ] 90 Hz: set in the Link app (Graphics preferences), not by the app
+  soft shadows, 4096 shadow map, 80 m. Built 2026-10-30, ✅ seen in the headset over Link 2026-10-30
+- [x] 90 Hz: set in the Link app (Devices → Quest 2 → Graphics preferences), not by the app. User: "all works amazing" (2026-10-30)
 - [x] Platform-specific settings so the Android build keeps its optimisations: per-platform default quality level (Android → Quest), foveation is
   an Android-only OpenXR feature, the stand-in stays on in the Quest tier. `PlayModeTest` checked at both levels, 2026-10-30
 - [ ] Measure and compare both builds (frame time, image quality, latency) for the documentation
 
 PC desktop:
 - [x] Non-VR camera rig: mouse look in the cab (right mouse, zoom), third-person orbit; keyboard / gamepad driving. Same exe: VR when the headset
-  is in use, the monitor otherwise (`DesktopMode`, 2026-10-30). ⏳ user test
+  is in use, the monitor otherwise (`DesktopMode`, 2026-10-30). ✅ user: "works flawlessly"
 - [x] Screen UI instead of the in-cab panel (same 31 buttons, M), mouse clicks on the switches and drags on the wheel / levers (the mouse is a
   `VRHands` hand; pick proxies on layer 30). Built 2026-10-30, ⏳ user test
 - [x] Desktop quality level (the PC level), windowed 1600×900 resizable / fullscreen (F11 or the menu), vSync. Built 2026-10-30

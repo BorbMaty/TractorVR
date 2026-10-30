@@ -843,3 +843,5 @@ GPU1 = AMD. Set as a **user environment variable** (OVRServer runs as the user).
 (Also present: a "SudoMaker Virtual Display Adapter" virtual display driver; not touched, a suspect if Link still fails.)
 **Result:** after the restart the Link dashboard starts (no Vulkan errors), and `TractorVR.exe` runs in the headset over Link (USB 2 cable).
 User: "works beautifully". ✅ PC VR over Link working, 2026-10-30.
+Refresh rate: the old menu path (Link app → Devices → Quest 2 → Graphics preferences) was given to the user; afterwards: "all works
+amazing". Desktop version: "works flawlessly" (earlier the same evening).
