@@ -3,7 +3,7 @@
 Unity **6000.6.3f1** · URP · OpenXR (Meta Quest feature) · Input System · XR Hands
 
 A VR tractor simulator for the Quest 2: drive a John Deere 6195M from the cab, plough, mow and haul on a hilly farm,
-with real-feeling physics, a working cab and hand tracking. University project (Sapientia Hungarian University of Transylvania, IRUM).
+by day or at night, with real-feeling physics (wheel slip, 4WD, diff lock), a working cab with pressable switches and hand tracking. University project (Sapientia Hungarian University of Transylvania, IRUM).
 
 ![on the farm track](docs/images/hero.png)
 
@@ -35,7 +35,10 @@ Docs: [Roadmap](docs/ROADMAP.md) · [Development log](docs/DEVLOG.md) · [CLAUDE
 4. ✅ **Cab buttons + lights**: pressable console switches (road-light knob, work lights, beacon, hazards,
    4WD, diff lock, PTO), indicator stalk, headlights / side + tail / brake lights / indicators / work lights / beacons, DAY / DUSK / NIGHT
 
-Future ideas (working mirrors, original model textures, hand-control improvements): see the [Roadmap](docs/ROADMAP.md).
+### Next (not scheduled yet)
+- **Environment art** (with Blender): standing crops the mower cuts, the look of ploughed ground, field details
+- **PC VR build** over Quest Link next to the standalone one (full-detail model, real shadows, 90 Hz)
+- Future ideas: working mirrors, original model textures. See the [Roadmap](docs/ROADMAP.md).
 
 ## What's in it
 
@@ -60,6 +63,13 @@ hills, an asphalt road, mud at the field gates and in the hollows. Every surface
 - Fuel use from the engine power (about 41 L/h at full power, 2.5 L/h at idle), coolant that warms up to 85 °C
 - Synthesised sounds: diesel engine following RPM and load (muffled in the cab), shift clunk, reverse beeper, horn
 - **Comfort first**: gentle acceleration, yaw-rate and sideways-force limits, edge vignette (off / low / high)
+
+### Traction
+- Each tyre slips according to the ground under it (asphalt grips, mud lets go); the CommandCenter shows **SLIP %** (ploughing: about 16 %)
+- Wheels turn at their own speed: they spin up when the ground can't take the force and throw soil clods on soft ground;
+  the engine revs follow the wheels
+- **4WD** on / off, **diff lock** (open diffs: in a split-grip spot one wheel spins and the other stands; the lock lets go above 12°
+  steering or 15 km/h), brakes on **all wheels** or the **rear only**
 
 | Third person | Side |
 |---|---|
@@ -95,10 +105,14 @@ Back up or drive up to an implement and press attach.
 ### The cab
 - The steering wheel turns (cut out of the cab mesh), the instrument cluster shows RPM, speed, gear and mode
 - Grab the steering wheel and the speed lever with the controller grips or, with hand tracking, a fist or a pinch
-- Three hydraulic remote levers behind the speed lever (spring-centred): 1 = rear hitch, 2 = front linkage, 3 = trailer tipping (comes with batch 3)
+- Three hydraulic remote levers behind the speed lever (spring-centred): 1 = rear hitch, 2 = front linkage, 3 = trailer tipping
+- **Console switches** you press with a fingertip (cut out of the cab model): road-light knob, hazards, work lights front / rear, beacon,
+  4WD, diff lock, PTO; each moves when pressed and has a small lamp that lights while it's on
+- **Indicator stalk** on the steering column: grab it and push it up / down
 - Doors (rear-hinged, as on the real cab): swing them open by hand, or with the panel's DOORS button
 - CommandCenter display on the right corner post: engine speed, hand throttle, fuel, coolant temperature, fuel use, power, linkage positions, PTO
-- Cab panel with touch buttons (view, comfort, gearbox, hitch, PTO, attach, seat, units, reset, doors, hand throttle, 4WD, diff lock, brakes)
+- Cab panel with 31 touch buttons, everything in one place (view, comfort, gearbox, hitch, PTO, attach, seat, units, reset, doors,
+  hand throttle, tipping, 4WD, diff lock, brakes, lights, work lights, beacon, hazards, indicators, sky)
 - Generated plastic grain, seat fabric and floor mat textures, baked ambient occlusion
 
 | Driver's view | Interior |
@@ -121,8 +135,30 @@ Back up or drive up to an implement and press attach.
 |---|---|
 | ![remote levers](docs/images/remotes.png) | ![door](docs/images/doors_side.png) |
 
+| Console switches (work lights, beacon, hazards, diff lock on) | The console at night |
+|---|---|
+| ![console](docs/images/console_on.png) | ![console at night](docs/images/night_console.png) |
+
+Driver's view at night, headlights on:
+
+![night cab](docs/images/night_cab.png)
+
+### Lights and time of day
+- Headlights, side and tail lights, brake lights, indicators and hazards (ticking, self-cancelling), front and rear work lights,
+  two rotating amber beacons
+- **DAY / DUSK / NIGHT**: sun, sky, ambient light and fog change; at night the headlights and work lights light up the ground
+
+| Night, from the front | Night, from behind (indicator, work lights) |
+|---|---|
+| ![night front](docs/images/night_front.png) | ![night rear](docs/images/night_rear.png) |
+
+| Head and work lights from above | Dusk |
+|---|---|
+| ![night above](docs/images/night_above.png) | ![dusk](docs/images/dusk_third.png) |
+
 ## Controls
-With **hand tracking** (controllers put down): make a fist (or pinch) on the wheel rim, a lever knob or a door to grab, touch the buttons with a fingertip.
+With **hand tracking** (controllers put down): make a fist (or pinch) on the wheel rim, a lever knob, the stalk or a door to grab;
+point with your index finger to press buttons and switches (pointing never grabs).
 The panel's MENU tab is always visible at the right front of the cab.
 
 
@@ -172,9 +208,11 @@ Assets/Scripts/CabControls.cs         grab the steering wheel, the speed lever, 
 Assets/Scripts/CabPanel.cs            cab panel with touch buttons
 Assets/Scripts/CommandCenter.cs       display on the right corner post (fuel, temperature, power, hand throttle)
 Assets/Scripts/CabSwitches.cs         pressable switches on the right-hand console
-Assets/Scripts/TractorLights.cs       lamps, work lights, beacons, indicators, brake lights; day / dusk / night
+Assets/Scripts/TractorLights.cs       lamps, work lights, beacons, indicators, brake lights; day / dusk / night (+ Assets/Shaders/Halo.shader)
+Assets/Scripts/Ground.cs              farm layout + ground map (grip, rolling resistance, draft, slip per surface)
 Assets/Models/Hands/                  hand models (XR Hands sample, Unity Package Distribution License)
 Assets/Scripts/Editor/PhysicsTest.cs  offline driving test         (menu: Tractor VR > Run Physics Test)
+Assets/Scripts/Editor/PlayModeTest.cs real scene in play mode, every button and switch (menu: Tractor VR > Run Play Mode Test)
 Assets/Scripts/VRCameraRig.cs         cab / third-person views, recenter, seat calibration
 Assets/Scripts/Drivetrain.cs          engine (torque curve, hand throttle, fuel, coolant) + 20F/20R gearbox (auto / manual)
 Assets/Scripts/TractorAudio.cs        engine, shift, reverse beeper and horn sounds
@@ -210,8 +248,3 @@ With Quest Link / Air Link, Play mode runs in the headset (Standalone OpenXR is 
   In the cab view the view pitches and rolls with the tractor on slopes. If it ever ends up on its side, it resets to the start after 3 s.
 - Turning is deliberately limited for comfort (max 25°/s yaw, 2.5 m/s² lateral). At speed the tractor turns wide, so slow down for tight turns.
 - If you feel motion sick: set the vignette to high (X), prefer the cab view, keep sessions short.
-
-## Next phase ideas
-- Front loader / 3-point hitch / PTO with the hydraulic parts that are already separate in the model
-  (`Rear_Holder_*`, `Rear_Forcer_*`, `Front_Forcer_*`)
-- Crop rows, roads, a farmyard, better implement models
