@@ -12,7 +12,10 @@ three versions because the Quest GPU is weak. Order: **phase 4 versions → phas
 - the environment second: the tutorial's lessons are tied to places (the shed, the field gate, the fields);
 - the tutorial last, on the final map and controls (the cab guide's control positions can highlight what to touch).
 
-Next: phase 4. blender-mcp installed 2026-10-30 for phase 5.
+Next: phase 5 (environment with Blender). blender-mcp installed 2026-10-30.
+
+**Phase 4 closed 2026-10-31**: three versions from one project (Quest APK; one Windows exe that plays in VR over Link or on the monitor),
+Quest / PC quality levels, benchmark + quality comparison. Budget for phase 5: Quest GPU at 70 % (about 4 ms left), PC VR at 19 %.
 
 **Phase 4 started (2026-10-30, night):** two quality levels (Quest / PC) with their own URP assets, `QualityTier` (model shadows on PC,
 budget for phase 5 assets), Windows build (`Builds/PC/TractorVR.exe`). Next: the user's first run through Link (cable or Air Link,
@@ -171,7 +174,7 @@ Skipped by the user's decision: environment work will be done with Blender. Both
   beacons; lens discs + halos, real spot lights for head / work lights; DAY / DUSK / NIGHT. Built 2026-10-30, ✅ headset-checked 2026-10-30
 - [x] Keep the cab panel as the easy way to reach everything (31 buttons in three columns now)
 
-## Phase 4: three versions — Quest standalone, PC VR over Link, PC desktop (planned 2026-10-30)
+## Phase 4: three versions — Quest standalone, PC VR over Link, PC desktop ✅ done (closed 2026-10-31)
 From the same project: the optimised **Quest standalone** (Android) build stays as it is; a **PC VR** build renders on the laptop
 (RTX 3060 Laptop 6 GB, Ryzen 7 5800H, 16 GB) and streams to the Quest 2 over Link / Air Link (the 750k-triangle model is cheap for that
 GPU); a **PC desktop** build runs on the monitor without a headset (confirmed by the user 2026-10-30: monitor, mouse and keyboard, no headset).
@@ -189,7 +192,8 @@ PC VR (planned 2026-10-19):
 - [x] 90 Hz: set in the Link app (Devices → Quest 2 → Graphics preferences), not by the app. User: "all works amazing" (2026-10-30)
 - [x] Platform-specific settings so the Android build keeps its optimisations: per-platform default quality level (Android → Quest), foveation is
   an Android-only OpenXR feature, the stand-in stays on in the Quest tier. `PlayModeTest` checked at both levels, 2026-10-30
-- [ ] Measure and compare both builds (frame time, image quality, latency) for the documentation
+- [x] Measure and compare the builds (frame time, image quality) for the documentation: `PerfBenchmark` runs of all three versions and
+  `VersionStills` quality sheets, table in the DEVLOG and README (2026-10-31). Latency not measurable from the app (noted)
 
 PC desktop:
 - [x] Non-VR camera rig: mouse look in the cab (right mouse, zoom), third-person orbit; keyboard / gamepad driving. Same exe: VR when the headset

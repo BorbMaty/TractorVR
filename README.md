@@ -304,6 +304,23 @@ The laptop renders at the **PC** quality level (full model, real shadows, soft 4
 3. Either press Play in the Unity editor (it plays at PC quality; *Tractor VR → Quality: Quest* previews the Quest look),
    or run `Builds/PC/TractorVR.exe` (built with *Tractor VR → Build PC (Windows)*). The PC window shows the mirror view.
 
+## The three versions compared
+Same scripted 60 s drive in each version (cab panel / menu **BENCHMARK**, F8, or `TractorVR.exe -benchmark`), results in `docs/benchmark/`.
+
+| | Quest standalone | PC VR (Link, USB 2) | PC desktop |
+|---|---|---|---|
+| Refresh rate | 72 Hz | 90 Hz | 144 Hz (vSync) |
+| Render target | 1440×1584 per eye | 1998×2036 per eye | 1920×1080 |
+| Average fps | 71.8 | 89.7 | 143.9 |
+| Frames over budget | 0.0 % | 0.1 % | 0.0 % |
+| GPU time per frame | 9.7 ms (70 % of 13.9) | 2.1 ms (19 % of 11.1) | 2.0 ms |
+
+The same viewpoints at the two quality levels (PC VR and desktop use the PC level): real tractor shadows instead of a stand-in,
+full-detail meshes, soft shadows out to 80 m.
+
+![Quality levels compared](docs/images/quality_compare.png)
+![Quality detail](docs/images/quality_detail.png)
+
 ## PC desktop (monitor, no headset)
 The same `Builds/PC/TractorVR.exe`: if no headset is in use through Link within a few seconds (or you press **D**, or start it with
 `-desktop`), it plays on the monitor. **F9** (or TRY VR in the menu) switches to the headset later; `-vr` waits for it.

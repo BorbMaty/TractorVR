@@ -845,3 +845,43 @@ GPU1 = AMD. Set as a **user environment variable** (OVRServer runs as the user).
 User: "works beautifully". ✅ PC VR over Link working, 2026-10-30.
 Refresh rate: the old menu path (Link app → Devices → Quest 2 → Graphics preferences) was given to the user; afterwards: "all works
 amazing". Desktop version: "works flawlessly" (earlier the same evening).
+
+## 2026-10-31: Version comparison (benchmark + quality stills); phase 4 closed
+**`PerfBenchmark`** (cab panel / screen menu BENCHMARK, F8, `-benchmark`): resets the tractor (automatic gearbox, hand throttle idle,
+PTO off, day), 3 s settle, 30 s cab view driving straight out of the yard at 0.55 throttle (25.5 km/h), 30 s third person with a gentle
+left turn. Every frame: frame time, Unity `FrameTimingManager` CPU / GPU (`enableFrameTimingStats` on), and in VR the runtime's
+`XR_META_performance_metrics` through `XRStats` (`perfmetrics.appgputime`, `perfmetrics.compositorgputime`,
+`appstats.compositordroppedframes`; units checked: the XR app GPU time equals the FrameTimingManager GPU time in ms). Output in
+`persistentDataPath/Benchmark/<version>_<time>/` (summary.txt, frames.csv, two stills); runs kept in `docs/benchmark/`.
+Fixes found on the way: the gearbox mode is remembered between sessions, and manual mode held the first desktop run at 3 km/h in B2, so
+the benchmark now sets a fixed machine state. Reading a still back stalls the next frame (one 120 ms frame on the PC, ~20 dropped frames
+on the Quest), so the stills are now taken outside the timed drive. A still read from a multisampled target came out black on the Quest
+(Vulkan), so it now renders to a single-sampled one (URP still applies MSAA). The first Quest run (`QuestStandalone_..._first`) is
+kept for reference: its third-person phase also had a 3 s GPU peak of 19 ms in the turn, which the second run didn't repeat.
+
+| | Quest standalone | PC VR (Link, USB 2) | PC desktop |
+|---|---|---|---|
+| Hardware | Quest 2 (Adreno 650, Vulkan) | RTX 3060 Laptop (D3D11), streamed | RTX 3060 Laptop, monitor |
+| Quality level | Quest | PC | PC |
+| Refresh / frame budget | 72 Hz / 13.9 ms | 90 Hz / 11.1 ms | 144 Hz (vSync) / 6.9 ms |
+| Render target | 1440×1584 per eye, scale 1.0, foveation MEDIUM | 1998×2036 per eye (scale 1.2) | 1920×1080 (scale 1.2) |
+| fps cab / third person | 71.8 / 71.8 | 89.7 / 89.7 | 143.9 / 144.0 |
+| Frame time p99 | 13.9 ms | 11.2 ms | 7.0 ms |
+| Frames over budget (>110 %) | 0.0 % | 0.1 % | 0.0 % |
+| GPU time avg (p95) | 9.7 ms (10.4) | 2.1 ms (2.6) | 2.0 ms (3.5) |
+| GPU share of the budget | 70 % | 19 % | 29 % |
+| Compositor GPU | 1.4 ms | 0.8 ms | – |
+| Dropped frames (60 s) | 5 | 0 | – |
+
+Latency: not measured. Motion-to-photon isn't reported through this path, and the Link encoding / USB stream happens outside the app.
+Reading: every version holds its refresh rate. The Quest uses 70 % of its GPU budget, so phase 5's environment has about 4 ms there
+(light versions of every asset). PC VR uses under a fifth of its GPU budget: the picture over Link is limited by the USB 2 stream, not by
+the laptop, and the PC level has room for a higher render scale and the full environment assets.
+
+**Quality stills** (`VersionStills`, menu *Tractor VR → Render Quality Comparison*, + `tools/compare_stills.py`): the benchmark stills
+from the headset follow the head (the PC VR one looked up at the open cab panel), so the image comparison renders fixed viewpoints in the
+editor at both quality levels (PC VR and desktop share the PC level): `docs/images/quality_compare.png`, `quality_detail.png`.
+Visible differences: on PC the tractor shadows itself (exhaust and cab on the bonnet) and its ground shadow has the real outline instead
+of the stand-in's blocks; full-detail meshes up close; soft shadows reaching 80 m (the machine shed's shadow shows in the far view).
+
+**Phase 4 closed (2026-10-31).**
