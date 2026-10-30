@@ -1,21 +1,12 @@
 # Roadmap
 
-## ▶ Where we left off (2026-10-30)
-The reset-with-trailer bug is fixed and **phase 3 step 2 (traction) is done**, ✅ headset-checked 2026-10-30.
-Environment work (phase 3 step 3, fields + crops) is moved to "Environment art (with Blender, later)" below: the user will do it
-with Blender.
+## ▶ Where we left off (2026-10-30, end of day)
+**Phase 3 is complete** (user's headset check, 2026-10-30): reset-with-trailer bug fixed, step 1 ground + layout, step 2 traction,
+step 4 cab switches + lights (after a fix: pointing at a switch with hand tracking grabbed the remote levers). Step 3 (fields + crops)
+moved to "Environment art (with Blender, later)": the user will do it with Blender.
 
-**Phase 3 step 4 (cab buttons + lights) is built**, in the APK installed on the headset, ⏳ headset check. What to try:
-- the switches on the right-hand console (touch them): the knob on top (OFF / SIDE / HEAD), the round button next to it (hazards),
-  the rockers (front work lights, rear work lights, beacon), and at the front 4WD, diff lock, PTO; each has a small lamp;
-- the indicator stalk left of the steering column (grip it, push up / down), then turn and straighten up: it should cancel;
-- panel SKY → DUSK / NIGHT, with headlights, work lights and beacons on; check the view from the cab and the frame rate at night
-  (up to 4 extra lights);
-- whether a switch flips by accident while grabbing the remote levers or the steering wheel next to the stalk.
-- fixed after the first try: pointing at a switch (hand tracking) counted as a fist and grabbed the remote levers / wheel; check that
-  pressing switches no longer grabs anything and the remote levers are still easy to take (reach now 4 cm).
-
-After that check, phase 3 is done (step 3 moved to the Blender section).
+Not scheduled yet, to choose next: the PC VR build over Quest Link (planned 2026-10-19), the environment art with Blender, or a
+new phase 4.
 
 ## Earlier: end of day 2026-10-21
 **Phases 1 and 2 are complete** (user's headset test, 2026-10-21). Batches 1–3 finished every open item:
@@ -139,7 +130,7 @@ Hand-control improvements (from the hand-tracking tests, built 2026-10-18 in bat
 
 Done first in phase 2: **drivetrain + turning steering wheel** (see above).
 
-## Phase 3: physics, terrain, cab buttons (started 2026-10-18)
+## Phase 3: physics, terrain, cab buttons ✅ done (closed 2026-10-30)
 Chosen 2026-10-18 from a list: soil + wheel slip, brakes + diff lock + 4WD; fields + crop rows, roads + farmyard, varied ground;
 hydraulic levers, pressable switches, lights, and keep the cab panel. Order (each step needs the one before):
 
@@ -165,9 +156,9 @@ Skipped by the user's decision: environment work will be done with Blender. Both
 - [x] The three hydraulic remote levers on the armrest: grabbable, move the hitch / front linkage / trailer tipping (done in phase 2, batches 2 and 3)
 - [x] Pressable switches on the right-hand console, cut out of the cab model: road-light knob, hazards button, front / rear work lights,
   beacon, 4WD, diff lock, PTO (a lamp in each), plus the indicator stalk on the column (grab, up / down, self-cancelling).
-  Built 2026-10-30, ⏳ headset check. (The corner post has no switches in the model: the CommandCenter sits there.)
+  Built 2026-10-30, ✅ headset-checked 2026-10-30. (The corner post has no switches in the model: the CommandCenter sits there.)
 - [x] Lights: headlights, side + tail lights, brake lights, indicators + hazards (ticking), front / rear work lights, two rotating
-  beacons; lens discs + halos, real spot lights for head / work lights; DAY / DUSK / NIGHT. Built 2026-10-30, ⏳ headset check
+  beacons; lens discs + halos, real spot lights for head / work lights; DAY / DUSK / NIGHT. Built 2026-10-30, ✅ headset-checked 2026-10-30
 - [x] Keep the cab panel as the easy way to reach everything (31 buttons in three columns now)
 
 ## PC VR build (Quest Link), alongside the standalone build (planned 2026-10-19, not scheduled yet)

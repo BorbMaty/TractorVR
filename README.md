@@ -28,11 +28,11 @@ Docs: [Roadmap](docs/ROADMAP.md) · [Development log](docs/DEVLOG.md) · [CLAUDE
 - **Cab visuals**: generated interior textures and baked ambient occlusion
 - **Cab + engine extras**: opening doors, CommandCenter display (fuel, coolant temperature, power), torque curve, hand throttle
 
-### Phase 3: physics, terrain, cab buttons 🚧 in progress
+### Phase 3: physics, terrain, cab buttons ✅ done
 1. ✅ **Ground + layout**: farmyard, roads, fields, mud; grip and rolling resistance per surface
 2. ✅ **Traction**: wheel slip per tyre and ground, wheels that spin and throw clods, 4WD on/off, diff lock, all-wheel / rear brakes
 3. ↪ **Fields + crops**: moved to "Environment art" (to be done with Blender later)
-4. ✅ **Cab buttons + lights** (built, headset check pending): pressable console switches (road-light knob, work lights, beacon, hazards,
+4. ✅ **Cab buttons + lights**: pressable console switches (road-light knob, work lights, beacon, hazards,
    4WD, diff lock, PTO), indicator stalk, headlights / side + tail / brake lights / indicators / work lights / beacons, DAY / DUSK / NIGHT
 
 Future ideas (working mirrors, original model textures, hand-control improvements): see the [Roadmap](docs/ROADMAP.md).
