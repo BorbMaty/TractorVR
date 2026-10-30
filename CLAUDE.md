@@ -6,10 +6,12 @@ See `README.md` for controls, `docs/ROADMAP.md` for what's next and `docs/DEVLOG
 
 ## Stack
 - Unity **6000.6.3f1** (installed at `C:\Program Files\Unity\Hub\Editor\6000.6.3f1`, Android module + SDK/NDK/JDK included)
-- URP 17.6 (asset generated in `Assets/Generated/QuestURP.asset`), Linear color space
+- URP 17.6, Linear color space. Two quality levels (phase 4): **Quest** (`Generated/QuestURP.asset`, Android default) and **PC**
+  (`Generated/PCURP.asset`, Windows default; the editor plays at PC, menu *Tractor VR → Quality: …* switches)
 - OpenXR 1.18 + XR Management 4.7. Android: Meta Quest feature, Oculus Touch + Touch Plus profiles. Standalone: same profiles (Quest Link)
 - Input System 1.20 (Active Input Handling = Input System only)
 - Android: IL2CPP, ARM64, minSdk 32, Vulkan, ASTC. Package id `com.sapientia.tractorvr`
+- Windows (PC VR over Link): Mono (no IL2CPP module installed), D3D11, windowed 1600×900
 - Package versions in `Packages/manifest.json` are the ones bundled with this editor, so they resolve offline. Keep them unless you upgrade the editor.
 
 ## Key files
@@ -45,6 +47,8 @@ See `README.md` for controls, `docs/ROADMAP.md` for what's next and `docs/DEVLOG
 | `Assets/Scripts/Editor/ProjectSetup.cs` | **Generates everything**: player/XR/URP settings, model import, materials, scene, preview renders |
 | `Assets/Scripts/Editor/CabGuide.cs` + `tools/annotate_guide.py` | README cab guide: renders seat views + control positions (`Logs/Guide/*.json`), then Python (Pillow) draws text boxes + arrows → `docs/images/guide_*.png`. Re-run both when controls change |
 | `Assets/Scripts/Editor/BuildQuest.cs` | APK build → `Builds/TractorVR.apk` |
+| `Assets/Scripts/Editor/BuildPC.cs` | Windows build → `Builds/PC/TractorVR.exe` (`-buildTarget StandaloneWindows64`) |
+| `Assets/Scripts/QualityTier.cs` | Quest / PC tier at start: PC = model renderers cast shadows, `ShadowProxy` off; `CurrentBudget` for environment assets |
 | `Assets/Scenes/TractorFlat.unity` | Generated scene (do not hand-edit, see below) |
 
 ## Workflow / commands
@@ -160,6 +164,8 @@ $u = "C:\Program Files\Unity\Hub\Editor\6000.6.3f1\Editor\Unity.exe"
   GroundLit samples only the layers present + Blinn-Phong, TriplanarLit projects from the dominant axis only, terrain casts no shadows,
   shadow map 1024, the tractor's shadow comes from a 416-triangle `ShadowProxy` (model renderers don't cast), FBX mesh LODs (625k → 355k / 233k / 151k),
   `QualitySettings.meshLodThreshold` 1.5. Keep new shaders cheap (few texture reads, Blinn-Phong) and new meshes from casting shadows unless needed.
+- **Quality tiers**: anything that should look better on PC goes through the quality level (URP asset, LOD threshold) or `QualityTier`,
+  never `#if UNITY_ANDROID`, so the editor can preview both. `PlayModeTest` logs the tier; run it at both levels after tier changes.
 - Run `PhysicsTest` after changing the vehicle, and `PlayModeTest` after changing anything that runs in the game
   (`Unity.exe -batchmode -projectPath . -executeMethod PlayModeTest.Run` without -quit). State survives the domain reload via SessionState. It has caught every physics bug so far, without a headset.
 - The rig is yaw-only in third person (no pitch/roll), for comfort. Head tracking supplies the rest.

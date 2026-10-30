@@ -84,7 +84,14 @@ public static class PlayModeTest
         if (tractor == null || input == null) { if (t > 10) Finish("no tractor in the scene"); return; }
         input.scripted = true;
 
-        Once("drive", 2, t, () => { input.scriptedThrottle = 0.5f; log.AppendLine($"{t:0.0}s drive off"); });
+        Once("drive", 2, t, () =>
+        {
+            input.scriptedThrottle = 0.5f;
+            var tier = Object.FindAnyObjectByType<QualityTier>();
+            log.AppendLine($"{t:0.0}s quality {QualityTier.Current}: shadow stand-in {(tier.shadowProxy.enabled ? "on" : "off")}, " +
+                           $"{tier.modelRenderers.Count(r => r.shadowCastingMode != UnityEngine.Rendering.ShadowCastingMode.Off)} model renderers cast");
+            log.AppendLine($"{t:0.0}s drive off");
+        });
         Once("speed", 8, t, () => log.AppendLine($"{t:0.0}s speed {tractor.SpeedKmh:0.0} km/h on {tractor.GroundLabel}, gear {tractor.GetComponent<Drivetrain>().GearName}, {tractor.GetComponent<Drivetrain>().Rpm:0} rpm"));
         Once("steer", 9, t, () => { input.scriptedSteer = 0.6f; log.AppendLine($"{t:0.0}s steer"); });
         Once("stop", 12, t, () =>

@@ -763,3 +763,32 @@ with Claude Code (`claude mcp add blender -- uvx blender-mcp`, local config for 
 installing: socket server on localhost:9876 that runs what the MCP client sends, telemetry off by default, optional online asset
 sources (Poly Haven, Sketchfab, generators) off unless switched on. Copied to `%APPDATA%\Blender Foundation\Blender\5.2\scripts\addons\blender_mcp_addon.py`; it still has to be enabled once in Blender (Preferences → Add-ons), the command-line enable was blocked.
 
+
+## 2026-10-30 (night): Phase 4 started: quality tiers, PC build
+Checked first: phases 1–3 have no open items (the crop-row items are moved to phase 5). On the laptop, the Meta Horizon Link app is
+already installed and is the active OpenXR runtime (`HKLM\SOFTWARE\Khronos\OpenXR\1\ActiveRuntime` → `oculus_openxr_64.json`), and the
+Unity Windows module is there (Mono only, no IL2CPP variation).
+
+**Two quality levels instead of Unity's six defaults** (`ProjectSetup.ConfigureRenderPipeline`, edited through the QualitySettings asset):
+- **Quest** (Android default): `QuestURP` as before: MSAA 4×, render scale 1.0, hard shadows, 1024 shadow map, 40 m, 1 cascade, mesh LOD threshold 1.5.
+- **PC** (Windows default): `PCURP`: MSAA 4×, render scale 1.2, soft shadows, 4096 shadow map, 80 m, 2 cascades, mesh LOD threshold 0.5
+  (full model up close).
+- `QualityTier` (on the tractor, filled by `BuildShadowProxy`) applies the scene side at start: on PC the 78 model renderers cast their own
+  shadows and the 416-triangle `ShadowProxy` is switched off; on Quest nothing changes. It also holds the **budget** the phase 5
+  environment assets will read (`QualityTier.CurrentBudget`: detail distance 120 / 400 m, vegetation density 0.35 / 1, terrain shadows off / on).
+- The Quest-only optimisations stay on Android without per-build switches: foveation is an Android OpenXR feature only, the URP asset
+  and LOD threshold come from the per-platform default level.
+- The editor plays at **PC** quality (for play through Link); menu *Tractor VR → Quality: Quest / PC* switches it.
+
+**Windows player settings** (setup): Mono, Direct3D 11 only (the most reliable API for OpenXR over Link), windowed 1600×900, resizable,
+runs in the background. `BuildPC.Build` (menu *Tractor VR → Build PC (Windows)*) → `Builds/PC/TractorVR.exe` (153 MB).
+
+**Tests**: `PlayModeTest` now logs the tier; OK at both levels (PC: stand-in off, 78 renderers cast; Quest: stand-in on, 0 cast).
+Windows build: succeeded. Quest APK rebuilt after the change: 66.8 MB, same as before.
+
+**NVIDIA driver warning in the Link app**: the laptop has driver 621.01; Meta Horizon Link asks to roll back to **591.86** (it reports a
+known NVIDIA bug that freezes Link during play). The Meta community forums say the rollback fixes the freezes for many, some still
+see them on newer drivers, and Air Link with sliced encoding off is reported to work regardless. No official advisory was found.
+
+Waiting on the user: the cable / Air Link and a first run through Link (editor play mode and the exe), 90 Hz in the Link app, and
+what "standalone PC version" means for the desktop part.

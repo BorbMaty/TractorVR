@@ -296,7 +296,13 @@ scene under a different name.
 4. On the headset: App Library → filter **Unknown Sources** → *Tractor VR*.
 
 Testing in the editor without a headset: press Play and drive with the keyboard.
-With Quest Link / Air Link, Play mode runs in the headset (Standalone OpenXR is enabled).
+
+## PC VR over Quest Link / Air Link
+The laptop renders at the **PC** quality level (full model, real shadows, soft 4096 shadow map, render scale 1.2) and streams to the headset.
+1. Meta Horizon Link app on the PC (set as the active OpenXR runtime: Settings → General). In its Graphics preferences, choose 90 Hz.
+2. Connect the Quest with a USB 3 cable (Link) or over 5 GHz Wi-Fi (Air Link), and start Link from the headset's Quick Settings.
+3. Either press Play in the Unity editor (it plays at PC quality; *Tractor VR → Quality: Quest* previews the Quest look),
+   or run `Builds/PC/TractorVR.exe` (built with *Tractor VR → Build PC (Windows)*). The PC window shows the mirror view.
 
 ## Notes
 - The FBX references external textures (`tex\*.tif`) that weren't included with the model.

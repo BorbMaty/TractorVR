@@ -32,6 +32,7 @@ public static class ProjectSetup
 
     // How eagerly mesh LODs switch to less detail (higher = sooner). Tuned with the forced-LOD preview renders.
     const float MeshLodThreshold = 1.5f;
+    const float PCMeshLodThreshold = 0.5f;   // PC: full model up close, LODs only far away
 
     [MenuItem("Tractor VR/Run Full Setup")]
     public static void Run()
@@ -70,6 +71,17 @@ public static class ProjectSetup
         PlayerSettings.SetGraphicsAPIs(BuildTarget.Android, new[] { GraphicsDeviceType.Vulkan });
         EditorUserBuildSettings.androidBuildSubtarget = MobileTextureSubtarget.ASTC;
 
+        // Windows (PC VR over Link / desktop): Mono (the installed Windows module has no IL2CPP), D3D11, a resizable window
+        // (in VR it shows the mirror view).
+        PlayerSettings.SetScriptingBackend(NamedBuildTarget.Standalone, ScriptingImplementation.Mono2x);
+        PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.StandaloneWindows64, false);
+        PlayerSettings.SetGraphicsAPIs(BuildTarget.StandaloneWindows64, new[] { GraphicsDeviceType.Direct3D11 });
+        PlayerSettings.fullScreenMode = FullScreenMode.Windowed;
+        PlayerSettings.defaultScreenWidth = 1600;
+        PlayerSettings.defaultScreenHeight = 900;
+        PlayerSettings.resizableWindow = true;
+        PlayerSettings.runInBackground = true;
+
         // Active Input Handling = Input System package (new). 0 = old, 1 = new, 2 = both.
         var ps = AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/ProjectSettings.asset").FirstOrDefault();
         if (ps != null)
@@ -81,36 +93,102 @@ public static class ProjectSetup
     }
 
     // ------------------------------------------------------------------ URP
+    // Two quality levels (phase 4): "Quest" (Android default, the GPU budget below) and "PC" (Windows default: PC VR over Link and
+    // the desktop version). Each has its own URP asset; QualityTier applies the scene-side differences (model shadows) at start.
     static void ConfigureRenderPipeline()
     {
         Directory.CreateDirectory(GenDir);
-        string assetPath = GenDir + "/QuestURP.asset";
+        var quest = PipelineAsset("QuestURP");
+        quest.msaaSampleCount = 4;
+        quest.renderScale = 1f;
+        quest.shadowDistance = 40f;
+        quest.mainLightShadowmapResolution = 1024;   // Quest GPU budget (hard shadows; soft shadows are off)
+        quest.shadowCascadeCount = 1;
+        SoftShadows(quest, false);
+        EditorUtility.SetDirty(quest);
+
+        var pc = PipelineAsset("PCURP");
+        pc.msaaSampleCount = 4;
+        pc.renderScale = 1.2f;                       // supersampled eye buffers (RTX 3060 Laptop); measured in the phase 4 comparison
+        pc.shadowDistance = 80f;
+        pc.mainLightShadowmapResolution = 4096;
+        pc.shadowCascadeCount = 2;
+        SoftShadows(pc, true);
+        EditorUtility.SetDirty(pc);
+
+        GraphicsSettings.defaultRenderPipeline = quest;
+
+        // Replace Unity's six default levels with exactly two.
+        var qs = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/QualitySettings.asset")[0]);
+        var levels = qs.FindProperty("m_QualitySettings");
+        while (levels.arraySize > 2) levels.DeleteArrayElementAtIndex(levels.arraySize - 1);
+        while (levels.arraySize < 2) levels.InsertArrayElementAtIndex(levels.arraySize);
+        levels.GetArrayElementAtIndex(0).FindPropertyRelative("name").stringValue = "Quest";
+        levels.GetArrayElementAtIndex(1).FindPropertyRelative("name").stringValue = "PC";
+        var perPlatform = qs.FindProperty("m_PerPlatformDefaultQuality");
+        bool hasStandalone = false;
+        for (int i = 0; i < perPlatform.arraySize; i++)
+        {
+            var e = perPlatform.GetArrayElementAtIndex(i);
+            string platform = e.FindPropertyRelative("first").stringValue;
+            hasStandalone |= platform == "Standalone";
+            e.FindPropertyRelative("second").intValue = platform == "Android" ? 0 : 1;
+        }
+        if (!hasStandalone)
+        {
+            perPlatform.InsertArrayElementAtIndex(perPlatform.arraySize);
+            var e = perPlatform.GetArrayElementAtIndex(perPlatform.arraySize - 1);
+            e.FindPropertyRelative("first").stringValue = "Standalone";
+            e.FindPropertyRelative("second").intValue = 1;
+        }
+        qs.ApplyModifiedPropertiesWithoutUndo();
+
+        int current = Mathf.Clamp(QualitySettings.GetQualityLevel(), 0, 1);
+        foreach (var (level, urp, lod) in new[] { (0, quest, MeshLodThreshold), (1, pc, PCMeshLodThreshold) })
+        {
+            QualitySettings.SetQualityLevel(level, false);
+            QualitySettings.renderPipeline = urp;
+            QualitySettings.meshLodThreshold = lod;
+            QualitySettings.vSyncCount = 0;          // the XR runtime paces frames; the desktop version sets its own
+        }
+        QualitySettings.SetQualityLevel(current, false);
+        Debug.Log("[Setup] Quality levels: " + string.Join(", ", QualitySettings.names) + $" (editor uses {QualitySettings.names[current]})");
+    }
+
+    static UniversalRenderPipelineAsset PipelineAsset(string name)
+    {
+        string assetPath = $"{GenDir}/{name}.asset";
         var urp = AssetDatabase.LoadAssetAtPath<UniversalRenderPipelineAsset>(assetPath);
         if (urp == null)
         {
             var renderer = ScriptableObject.CreateInstance<UniversalRendererData>();
-            AssetDatabase.CreateAsset(renderer, GenDir + "/QuestURP_Renderer.asset");
+            AssetDatabase.CreateAsset(renderer, $"{GenDir}/{name}_Renderer.asset");
             urp = UniversalRenderPipelineAsset.Create(renderer);
             AssetDatabase.CreateAsset(urp, assetPath);
         }
-        urp.msaaSampleCount = 4;
         urp.supportsHDR = false;
-        urp.renderScale = 1f;
-        urp.shadowDistance = 40f;
-        urp.mainLightShadowmapResolution = 1024;   // Quest GPU budget (hard shadows; soft shadows are off)
         urp.supportsCameraDepthTexture = false;
         urp.supportsCameraOpaqueTexture = false;
-        EditorUtility.SetDirty(urp);
+        return urp;
+    }
 
-        GraphicsSettings.defaultRenderPipeline = urp;
-        int current = QualitySettings.GetQualityLevel();
-        for (int i = 0; i < QualitySettings.names.Length; i++)
-        {
-            QualitySettings.SetQualityLevel(i, false);
-            QualitySettings.renderPipeline = urp;
-            QualitySettings.meshLodThreshold = MeshLodThreshold;
-        }
-        QualitySettings.SetQualityLevel(current, false);
+    static void SoftShadows(UniversalRenderPipelineAsset urp, bool on)
+    {
+        var so = new SerializedObject(urp);
+        so.FindProperty("m_SoftShadowsSupported").boolValue = on;
+        so.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    [MenuItem("Tractor VR/Quality: Quest")]
+    public static void QualityQuest() => SetEditorQuality(0);
+
+    [MenuItem("Tractor VR/Quality: PC (play through Link)")]
+    public static void QualityPC() => SetEditorQuality(1);
+
+    static void SetEditorQuality(int level)
+    {
+        QualitySettings.SetQualityLevel(level, true);
+        Debug.Log("[Setup] Editor quality: " + QualitySettings.names[level]);
     }
 
     // ------------------------------------------------------------------ XR / OpenXR
@@ -1918,10 +1996,14 @@ public static class ProjectSetup
         var r = go.AddComponent<MeshRenderer>();
         r.sharedMaterial = SaveMat(new Material(LitShader), "ShadowProxy");
         r.shadowCastingMode = ShadowCastingMode.ShadowsOnly;
-        int off = 0;
+        var casters = new System.Collections.Generic.List<Renderer>();
         foreach (var other in root.GetComponentsInChildren<Renderer>(true))
-            if (other != r && other.shadowCastingMode != ShadowCastingMode.Off) { other.shadowCastingMode = ShadowCastingMode.Off; off++; }
-        log.AppendLine($"Shadow stand-in: {mesh.triangles.Length / 3} triangles; shadow casting off on {off} tractor renderers");
+            if (other != r && other.shadowCastingMode != ShadowCastingMode.Off) { other.shadowCastingMode = ShadowCastingMode.Off; casters.Add(other); }
+        // PC tier: the model casts again and the stand-in is switched off (QualityTier, at start).
+        var tier = root.gameObject.AddComponent<QualityTier>();
+        tier.shadowProxy = r;
+        tier.modelRenderers = casters.ToArray();
+        log.AppendLine($"Shadow stand-in: {mesh.triangles.Length / 3} triangles; shadow casting off on {casters.Count} tractor renderers (on again in the PC tier)");
     }
 
     // Triangles per mesh LOD level, summed over the tractor model.

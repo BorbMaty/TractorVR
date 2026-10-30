@@ -14,6 +14,10 @@ three versions because the Quest GPU is weak. Order: **phase 4 versions → phas
 
 Next: phase 4. blender-mcp installed 2026-10-30 for phase 5.
 
+**Phase 4 started (2026-10-30, night):** two quality levels (Quest / PC) with their own URP assets, `QualityTier` (model shadows on PC,
+budget for phase 5 assets), Windows build (`Builds/PC/TractorVR.exe`). Next: the user's first run through Link (cable or Air Link,
+editor play mode + the exe), then measure; the desktop version waits for what "standalone PC version" means.
+
 ## Earlier: end of day 2026-10-21
 **Phases 1 and 2 are complete** (user's headset test, 2026-10-21). Batches 1–3 finished every open item:
 hand controls + testing, cab (doors, CommandCenter, torque curve, hand throttle, remote levers), implements (top link, front
@@ -174,11 +178,15 @@ GPU); a **PC desktop** build runs on the monitor without a headset (assumed mean
 
 PC VR (planned 2026-10-19):
 - [ ] Laptop setup: install the Meta Quest Link app, set it as the active OpenXR runtime, allow unknown sources; force OVRServer and Unity / the build onto the NVIDIA GPU
+  (2026-10-30: the Meta Horizon Link app is installed and already the active OpenXR runtime; unknown sources + NVIDIA GPU still to check)
 - [ ] Cable: USB-C with USB 3 data (Link cable or a good 3–5 m cable); Air Link is an option: a 5 GHz Wi-Fi network is available (best with the laptop on Ethernet to the router, headset close to it)
 - [ ] Play mode through Link in the Editor (faster test loop, no APK install)
-- [ ] Windows Standalone build profile: OpenXR + Oculus Touch profiles (already set), its own quality level
-- [ ] PC quality: LOD0 / full model, real model shadows instead of the `ShadowProxy`, MSAA 4×, higher render scale, 90 Hz
-- [ ] Platform-specific settings so the Android build keeps its optimisations (foveation, LODs, shadow stand-in)
+- [x] Windows Standalone build profile: OpenXR + Oculus Touch profiles, quality level "PC", Mono + D3D11, windowed; `BuildPC.Build` → `Builds/PC/TractorVR.exe`. Built 2026-10-30
+- [x] PC quality: full model (mesh LOD threshold 0.5), real model shadows instead of the `ShadowProxy` (`QualityTier`), MSAA 4×, render scale 1.2,
+  soft shadows, 4096 shadow map, 80 m. Built 2026-10-30; still to see in the headset
+- [ ] 90 Hz: set in the Link app (Graphics preferences), not by the app
+- [x] Platform-specific settings so the Android build keeps its optimisations: per-platform default quality level (Android → Quest), foveation is
+  an Android-only OpenXR feature, the stand-in stays on in the Quest tier. `PlayModeTest` checked at both levels, 2026-10-30
 - [ ] Measure and compare both builds (frame time, image quality, latency) for the documentation
 
 PC desktop:
@@ -187,7 +195,8 @@ PC desktop:
 - [ ] Desktop quality level (as PC VR), windowed / fullscreen, resolution
 
 Shared:
-- [ ] Quality tiers in setup (Quest / PC) that the environment assets of phase 5 plug into (LOD, draw distance, shadows, vegetation density)
+- [x] Quality tiers in setup (Quest / PC) that the environment assets of phase 5 plug into: `QualityTier.CurrentBudget` (detail distance,
+  vegetation density, terrain shadows), LOD threshold and shadows per level. Built 2026-10-30
 
 ## Phase 5: environment with Blender (planned 2026-10-30)
 Made with Blender through blender-mcp, exported to Unity; every asset in a full (PC) and a light (Quest) version, checked on all three builds.
