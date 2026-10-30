@@ -61,6 +61,7 @@ public class DesktopMode : MonoBehaviour
     IEnumerator Start()
     {
         if (Application.platform == RuntimePlatform.Android) yield break;
+        yield return null;   // the cab panel and CommandCenter build their buttons in Start: the pick proxies need them
         var args = System.Environment.GetCommandLineArgs();
         bool forceDesktop = args.Contains("-desktop") || Application.isBatchMode, forceVR = args.Contains("-vr");   // batch-mode tests: never wait for a headset
         if (!forceDesktop) yield return WaitForHeadset(forceVR ? float.PositiveInfinity : waitSeconds);
