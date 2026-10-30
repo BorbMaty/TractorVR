@@ -539,6 +539,11 @@ public static class ProjectSetup
         ctrl.wheelbase = wheels[0].steerPivot.localPosition.z - wheels[2].steerPivot.localPosition.z;
         ctrl.trackWidth = Mathf.Abs(wheels[1].steerPivot.localPosition.x - wheels[0].steerPivot.localPosition.x);
         log.AppendLine($"Controller wheelbase {ctrl.wheelbase:0.###} m, front track {ctrl.trackWidth:0.###} m");
+        // Clods thrown by spinning wheels: lit particle cubes, tinted per surface (vertex colour = particle colour).
+        var dirt = new Material(Shader.Find("Universal Render Pipeline/Particles/Simple Lit"));
+        dirt.SetColor("_BaseColor", Color.white);
+        dirt.enableInstancing = true;
+        ctrl.dirtMaterial = SaveMat(dirt, "WheelDirt");
 
         // Physics body (mass, centre of mass and interpolation are set by TractorController.Awake).
         // The collider starts 0.45 m above the ground so only the raycast wheels touch it; it's on the Ignore Raycast

@@ -117,6 +117,23 @@ public class Implement : MonoBehaviour
             Physics.IgnoreCollision(a, b, !on);
     }
 
+    /// <summary>Put a coupled implement exactly on its mount, at rest (after the tractor was teleported).</summary>
+    public void SnapToMount()
+    {
+        if (!Attached) return;
+        TargetPose(out var p, out var r);
+        transform.SetPositionAndRotation(p, r);
+        snapFromPos = p;
+        snapFromRot = r;
+        if (rb.isKinematic) return;
+        rb.position = p;
+        rb.rotation = r;
+        rb.linearVelocity = Vector3.zero;
+        rb.angularVelocity = Vector3.zero;
+        var wheels = GetComponent<SimpleWheels>();
+        if (wheels) wheels.ResetSuspension();
+    }
+
     // Pose that puts our coupling point on the tractor's mount, facing the tractor's way.
     void TargetPose(out Vector3 pos, out Quaternion rot)
     {

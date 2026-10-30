@@ -16,7 +16,7 @@ See `README.md` for controls, `docs/ROADMAP.md` for what's next and `docs/DEVLOG
 | File | Role |
 |---|---|
 | `Assets/Scripts/TractorInput.cs` | All input actions, created in code (Quest + keyboard/gamepad fallback) |
-| `Assets/Scripts/TractorController.cs` | Physics driving: Rigidbody + 4 raycast wheels (suspension, tyre friction circle), comfort-limited speed command → drive force, Ackermann, wheel visuals |
+| `Assets/Scripts/TractorController.cs` | Physics driving: Rigidbody + 4 raycast wheels (suspension, tyre friction circle), comfort-limited speed command → drive force, traction (`Distribute`: 4WD, open / locked diffs, brakes; `WheelSlip`: slip curve, spin / lock, wheel speeds), clods, Ackermann, wheel visuals |
 | `Assets/Scripts/Hitch.cs` | Rear 3-point linkage (four-bar solved from model pivots → table θ/φ per position), top link + implement pitch (`SolvePitch`), front linkage + cylinders, drawbar, PTO, tipping input, attach/detach, mass/CoM update every frame |
 | `Assets/Scripts/Tipper.cs` | Tipping trailer: rear-hinged body, telescopic ram stages, plumb tailgate, load that pours into runtime mound meshes, mass/CoM from load + angle |
 | `Assets/Scripts/Implement.cs` | Implement: kinematic on the linkage mount / ball joint on the drawbar, depth from `TerrainGenerator.Height`, draft force, PTO spinners, TrailRenderer marks |
@@ -131,7 +131,12 @@ $u = "C:\Program Files\Unity\Hub\Editor\6000.6.3f1\Editor\Unity.exe"
   (`TerrainGenerator.SurfaceHeight` follows the triangles, not the smooth `Height`). Hard surfaces have draft 0 = the plough can't enter.
 - Outside play mode `Destroy` does nothing: components removed by game code that also runs in the editor tests need `DestroyImmediate` there
   (the trailer's joint survived detaching in `PhysicsTest` and dragged the trailer along with every teleport).
-- Teleports (`ResetTractor`, the test's `Place`) call `ResetSuspension`: it clears the spring history and straightens a latched steering wheel.
+- Teleports (`ResetTractor`, the test's `Place`) call `ResetSuspension`: it clears the spring history, wheel speeds, the parking-brake anchor
+  (`holdSet`; a stale one pulls the tractor towards its old spot and rocks it over) and straightens a latched steering wheel. `ResetTractor`
+  also brings a coupled trailer along (`Hitch.AfterTeleport` → `Implement.SnapToMount`).
+- **Traction**: lateral tyre force has priority, the drive / brake force gets the rest of the friction circle. Wheel speed (`Wheel.wheelSpeed`)
+  is its own state (slip from `GroundMap.Surface.slipK`), drives the wheel animation and, via `WheelSpeedMs`, the drivetrain RPM.
+  `Shortfall` = share of the force the tyres couldn't put down; a wheel at its grip with a shortfall spins (drive) or locks (brake).
 - **Quest GPU budget** (13.9 ms at 72 Hz): the app is GPU-bound. Measure with `adb logcat -s VrApi` (look at `FPS=`, `App=` ms, `GPU%`) while the
   headset is worn (it only renders then). In place: fixed foveated rendering (`Foveation`, OpenXR Foveated Rendering feature without eye tracking),
   GroundLit samples only the layers present + Blinn-Phong, TriplanarLit projects from the dominant axis only, terrain casts no shadows,

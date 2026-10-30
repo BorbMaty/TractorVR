@@ -35,6 +35,7 @@ public class TractorInput : MonoBehaviour
     InputAction modeAction;
     InputAction hornAction;
     InputAction frontLinkageAction, ptoAction, attachAction, menuAction, handThrottleAction, tipAction;
+    InputAction fourWdAction, diffLockAction, brakeModeAction;
     int flick;          // -1 / 0 / +1: where the right stick X was held last frame
 
     public Vector2 LeftStick => steerAction.ReadValue<Vector2>();
@@ -76,6 +77,9 @@ public class TractorInput : MonoBehaviour
     public bool FrontLinkageHeld => scripted ? scriptedFront : frontLinkageAction.IsPressed();
     public bool PtoPressed => !scripted && ptoAction.WasPressedThisFrame();
     public bool AttachPressed => !scripted && attachAction.WasPressedThisFrame();
+    public bool FourWheelDrivePressed => !scripted && fourWdAction.WasPressedThisFrame();
+    public bool DiffLockPressed => !scripted && diffLockAction.WasPressedThisFrame();
+    public bool BrakeModePressed => !scripted && brakeModeAction.WasPressedThisFrame();
     public bool ShiftUpPressed { get; private set; }
     public bool ShiftDownPressed { get; private set; }
 
@@ -150,6 +154,11 @@ public class TractorInput : MonoBehaviour
 
         tipAction = new InputAction("Tip", InputActionType.Value, expectedControlType: "Axis");
         tipAction.AddCompositeBinding("1DAxis").With("Positive", "<Keyboard>/i").With("Negative", "<Keyboard>/k");
+
+        // Traction (keyboard only; in the headset: cab panel buttons).
+        fourWdAction = new InputAction("FourWD", InputActionType.Button, "<Keyboard>/f");
+        diffLockAction = new InputAction("DiffLock", InputActionType.Button, "<Keyboard>/l");
+        brakeModeAction = new InputAction("BrakeMode", InputActionType.Button, "<Keyboard>/b");
     }
 
     void Update()
@@ -180,6 +189,9 @@ public class TractorInput : MonoBehaviour
         menuAction.Enable();
         handThrottleAction.Enable();
         tipAction.Enable();
+        fourWdAction.Enable();
+        diffLockAction.Enable();
+        brakeModeAction.Enable();
     }
 
     void OnDisable()
@@ -198,5 +210,8 @@ public class TractorInput : MonoBehaviour
         menuAction.Disable();
         handThrottleAction.Disable();
         tipAction.Disable();
+        fourWdAction.Disable();
+        diffLockAction.Disable();
+        brakeModeAction.Disable();
     }
 }

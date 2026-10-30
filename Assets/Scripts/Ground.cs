@@ -75,18 +75,20 @@ public static class GroundMap
         public float grip;      // tyre friction coefficient
         public float rolling;   // rolling resistance (× weight)
         public float draft;     // plough draft multiplier; 0 = hard surface the shares can't enter
+        public float slipK;     // traction curve μ(s) = grip·(1 − e^(−k·s)): high k = little slip (hard ground), low k = soft ground
+        public Color dirt;      // clods thrown by a spinning wheel (alpha 0 = none: hard surfaces)
     }
 
     static readonly Surface[] surfaces =
     {
-        new Surface { label = "GRASS",    grip = 0.70f, rolling = 0.050f, draft = 1.25f },
-        new Surface { label = "SOIL",     grip = 0.65f, rolling = 0.070f, draft = 1.00f },
-        new Surface { label = "CROP",     grip = 0.65f, rolling = 0.070f, draft = 1.00f },
-        new Surface { label = "PLOUGHED", grip = 0.50f, rolling = 0.120f, draft = 0.60f },
-        new Surface { label = "MUD",      grip = 0.35f, rolling = 0.150f, draft = 0.80f },
-        new Surface { label = "GRAVEL",   grip = 0.65f, rolling = 0.030f, draft = 0f },   // draft 0 = hard: shares can't enter
-        new Surface { label = "ASPHALT",  grip = 0.90f, rolling = 0.015f, draft = 0f },
-        new Surface { label = "CONCRETE", grip = 0.85f, rolling = 0.015f, draft = 0f },
+        new Surface { label = "GRASS",    grip = 0.70f, rolling = 0.050f, draft = 1.25f, slipK = 14f, dirt = new Color(0.30f, 0.33f, 0.16f, 1f) },
+        new Surface { label = "SOIL",     grip = 0.65f, rolling = 0.070f, draft = 1.00f, slipK = 11f, dirt = new Color(0.36f, 0.27f, 0.18f, 1f) },
+        new Surface { label = "CROP",     grip = 0.65f, rolling = 0.070f, draft = 1.00f, slipK = 11f, dirt = new Color(0.36f, 0.27f, 0.18f, 1f) },
+        new Surface { label = "PLOUGHED", grip = 0.50f, rolling = 0.120f, draft = 0.60f, slipK = 8f, dirt = new Color(0.30f, 0.22f, 0.15f, 1f) },
+        new Surface { label = "MUD",      grip = 0.35f, rolling = 0.150f, draft = 0.80f, slipK = 6f, dirt = new Color(0.22f, 0.17f, 0.11f, 1f) },
+        new Surface { label = "GRAVEL",   grip = 0.65f, rolling = 0.030f, draft = 0f, slipK = 22f, dirt = new Color(0f, 0f, 0f, 0f) },   // draft 0 = hard: shares can't enter
+        new Surface { label = "ASPHALT",  grip = 0.90f, rolling = 0.015f, draft = 0f, slipK = 35f, dirt = new Color(0f, 0f, 0f, 0f) },
+        new Surface { label = "CONCRETE", grip = 0.85f, rolling = 0.015f, draft = 0f, slipK = 35f, dirt = new Color(0f, 0f, 0f, 0f) },
     };
 
     static byte[] cells;

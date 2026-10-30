@@ -30,7 +30,7 @@ Docs: [Roadmap](docs/ROADMAP.md) · [Development log](docs/DEVLOG.md) · [CLAUDE
 
 ### Phase 3: physics, terrain, cab buttons 🚧 in progress
 1. ✅ **Ground + layout**: farmyard, roads, fields, mud; grip and rolling resistance per surface
-2. ⏳ **Traction**: wheel slip, brakes, 4WD, diff lock (next)
+2. ✅ **Traction** (built, headset check pending): wheel slip per tyre and ground, wheels that spin and throw clods, 4WD on/off, diff lock, all-wheel / rear brakes
 3. ⏳ **Fields + crops**: standing crop rows the mower cuts, ploughing changes the field
 4. ⏳ **Cab buttons**: pressable switches, working lights (the hydraulic levers came with phase 2; the cab panel stays)
 
@@ -97,7 +97,7 @@ Back up or drive up to an implement and press attach.
 - Three hydraulic remote levers behind the speed lever (spring-centred): 1 = rear hitch, 2 = front linkage, 3 = trailer tipping (comes with batch 3)
 - Doors (rear-hinged, as on the real cab): swing them open by hand, or with the panel's DOORS button
 - CommandCenter display on the right corner post: engine speed, hand throttle, fuel, coolant temperature, fuel use, power, linkage positions, PTO
-- Cab panel with touch buttons (view, comfort, gearbox, hitch, PTO, attach, seat, units, reset, doors, hand throttle)
+- Cab panel with touch buttons (view, comfort, gearbox, hitch, PTO, attach, seat, units, reset, doors, hand throttle, 4WD, diff lock, brakes)
 - Generated plastic grain, seat fabric and floor mat textures, baked ambient occlusion
 
 | Driver's view | Interior |
@@ -149,6 +149,9 @@ The panel's MENU tab is always visible at the right front of the cab.
 | Hold left trigger + left stick ↑ / ↓ | Left Ctrl + Q / E | Raise / lower the front linkage |
 | Right stick click | P | PTO on / off |
 | Left stick click | J | Attach the implement in reach / detach (lower it first) |
+| Panel 4WD | F | Front axle drive on / off |
+| Panel DIFF LOCK | L | Diff lock (lets go above 12° steering or 15 km/h) |
+| Panel BRAKES | B | Brakes on all wheels ↔ rear only |
 
 ## Project layout
 ```

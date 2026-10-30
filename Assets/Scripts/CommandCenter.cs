@@ -16,7 +16,7 @@ public class CommandCenter : MonoBehaviour
 
     public const float W = 0.24f, H = 0.15f;   // screen size (m), about a 10" display
 
-    TextMesh rpmText, handText, fuelText, tempText, useText, powerText, linkText, hoursText;
+    TextMesh rpmText, handText, fuelText, tempText, useText, powerText, linkText, hoursText, slipText, driveText;
     Transform fuelBar, tempBar;
     MeshRenderer fuelFill, tempFill;
     MaterialPropertyBlock block;
@@ -48,6 +48,7 @@ public class CommandCenter : MonoBehaviour
         var yellow = new Color(1f, 0.85f, 0.3f);
         Label("COMMANDCENTER", new Vector3(left, top, 0f), 0.0065f, grey, TextAnchor.MiddleLeft);
         hoursText = Label("", new Vector3(right, top, 0f), 0.0065f, grey, TextAnchor.MiddleRight);
+        driveText = Label("", new Vector3(0.012f, top, 0f), 0.0065f, yellow, TextAnchor.MiddleCenter);
         rpmText = Label("", new Vector3(left, top - row * 1.3f, 0f), 0.012f, yellow, TextAnchor.MiddleLeft);
         handText = Label("", new Vector3(right, top - row * 1.3f, 0f), 0.009f, white, TextAnchor.MiddleRight);
 
@@ -60,6 +61,7 @@ public class CommandCenter : MonoBehaviour
         tempText = Label("", new Vector3(right, top - row * 3.6f, 0f), 0.0085f, white, TextAnchor.MiddleRight);
 
         useText = Label("", new Vector3(left, top - row * 4.7f, 0f), 0.0085f, white, TextAnchor.MiddleLeft);
+        slipText = Label("", new Vector3(right, top - row * 4.7f, 0f), 0.0085f, white, TextAnchor.MiddleRight);
         powerText = Label("", new Vector3(left, top - row * 5.6f, 0f), 0.0085f, white, TextAnchor.MiddleLeft);
         linkText = Label("", new Vector3(left, top - row * 6.5f, 0f), 0.0085f, white, TextAnchor.MiddleLeft);
 
@@ -174,6 +176,13 @@ public class CommandCenter : MonoBehaviour
         linkText.text = hitch ? $"HITCH {hitch.RearPosition * 100f:0}%   FRONT {hitch.FrontPosition * 100f:0}%   PTO {(hitch.Pto ? $"{hitch.PtoSpeed:0}" : "OFF")}" +
                                 (tipper ? $"   TIP {tipper.Share * 100f:0}%" : "") : "";
         hoursText.text = $"{drivetrain.Hours:0.00} h";
+        if (tractor)
+        {
+            // Wheel slip as the real display shows it (radar vs. wheel speed); red above 20 %.
+            slipText.text = $"SLIP {tractor.Slip * 100f:0}%";
+            slipText.color = tractor.Slip > 0.2f ? new Color(1f, 0.35f, 0.25f) : new Color(0.92f, 0.94f, 0.9f);
+            driveText.text = (tractor.fourWheelDrive ? "4WD" : "2WD") + (tractor.DiffLock ? "  DIFF LOCK" : "") + (tractor.allWheelBrakes ? "" : "  REAR BRAKES");
+        }
     }
 
     void SetBar(Transform pivot, MeshRenderer fill, float share, Color color)

@@ -437,6 +437,13 @@ public class Hitch : MonoBehaviour
         Message?.Invoke(target.displayName + " ATTACHED");
     }
 
+    /// <summary>The tractor was teleported: bring a coupled trailer along, straight behind on the drawbar
+    /// (mounted implements are children of their mounts and follow by themselves).</summary>
+    public void AfterTeleport()
+    {
+        if (Towed != null) Towed.SnapToMount();
+    }
+
     void TryDetach(Implement imp)
     {
         if (Mathf.Abs(tractor.SpeedKmh) > 2f) { Message?.Invoke("STOP TO DETACH"); return; }

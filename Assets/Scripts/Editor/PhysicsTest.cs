@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -236,7 +236,7 @@ public static class PhysicsTest
             foreach (var tp in tippers) tp.FrameUpdate(dt);
             Physics.Simulate(dt);
             time += dt;
-            if (t >= next)
+            if (logEvery > 0f && t >= next)
             {
                 next += logEvery;
                 Vector3 e = ctrl.transform.eulerAngles;
@@ -346,6 +346,7 @@ public static class PhysicsTest
         Place(new Vector3(-60f, 0f, 250f), 0f); Simulate(1f, 0f, 0f, 10f);
         input.scriptedHitch = -1f; Simulate(6f, 0f, 0f, 2f);
         Simulate(20f, 0.21f, 0f, 2f);
+        TractionScenario(plough);
         input.scriptedHitch = 1f; Simulate(5f, 0.21f, 0f, 1f);
         input.scriptedHitch = 0f;
         log.AppendLine($"   front axle loads {ctrl.wheels[0].load / 1000f:0.0} / {ctrl.wheels[1].load / 1000f:0.0} kN with the plough raised");
@@ -456,13 +457,82 @@ public static class PhysicsTest
         log.AppendLine($"   {heaps.Length} heap(s) on the ground: " + string.Join(", ", heaps.Select(h =>
             $"radius {h.transform.localScale.x:0.00} m at {Vector3.Distance(Flat(h.transform.position), Flat(trailer.transform.position)):0.0} m behind the eye")));
         Simulate(8f, 0.3f, 0f, 2f);   // drive off with the empty trailer
+
+        Section("T. RESET TRACTOR while driving with the trailer coupled: the trailer comes along and can be detached");
+        Vector3 before = trailer.transform.position;
+        ctrl.ResetTractor();
+        extra = () => $"trailer angle {Vector3.SignedAngle(ctrl.transform.forward, trailer.transform.forward, Vector3.up):0.0}°  " +
+                      $"coupling gap {Vector3.Distance(trailer.hitchPoint.position, hitch.drawbarMount.position) * 100f:0.0} cm  trailer {trb.linearVelocity.magnitude * 3.6f:0.0} km/h";
+        Simulate(4f, 0f, 0f, 1f);
+        log.AppendLine($"   trailer moved {Vector3.Distance(before, trailer.transform.position):0.0} m with the tractor, upright {Vector3.Angle(trailer.transform.up, Vector3.up):0}°, " +
+                       $"{(hitch.Towed == trailer ? "coupled" : "NOT COUPLED")}");
+        Simulate(6f, 0.2f, 0f, 2f);   // still pulls it
         input.scriptedThrottle = 0f; ctrl.RequestStop();
         Simulate(4f, 0f, 0f, 10f);
         hitch.ToggleAttach();         // uncouple before the next scenarios teleport the tractor
         Simulate(2f, 0f, 0f, 10f);
         log.AppendLine($"   trailer {(hitch.Towed ? "STILL COUPLED" : "uncoupled")}, mass {trb.mass:0} kg");
         extra = null;
+        BrakeScenario();
         CabControlsTest();
+    }
+
+    static string Wheels() => string.Join(" ", ctrl.wheels.Select(w =>
+        $"{(w.steers ? "F" : "R")}{(w.leftSide ? "L" : "R")} {w.surface.label.PadRight(4).Substring(0, 4)} {w.wheelSpeed * 3.6f:0.0}{(w.spinning ? "*" : w.locked ? "#" : "")}"));
+
+    // U. With the plough in: 4WD, 2WD, 2WD + diff lock (slip and speed), then the left side in mud (open diff: that wheel spins).
+    static void TractionScenario(Implement plough)
+    {
+        Section("U. Traction with the plough in (km/h per tyre, * = spinning): 4WD, 2WD, 2WD + diff lock; then left side in mud");
+        extra = () => $"slip {ctrl.Slip * 100f:0}%  short {ctrl.Shortfall * 100f:0}%  draft {plough.DraftForce / 1000f:0.0} kN  {Wheels()}";
+        Simulate(6f, 0.21f, 0f, 2f);
+        log.AppendLine($"   4WD: slip {ctrl.Slip * 100f:0.0}%, {ctrl.SpeedKmh:0.0} km/h");
+        ctrl.SetFourWheelDrive(false); Simulate(8f, 0.21f, 0f, 2f);
+        log.AppendLine($"   2WD: slip {ctrl.Slip * 100f:0.0}%, {ctrl.SpeedKmh:0.0} km/h");
+        ctrl.SetDiffLock(true); Simulate(8f, 0.21f, 0f, 2f);
+        log.AppendLine($"   2WD + diff lock: slip {ctrl.Slip * 100f:0.0}%, {ctrl.SpeedKmh:0.0} km/h, diff lock {ctrl.DiffLock}");
+        ctrl.SetDiffLock(false);
+
+        // Mud gate at (0, 116) r 8: tractor at x 8 heading north = left wheels in the mud, right wheels on grass / crop.
+        foreach (var (fwd, lockDiff) in new[] { (false, false), (false, true), (true, false), (true, true) })
+        {
+            Place(new Vector3(8f, 0f, 112.5f), 0f);
+            ctrl.SetFourWheelDrive(fwd);
+            Simulate(0.5f, 0f, 0f, 10f);
+            if (lockDiff) ctrl.SetDiffLock(true);
+            log.AppendLine($"   split grip, {(fwd ? "4WD" : "2WD")}{(lockDiff ? " + diff lock" : ", open diffs")}:");
+            Simulate(8f, 0.21f, 0f, 2f);
+            ctrl.SetDiffLock(false);
+        }
+        ctrl.SetFourWheelDrive(true);
+        Place(new Vector3(-60f, 0f, 250f), 0f); Simulate(1f, 0f, 0f, 10f);
+        extra = null;
+    }
+
+    // V. Braking into the mud at the north field gate: all-wheel brakes vs rear brakes only (# = wheel locked).
+    static void BrakeScenario()
+    {
+        Section("V. 20 km/h on the north track, STOP as the rear wheels reach the mud: all-wheel vs rear-only brakes");
+        extra = () => $"{ctrl.GroundLabel}  {Wheels()}";
+        foreach (bool all in new[] { true, false })
+        {
+            ctrl.SetAllWheelBrakes(all);
+            ctrl.SetFourWheelDrive(all);   // 4WD engaged also brakes the front axle
+            Place(new Vector3(0f, 0f, 70f), 0f);
+            Simulate(1f, 0f, 0f, 10f);
+            input.scriptedThrottle = 0.42f;
+            for (float t = 0f; t < 20f && ctrl.GroundLabel != "MUD"; t += 0.1f) Simulate(0.1f, 0.42f, 0f, 0f);
+            float v0 = ctrl.SpeedKmh;
+            Vector3 p0 = ctrl.transform.position;
+            ctrl.RequestStop();
+            log.AppendLine($"   {(all ? "all wheels" : "rear only")}: STOP at {v0:0.0} km/h");
+            int locked = 0;
+            for (float t = 0f; t < 6f; t += 0.1f) { Simulate(0.1f, 0f, 0f, t % 0.5f < 0.05f ? 1f : 0f); if (ctrl.wheels.Any(w => w.locked)) locked++; }
+            log.AppendLine($"   stopped in {Vector3.Distance(p0, ctrl.transform.position):0.0} m, a wheel locked for {locked * 0.1f:0.0} s");
+        }
+        ctrl.SetAllWheelBrakes(true);
+        ctrl.SetFourWheelDrive(true);
+        extra = null;
     }
 
     // Fake hands on the steering wheel and the speed lever (VRHands.Hand fields are written directly).

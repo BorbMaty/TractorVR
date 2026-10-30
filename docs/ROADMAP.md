@@ -1,15 +1,23 @@
 # Roadmap
 
-## ▶ Where we left off (2026-10-21, end of day)
+## ▶ Where we left off (2026-10-30)
+The reset-with-trailer bug is fixed and **phase 3 step 2 (traction) is built**; both are in the APK installed on the headset, ⏳ headset check.
+What to try: RESET TRACTOR with the trailer coupled (it should come back on the drawbar and detach normally); ploughing with
+4WD on / off (CommandCenter SLIP); the mud at the north field gate (x 0, z 116) with 2WD and an open diff (one wheel spins and throws clods),
+then DIFF LOCK and 4WD; braking in mud with BRAKES: REAR.
+
+Next after the check: phase 3 step 3 (fields + crops).
+
+## Earlier: end of day 2026-10-21
 **Phases 1 and 2 are complete** (user's headset test, 2026-10-21). Batches 1–3 finished every open item:
 hand controls + testing, cab (doors, CommandCenter, torque curve, hand throttle, remote levers), implements (top link, front
 cylinders, tipping trailer, front weight, better models).
 - Frame rate: 72 fps most of the time after two optimisation rounds (2026-10-18). If it needs another pass: log the context of slow frames.
 
 **Known bug (found in the headset test, 2026-10-21; fix first next session):**
-- [ ] RESET TRACTOR with the trailer coupled: the trailer disappears but stays coupled, and it can't be detached afterwards.
-  (Likely: the tractor is teleported while the trailer hangs on its joint; reset should uncouple / move the trailer with it, and detaching
-  must still work afterwards. Add a PhysicsTest / PlayModeTest step that resets with the trailer coupled.)
+- [x] RESET TRACTOR with the trailer coupled: the trailer disappears but stays coupled, and it can't be detached afterwards.
+  Fixed 2026-10-30: the reset brings a coupled trailer along, straight on the drawbar and at rest, and also clears the parking-brake
+  anchor (it pulled towards the old spot after a teleport). PhysicsTest T. ⏳ headset check
 
 **Next session:**
 1. Fix the reset-with-trailer bug above
@@ -134,8 +142,11 @@ hydraulic levers, pressable switches, lights, and keep the cab panel. Order (eac
   ploughing turns the ground to "ploughed". Measured in `PhysicsTest` O (rolling 1.1 kN on asphalt … 11 kN in mud). The grid floor and marker posts are gone.
 
 ### Step 2: traction
-- [ ] Wheel slip: driven wheels spin when the ground can't take the force (slip % on the dash), wheel spin visuals
-- [ ] Brakes (rear / all-wheel), 4WD (front axle drive) on/off, diff lock
+- [x] Wheel slip: driven wheels spin when the ground can't take the force (slip % on the CommandCenter + HUD), wheels turn at their own
+  speed (faster when spinning, still when locked), soil clods from wheels slipping hard on soft ground, engine RPM follows the wheels.
+  Built 2026-10-30, ⏳ headset check
+- [x] Brakes (all wheels / rear only), 4WD (front axle drive) on/off, diff lock (open diffs: the wheel with less grip limits the axle;
+  locks off above 12° steering or 15 km/h): panel buttons + F / L / B. Built 2026-10-30, ⏳ headset check
 
 ### Step 3: fields + crops
 - [ ] Standing crop rows on the crop field, cut by the mower

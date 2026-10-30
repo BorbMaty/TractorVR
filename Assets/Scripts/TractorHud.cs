@@ -30,6 +30,7 @@ public class TractorHud : MonoBehaviour
         comfort.LevelChanged += level => Show("COMFORT " + level.ToString().ToUpperInvariant());
         drivetrain.Message += Show;
         hitch.Message += Show;
+        tractor.Message += Show;
     }
 
     // Coupled implements with their linkage position, the PTO, or the distance to the nearest implement while lining up.
@@ -57,6 +58,8 @@ public class TractorHud : MonoBehaviour
         string dir = drivetrain.Direction == Drivetrain.Dir.Forward ? "F" : drivetrain.Direction == Drivetrain.Dir.Reverse ? "R" : "N";
         string speed = CabPanel.Mph ? $"{Mathf.Abs(kmh) * 0.6214f:0} mph" : $"{Mathf.Abs(kmh):0} km/h";
         string line = $"{speed}  {dir} {drivetrain.GearName}  {drivetrain.Rpm:0} rpm";
+        if (tractor.Slip > 0.05f) line += $"  SLIP {tractor.Slip * 100f:0}%";
+        if (!tractor.fourWheelDrive || tractor.DiffLock) line += (tractor.fourWheelDrive ? "" : "  2WD") + (tractor.DiffLock ? "  DIFF LOCK" : "");
         if (input.Calibrating && rig.view == VRCameraRig.View.Cab) line += "\nSEAT ADJUST";
         string work = Implements();
         if (work.Length > 0) line += "\n" + work;

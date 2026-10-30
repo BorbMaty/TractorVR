@@ -656,3 +656,40 @@ Tested in the headset by the user: everything in batches 2 and 3 works, and **ph
 One bug, to fix next session (in the ROADMAP under "Known bug"): RESET TRACTOR with the trailer coupled makes the trailer disappear, and
 it stays coupled and can't be detached. The optional original-textures item of phase 1 moved to "Future ideas".
 Next: fix that bug, then phase 3 step 2 (traction).
+
+## 2026-10-30: Reset-with-trailer bug fixed; phase 3 step 2 (traction)
+Both built and tested in the editor, APK (66 MB) installed on the headset, ⏳ headset check.
+
+**RESET TRACTOR with the trailer coupled.** The reset moved only the tractor's Rigidbody. The trailer stayed on its joint ~120 m away;
+the joint yanked it across the map, and it ended up out of sight and too far round for "STRAIGHTEN UP TO DETACH". Now the reset also sets
+the tractor's transform (so the mounts are in their new place at once) and calls `Hitch.AfterTeleport`, which puts a coupled trailer
+straight back on the drawbar, at rest, with its suspension history cleared (`Implement.SnapToMount`, `SimpleWheels.ResetSuspension`).
+Mounted implements are children of their mounts and follow by themselves. PhysicsTest T resets while driving with the trailer coupled:
+it comes along (gap 0.0 cm, straight), still tows at 6.5 km/h, and detaches.
+
+A second teleport bug turned up while testing traction: `ResetSuspension` didn't clear the **parking-brake anchor**. When the tractor stood
+still before and after a teleport, the hold kept pulling it towards the old spot; the sideways part (capped at full grip) rocked it up to 20°.
+It's why PhysicsTest R measured wrong "before" axle loads in this run and why the hay bale in H didn't move. Both are right again
+(R: 29.4 → 42.0 / 44.2 → 40.4 kN as in batch 3; bale pushed 9 m). This also hit RESET TRACTOR in the game when standing still.
+
+**Traction** (`TractorController`):
+- The drive / brake force goes to the wheels that take it: rear always; front with 4WD; all four while parked (park lock + front axle).
+  Braking: all wheels with all-wheel brakes or 4WD engaged, otherwise rear only.
+- Lateral grip comes first now (a tractor sliding sideways is the worst for comfort); the drive force gets the rest of the friction circle.
+- Differentials: an **open** diff gives both wheels the same force, so the wheel with less grip limits the axle to twice its grip and spins.
+  The **diff lock** lets each wheel use its own grip; it lets go above 12° steering or 15 km/h, like the real one. With 4WD the axles are
+  coupled rigidly (no centre diff), so what one axle can't put down goes to the other. Brakes act per wheel.
+- **Slip** per tyre from a traction curve μ(s) = μmax·(1 − e^(−k·s)) with k per surface (`GroundMap.Surface.slipK`: asphalt 35 … mud 6).
+  A wheel the ground can't hold spins up (an open diff's wheel twice as fast); a braked wheel locks. Each tyre has its own speed, which
+  drives the wheel animation, and the **engine RPM follows the rear wheels' speed** (with slip the engine runs faster than the ground speed).
+- Readouts: CommandCenter `SLIP %` (red above 20 %) and drive state (4WD / 2WD, DIFF LOCK, REAR BRAKES); HUD shows slip above 5 %.
+- **Clods**: one small particle system per wheel (mesh cubes, lit, ≤ 40 particles, no shadows), tinted per surface; emits when the wheel
+  slips more than 20 % on soft ground. Material `Generated/WheelDirt.mat` (URP Particles/Simple Lit) from setup.
+- Controls: panel buttons 4WD, DIFF LOCK, BRAKES (24 buttons now), keyboard F / L / B.
+
+PhysicsTest U (plough at work, 30 kN draft on the crop field, 7 km/h): slip 16 % with 4WD, 18 % 2WD, 17 % 2WD + diff lock
+(ploughing slip is 10–15 % in practice). Split grip (left wheels in the mud at the north gate, right on grass/crop, plough in):
+2WD open diff: the left rear wheel spins at 14 km/h, the right one stands, the tractor stalls; 2WD + diff lock: both rear wheels spin, slow
+crawl; 4WD open diffs: both left wheels spin, stuck; 4WD + diff lock: pulls away (4 km/h) but bogs down: half the tractor in mud can't
+pull 30+ kN. V (STOP at 18.5 km/h entering mud): all-wheel brakes ~5 % brake slip, rear only ~20 %; no lock-up at the comfort rate
+(2.5 m/s²), both stop in 5.2 m. All other scenarios unchanged. PlayModeTest OK (24 buttons pressed twice).

@@ -8,7 +8,10 @@ using UnityEngine;
 ///                  Lateral grip cancels the wheel's sideways sliding, so the tractor follows its Ackermann geometry until grip runs out.
 ///   Drive ........ the same comfort-limited speed command as in phase 1 (stick = target speed, gentle accel/brake rates).
 ///                  A speed controller turns it into a drive force, compensating slope and rolling resistance, limited by
-///                  the engine power at the current engine speed (Drivetrain torque curve, 195 hp rated) and grip. All four wheels drive (MFWD), shared by load. On a steep climb it slows down.
+///                  the engine power at the current engine speed (Drivetrain torque curve, 195 hp rated) and grip. On a steep climb it slows down.
+///   Traction ..... (phase 3) the force goes to the driven wheels (rear, + front with 4WD) through open or locked differentials;
+///                  each tyre's slip follows a traction curve for the ground under it, and a wheel spins up when the ground
+///                  can't take its force. Brakes on all wheels or the rear only; a wheel locks when the ground can't take the braking.
 ///   Steering ..... same comfort limits as phase 1 (yaw rate, lateral acceleration); Ackermann angle per front wheel.
 /// Physics runs at 90 Hz with Rigidbody interpolation, so the VR camera riding on the body moves smoothly every frame.
 /// The tractor's colliders are on the Ignore Raycast layer so the wheel rays don't hit their own body.
@@ -29,6 +32,10 @@ public class TractorController : MonoBehaviour
         [System.NonSerialized] public float staticLoad, compression, lastCompression, load, angle;
         [System.NonSerialized] public GroundMap.Surface surface;   // what this wheel stands on
         [System.NonSerialized] public bool grounded;
+        [System.NonSerialized] public float wheelSpeed;  // tyre surface speed (m/s, + = rolling forward): spins up / locks with slip
+        [System.NonSerialized] public float slip;        // 0..1 while driving: 1 - ground speed / wheel speed
+        [System.NonSerialized] public bool spinning, locked;
+        [System.NonSerialized] public float force;       // longitudinal tyre force this step (N)
     }
 
     [Header("Geometry (filled by the setup script)")]
@@ -54,6 +61,16 @@ public class TractorController : MonoBehaviour
     public float enginePowerKW = 145f;          // 195 hp rated; the power at other engine speeds comes from Drivetrain's torque curve
     [System.NonSerialized] public float towedMass;   // trailer on the drawbar (set by Hitch): the drive force accelerates it too
     public float speedTracking = 2.5f;          // 1/s, how hard the drive force pulls the speed onto the command
+
+    [Header("Traction")]
+    [Tooltip("Front axle drive (MFWD). Off: only the rear wheels drive.")]
+    public bool fourWheelDrive = true;
+    [Tooltip("Brakes on all four wheels (the 6195M engages the front axle to brake). Off: rear brakes only.")]
+    public bool allWheelBrakes = true;
+    [Tooltip("The diff lock lets go above this steering angle (degrees) or speed (km/h), like the real one.")]
+    public float diffLockMaxSteer = 12f, diffLockMaxKmh = 15f;
+    [Tooltip("Particle material for the clods a spinning wheel throws (none = no clods).")]
+    public Material dirtMaterial;
 
     [Header("Speed")]
     public float maxForwardKmh = 50f;      // 6195M top speed
@@ -91,6 +108,28 @@ public class TractorController : MonoBehaviour
     public bool Grounded { get; private set; }
     /// <summary>Surface under the rear wheels (HUD, tests).</summary>
     public string GroundLabel { get; private set; } = "";
+    /// <summary>Wheel slip of the driven wheels while driving (0..1, smoothed), as the CommandCenter shows it.</summary>
+    public float Slip { get; private set; }
+    /// <summary>Speed the rear wheels' tyres turn at (m/s): ground speed plus slip. The engine is geared to this.</summary>
+    public float WheelSpeedMs { get; private set; }
+    public float WheelSpeedKmh => WheelSpeedMs * 3.6f;
+    public bool DiffLock { get; private set; }
+    /// <summary>Share of the wanted drive / brake force the tyres could not put down this step (0 = all of it went to the ground).</summary>
+    public float Shortfall { get; private set; }
+    public event System.Action<string> Message;
+
+    public void SetFourWheelDrive(bool on) { fourWheelDrive = on; Message?.Invoke(on ? "4WD ON" : "4WD OFF"); }
+    public void SetAllWheelBrakes(bool on) { allWheelBrakes = on; Message?.Invoke(on ? "BRAKES: ALL WHEELS" : "BRAKES: REAR ONLY"); }
+    public void SetDiffLock(bool on)
+    {
+        if (on && (Mathf.Abs(SteerAngle) > diffLockMaxSteer || Mathf.Abs(SpeedKmh) > diffLockMaxKmh))
+        {
+            Message?.Invoke(Mathf.Abs(SpeedKmh) > diffLockMaxKmh ? $"DIFF LOCK: BELOW {diffLockMaxKmh:0} KM/H ONLY" : "DIFF LOCK: STRAIGHTEN UP FIRST");
+            return;
+        }
+        DiffLock = on;
+        Message?.Invoke(on ? "DIFF LOCK ON" : "DIFF LOCK OFF");
+    }
 
     TractorInput input;
     Drivetrain drivetrain;
@@ -144,8 +183,18 @@ public class TractorController : MonoBehaviour
     /// <summary>Per-frame part (steering, wheel visuals, reset). Public so the editor physics test can step it.</summary>
     public void FrameUpdate(float dt)
     {
+        if (input.FourWheelDrivePressed) SetFourWheelDrive(!fourWheelDrive);
+        if (input.DiffLockPressed) SetDiffLock(!DiffLock);
+        if (input.BrakeModePressed) SetAllWheelBrakes(!allWheelBrakes);
         UpdateSteering(input.Steer, dt);
+        // The diff lock lets go by itself when steering or going fast (it would push the tractor straight on).
+        if (DiffLock && (Mathf.Abs(SteerAngle) > diffLockMaxSteer || Mathf.Abs(SpeedKmh) > diffLockMaxKmh))
+        {
+            DiffLock = false;
+            Message?.Invoke("DIFF LOCK OFF");
+        }
         AnimateWheels(dt);
+        UpdateDirt();
 
         // Rolled over or fell off the world: put it back at the start after a moment.
         upsideDownTime = transform.up.y < 0.3f ? upsideDownTime + dt : 0f;
@@ -154,7 +203,9 @@ public class TractorController : MonoBehaviour
 
     public void ResetTractor()
     {
-        rb.position = spawnPos + Vector3.up * 0.2f;
+        // The transform too, so the mounts are in their new place for a coupled trailer right away.
+        transform.SetPositionAndRotation(spawnPos + Vector3.up * 0.2f, spawnRot);
+        rb.position = transform.position;
         rb.rotation = spawnRot;
         rb.linearVelocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
@@ -162,13 +213,17 @@ public class TractorController : MonoBehaviour
         upsideDownTime = 0f;
         ResetSuspension();
         if (drivetrain) drivetrain.Refill();
+        // A trailer left on its joint far away got yanked across the map and lost (and then couldn't be detached).
+        if (hitch) hitch.AfterTeleport();
     }
 
     /// <summary>After a teleport: forget the last spring positions, or the dampers see a huge spring speed on the next step;
     /// and straighten the wheels (a wheel left turned by hand would otherwise stay latched).</summary>
     public void ResetSuspension()
     {
-        foreach (var w in wheels) { w.compression = w.lastCompression = travel; w.load = w.staticLoad; }
+        foreach (var w in wheels) { w.compression = w.lastCompression = travel; w.load = w.staticLoad; w.wheelSpeed = 0f; w.slip = 0f; w.spinning = w.locked = false; }
+        Slip = 0f;
+        holdSet = false;   // the parking brake must not pull towards where it stood before the teleport
         SteerAngle = 0f;
         heldSteer = null;
         steerLatched = false;
@@ -307,27 +362,208 @@ public class TractorController : MonoBehaviour
         else PowerLimited = false;
         PowerFraction = driving ? Mathf.Clamp01(Mathf.Abs(force * SpeedMs) / (enginePowerKW * 1000f)) : 0f;
 
+        // Lateral grip first: a tractor sliding sideways is the worst thing for comfort, so the drive / brake force
+        // gets what is left of each tyre's friction circle.
+        bool braking = !driving && !holding;
+        // Parked: park lock + front axle engaged, all four hold. Braking: all wheels with all-wheel brakes (or 4WD engaged).
+        bool frontTakes = holding || fourWheelDrive || (braking && allWheelBrakes);
+        float takeLoad = 0f;
         for (int i = 0; i < wheels.Length; i++)
         {
             var w = wheels[i];
+            takes[i] = w.grounded && (!w.steers || frontTakes);
+            room[i] = lat[i] = rollSpeed[i] = 0f;
             if (!w.grounded) continue;
             RaycastHit hit = contacts[i];
             Vector3 fwd = Quaternion.AngleAxis(w.angle, transform.up) * transform.forward;
             fwd = Vector3.ProjectOnPlane(fwd, hit.normal).normalized;
             Vector3 side = Vector3.Cross(hit.normal, fwd);
-
+            fwds[i] = fwd;
+            sides[i] = side;
             Vector3 v = rb.GetPointVelocity(hit.point);
-            float share = w.load / totalLoad;
-            float fLong = force * share;
+            rollSpeed[i] = Vector3.Dot(v, fwd);
             // Lateral: cancel this wheel's sideways sliding (its share of the mass, half per step for stability).
             float fLat = -Vector3.Dot(v, side) * (w.load / g) / dt * 0.5f;
             if (holding) fLat -= 20f * Vector3.Dot(rb.position - holdPos, side) * (w.load / g);   // no sideways creep when parked
+            float max = grip * w.surface.grip * w.load;
+            if (Mathf.Abs(fLat) > max) fLat = Mathf.Sign(fLat) * max;
+            lat[i] = fLat;
+            room[i] = Mathf.Sqrt(Mathf.Max(0f, max * max - fLat * fLat));
+            if (takes[i]) takeLoad += w.load;
+        }
 
-            // Friction circle.
-            float max = grip * w.surface.grip * w.load, len = Mathf.Sqrt(fLong * fLong + fLat * fLat);
-            if (len > max) { fLong *= max / len; fLat *= max / len; }
+        Distribute(Mathf.Abs(force), takeLoad, braking || holding);
+        float sign = Mathf.Sign(force);
+        for (int i = 0; i < wheels.Length; i++)
+        {
+            var w = wheels[i];
+            w.force = takes[i] ? sign * got[i] : 0f;
+            if (w.grounded) rb.AddForceAtPosition(fwds[i] * w.force + sides[i] * lat[i], contacts[i].point);
+        }
+        WheelSlip(braking, holding, dt);
+    }
 
-            rb.AddForceAtPosition(fwd * fLong + side * fLat, hit.point);
+    // Per-wheel scratch for one physics step.
+    readonly bool[] takes = new bool[8];
+    readonly float[] room = new float[8], lat = new float[8], want = new float[8], got = new float[8], rollSpeed = new float[8];
+    readonly Vector3[] fwds = new Vector3[8], sides = new Vector3[8];
+
+    /// <summary>
+    /// Shares the force out (magnitudes, into got[]). Each axle's differential decides what the axle can put down:
+    /// open = the same force on both wheels, so the wheel with less grip sets the limit (2 × its grip) and spins;
+    /// locked = each wheel up to its own grip. With 4WD the axles are coupled rigidly (no centre differential),
+    /// so what one axle can't put down goes to the other. Brakes act on each wheel by itself.
+    /// </summary>
+    void Distribute(float total, float takeLoad, bool perWheel)
+    {
+        for (int i = 0; i < wheels.Length; i++) { got[i] = 0f; want[i] = takes[i] && takeLoad > 0f ? total * wheels[i].load / takeLoad : 0f; }
+        Shortfall = 0f;
+        if (total <= 0f || takeLoad <= 0f) return;
+
+        // Axle 0 = the steering pair, axle 1 = the rear pair. Pass 0 gives each axle its share, pass 1 the rest to whoever can take it.
+        float leftover = total;
+        for (int pass = 0; pass < 2 && leftover > 1f; pass++)
+        {
+            for (int a = 0; a < 2; a++)
+            {
+                int l = -1, r = -1;
+                for (int i = 0; i < wheels.Length; i++)
+                    if (wheels[i].steers == (a == 0) && takes[i]) { if (l < 0) l = i; else r = i; }
+                if (l < 0) continue;
+                bool locked = perWheel || DiffLock || r < 0;
+                float have = got[l] + (r >= 0 ? got[r] : 0f);
+                float cap = locked ? room[l] + (r >= 0 ? room[r] : 0f) : 2f * Mathf.Min(room[l], room[r]);
+                float asked = pass == 0 ? want[l] + (r >= 0 ? want[r] : 0f) : have + leftover;
+                float axle = Mathf.Max(have, Mathf.Min(asked, cap));
+                leftover -= axle - have;
+                if (r < 0) { got[l] = axle; continue; }
+                if (!locked) { got[l] = got[r] = axle * 0.5f; continue; }
+                // Locked / brakes: by load, and the wheel with grip to spare takes what the other can't.
+                float share = want[l] + want[r] > 0f ? want[l] / (want[l] + want[r]) : 0.5f;
+                got[l] = Mathf.Min(axle * share, room[l]);
+                got[r] = Mathf.Min(axle - got[l], room[r]);
+                got[l] = Mathf.Min(axle - got[r], room[l]);
+            }
+        }
+        Shortfall = Mathf.Clamp01(leftover / total);
+    }
+
+    // Slip of each tyre from the traction curve (how much of its grip it uses) and its own speed: a driven wheel the ground
+    // can't hold spins up, a braked one locks. The engine follows the rear wheels' speed.
+    void WheelSlip(bool braking, bool holding, float dt)
+    {
+        float driveSlip = 0f, driven = 0f, rear = 0f, rearN = 0f;
+        float k = 1f - Mathf.Exp(-dt / 0.08f);
+        for (int i = 0; i < wheels.Length; i++)
+        {
+            var w = wheels[i];
+            float target;
+            w.spinning = w.locked = false;
+            if (!w.grounded) target = w.wheelSpeed * (1f - 0.5f * dt);       // in the air: runs on, slowly
+            else if (!takes[i] || got[i] <= 0f || holding) target = rollSpeed[i];
+            else
+            {
+                float use = room[i] > 1f ? got[i] / room[i] : 1f;
+                bool limit = use > 0.995f && Shortfall > 0.01f;
+                float s = -Mathf.Log(1f - Mathf.Min(use, 0.97f)) / Mathf.Max(1f, w.surface.slipK);
+                float v = rollSpeed[i];
+                if (braking)
+                {
+                    w.locked = limit;
+                    target = limit ? 0f : v * (1f - Mathf.Min(s, 1f));
+                }
+                else
+                {
+                    float dir = Mathf.Abs(v) > 0.1f ? Mathf.Sign(v) : Mathf.Sign(w.force);
+                    target = dir * Mathf.Abs(v) / Mathf.Max(0.1f, 1f - Mathf.Min(s, 0.9f));
+                    if (limit)
+                    {
+                        // Spinning: runs up with how much force is missing; through an open diff twice as fast (its partner stands).
+                        w.spinning = true;
+                        target = dir * (Mathf.Abs(v) + Mathf.Lerp(0.6f, 3.5f, Shortfall) * (DiffLock ? 1f : 2f));
+                    }
+                }
+            }
+            w.wheelSpeed = Mathf.Lerp(w.wheelSpeed, target, k);
+            if (w.grounded && !braking && takes[i] && got[i] > 0f && Mathf.Abs(w.wheelSpeed) > 0.05f)
+                w.slip = Mathf.Clamp01(1f - Mathf.Abs(rollSpeed[i]) / Mathf.Abs(w.wheelSpeed));
+            else w.slip = 0f;
+            if (!w.steers || fourWheelDrive) { driveSlip += w.slip; driven++; }
+            if (!w.steers) { rear += w.wheelSpeed; rearN++; }
+        }
+        float shown = driven > 0f ? driveSlip / driven : 0f;
+        Slip = Mathf.Lerp(Slip, shown, 1f - Mathf.Exp(-dt / 0.3f));
+        WheelSpeedMs = rearN > 0f ? rear / rearN : SpeedMs;
+    }
+
+    // ------------------------------------------------------------------ clods from spinning wheels
+    ParticleSystem[] dirt;
+
+    void Start() => BuildDirt();
+
+    // One small particle system per wheel, at the back of its contact patch; cubes of soil, a few dozen at most (Quest budget).
+    void BuildDirt()
+    {
+        if (dirtMaterial == null || dirt != null) return;
+        dirt = new ParticleSystem[wheels.Length];
+        var cube = Resources.GetBuiltinResource<Mesh>("Cube.fbx");
+        for (int i = 0; i < wheels.Length; i++)
+        {
+            var w = wheels[i];
+            var go = new GameObject("Dirt_" + i);
+            go.transform.SetParent(transform, false);
+            go.transform.localPosition = w.restLocal + new Vector3(0f, -w.radius + 0.1f, -w.radius * 0.45f);
+            var ps = go.AddComponent<ParticleSystem>();
+            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = ps.main;
+            main.duration = 1f;
+            main.loop = true;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.5f, 0.9f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(1.5f, 3.5f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.03f, 0.08f);
+            main.startRotation3D = true;
+            main.startRotationX = main.startRotationY = main.startRotationZ = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
+            main.gravityModifier = 1f;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.maxParticles = 40;
+            main.playOnAwake = false;
+            var emission = ps.emission;
+            emission.rateOverTime = 0f;
+            var shape = ps.shape;
+            shape.shapeType = ParticleSystemShapeType.Cone;
+            shape.angle = 20f;
+            shape.radius = 0.15f;
+            var r = go.GetComponent<ParticleSystemRenderer>();
+            r.renderMode = ParticleSystemRenderMode.Mesh;
+            r.mesh = cube;
+            r.sharedMaterial = dirtMaterial;
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            r.receiveShadows = false;
+            dirt[i] = ps;
+            ps.Play();
+        }
+    }
+
+    // Thrown backwards and up (forwards when reversing) while a wheel slips hard on soft ground.
+    void UpdateDirt()
+    {
+        if (dirt == null) return;
+        for (int i = 0; i < wheels.Length; i++)
+        {
+            var w = wheels[i];
+            var ps = dirt[i];
+            float rate = 0f;
+            if (w.grounded && w.surface.dirt.a > 0f && Mathf.Abs(w.wheelSpeed) > 0.4f)
+                rate = 70f * Mathf.Clamp01((w.slip - 0.2f) / 0.4f);
+            var emission = ps.emission;
+            emission.rateOverTime = rate;
+            if (rate <= 0f) continue;
+            var main = ps.main;
+            main.startColor = new ParticleSystem.MinMaxGradient(w.surface.dirt, w.surface.dirt * 0.75f);
+            float back = w.wheelSpeed > 0f ? -1f : 1f;
+            var t = ps.transform;
+            t.localPosition = w.steerPivot.localPosition + new Vector3(0f, -w.radius + 0.1f, back * w.radius * 0.45f);
+            t.localRotation = Quaternion.LookRotation(new Vector3(0f, 0.8f, back));
         }
     }
 
@@ -382,10 +618,8 @@ public class TractorController : MonoBehaviour
             // Suspension: the wheel hangs lower when the spring extends.
             w.steerPivot.localPosition = w.restLocal + Vector3.up * (w.compression - travel);
 
-            // Spin from the ground speed along the wheel's rolling direction.
-            Vector3 fwd = w.steerPivot.forward;
-            float rolling = Vector3.Dot(rb.GetPointVelocity(w.steerPivot.position), fwd);
-            float spinDeg = rolling * dt / Mathf.Max(0.05f, w.radius) * Mathf.Rad2Deg;
+            // Spin from the tyre's own speed (ground speed + slip; faster when spinning, still when locked).
+            float spinDeg = w.wheelSpeed * dt / Mathf.Max(0.05f, w.radius) * Mathf.Rad2Deg;
             w.spinPivot.localRotation *= Quaternion.Euler(spinDeg, 0f, 0f);
         }
     }

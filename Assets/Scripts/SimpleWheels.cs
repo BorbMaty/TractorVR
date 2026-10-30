@@ -35,6 +35,12 @@ public class SimpleWheels : MonoBehaviour
         foreach (var w in wheels) { w.rest = w.pivot.localPosition; w.compression = w.last = travel; }
     }
 
+    /// <summary>After a teleport: forget the last spring positions (the dampers would see a huge spring speed).</summary>
+    public void ResetSuspension()
+    {
+        foreach (var w in wheels) w.compression = w.last = travel;
+    }
+
     void FixedUpdate() => PhysicsStep();
 
     public void PhysicsStep()

@@ -146,7 +146,8 @@ public class Drivetrain : MonoBehaviour
     public void FrameUpdate(float dt)
     {
         clock += dt;
-        float kmh = Mathf.Abs(tractor.SpeedKmh);
+        // The gearbox turns the wheels: with slip the engine runs faster than the ground speed says.
+        float kmh = Mathf.Abs(tractor.WheelSpeedKmh);
         float throttle = input.Throttle;
 
         if (input.TransmissionModePressed) ToggleMode();

@@ -74,6 +74,9 @@ public class CabPanel : MonoBehaviour
             ("thrUp",    () => "THROTTLE +", () => drivetrain.MoveHandThrottle(1f, Time.deltaTime), true),
             ("tipUp",    () => "TIP UP", () => hitch.MenuTip(1f), true),
             ("tipDn",    () => "TIP DOWN", () => hitch.MenuTip(-1f), true),
+            ("fourWd",   () => tractor.fourWheelDrive ? "4WD: ON" : "4WD: OFF", () => tractor.SetFourWheelDrive(!tractor.fourWheelDrive), false),
+            ("diffLock", () => tractor.DiffLock ? "DIFF LOCK: ON" : "DIFF LOCK: OFF", () => tractor.SetDiffLock(!tractor.DiffLock), false),
+            ("brakes",   () => tractor.allWheelBrakes ? "BRAKES: ALL" : "BRAKES: REAR", () => tractor.SetAllWheelBrakes(!tractor.allWheelBrakes), false),
         };
         int rows = (items.Length + 1) / 2;
         var bg = Quad("Background", transform, new Vector3(0f, 0f, 0.004f), new Vector2(2 * W + 3 * Gap, rows * (H + Gap) + Gap), panelMat);
