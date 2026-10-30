@@ -835,3 +835,9 @@ Fix (the ROADMAP "force onto the NVIDIA GPU" item): Windows per-app GPU preferen
 UserGpuPreferences`, `GpuPreference=2;`, the same as Settings → System → Display → Graphics) for `OVRServer_x64.exe`, `OVRRedir.exe`,
 `OculusDash.exe`, `OculusClient.exe`, `Builds\PC\TractorVR.exe` and `Unity.exe`. Needs a Link restart. ⏳ user check.
 Also from the Link app: the headset is on a USB 2 connection ("USB 3 recommended").
+**Cause found (same evening):** the GPU preference alone didn't help (49 more dashboard crashes after a restart). The full error is
+`vkEnumeratePhysicalDevices failed` (VK_INCOMPLETE). `vulkaninfo --summary` listed **only the AMD iGPU**: the AMD driver's
+`VK_LAYER_AMD_switchable_graphics` (driver 27.20.14032, Vulkan 1.2.150, from 2020) hides the RTX 3060 from Vulkan apps. With the layer's
+own off switch (`DISABLE_LAYER_AMD_SWITCHABLE_GRAPHICS_1=1`, from its manifest `amd-vulkan64.json`) vulkaninfo lists GPU0 = RTX 3060,
+GPU1 = AMD. Set as a **user environment variable** (OVRServer runs as the user). Needs a sign-out or restart to reach the Link processes. ⏳ user check.
+(Also present: a "SudoMaker Virtual Display Adapter" virtual display driver; not touched, a suspect if Link still fails.)
