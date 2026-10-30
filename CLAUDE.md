@@ -43,6 +43,7 @@ See `README.md` for controls, `docs/ROADMAP.md` for what's next and `docs/DEVLOG
 | `Assets/Scripts/ControllerVisual.cs` | Animates the bones of the official Quest 2 controller models (stick, buttons, trigger, grip; hidden when untracked) |
 | `Assets/Models/MetaControllers/` | Quest 2 Touch FBX + texture copied from the Meta XR Core SDK (Oculus SDK License, see README there) |
 | `Assets/Scripts/Editor/ProjectSetup.cs` | **Generates everything**: player/XR/URP settings, model import, materials, scene, preview renders |
+| `Assets/Scripts/Editor/CabGuide.cs` + `tools/annotate_guide.py` | README cab guide: renders seat views + control positions (`Logs/Guide/*.json`), then Python (Pillow) draws text boxes + arrows → `docs/images/guide_*.png`. Re-run both when controls change |
 | `Assets/Scripts/Editor/BuildQuest.cs` | APK build → `Builds/TractorVR.apk` |
 | `Assets/Scenes/TractorFlat.unity` | Generated scene (do not hand-edit, see below) |
 

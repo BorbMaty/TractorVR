@@ -742,3 +742,11 @@ reach (9 cm around the lever) covered the switches 5–7 cm away. Fixes: a fist 
 the palm, `VRHands`); no grab at all while the fingertip is on a switch (`CabSwitches.Touching`, `CabControls.TryGrab`); the remote
 levers' grab reach is 4 cm (`Swing.reach`). The pointing rule also keeps the wheel from being grabbed while pressing something behind it.
 APK reinstalled, ✅ headset-checked ("looks good"). **Phase 3 closed 2026-10-30** (step 3 moved to the Blender section).
+
+## 2026-10-30 (evening): Labelled cab guide in the README
+The user asked for cab images with arrows and text boxes for every control. `CabGuide.Run` (editor, menu Tractor VR > Render Cab
+Guide) renders four views from the seat with a soft fill light: the driver's view, the right-hand console, a close-up of the switch
+panel (from the front: seen from the seat, the 4WD rocker hides behind remote lever 3) and the open cab panel. It writes where each
+control lands in the picture (`WorldToScreenPoint`, flagged when outside). `tools/annotate_guide.py` puts the render between two label
+columns, stacks the boxes near their control's height without overlaps and draws the arrows. The panel buttons carry their own
+labels, so the README explains them in a table instead.

@@ -156,6 +156,57 @@ Driver's view at night, headlights on:
 |---|---|
 | ![night above](docs/images/night_above.png) | ![dusk](docs/images/dusk_third.png) |
 
+## Cab guide: what every control does
+
+### From the driver's seat
+![driver's view, labelled](docs/images/guide_driver.png)
+
+### The right-hand console: speed lever and hydraulic remote levers
+Grab the knobs (controller grip, or a fist / pinch with hand tracking).
+
+![console, labelled](docs/images/guide_console.png)
+
+### The switch panel
+Touch a switch with a fingertip or the controller tip. The small lamp in a switch lights while it's on.
+
+![switch panel, labelled](docs/images/guide_switches.png)
+
+### The cab panel
+Open it with the **Menu** button on the left controller (keyboard M) or the MENU tab at the right front of the cab, then touch the buttons.
+It has everything in one place, including the functions of the switches and levers above.
+
+![cab panel](docs/images/guide_panel.png)
+
+| Button | What it does |
+|---|---|
+| VIEW | Cab view ↔ third-person view |
+| RECENTER | Puts the view back in the driver's seat |
+| COMFORT | Comfort vignette: off / low / high |
+| GEARBOX | Automatic ↔ manual gear changes |
+| HITCH UP / HITCH DOWN | Raise / lower the rear three-point hitch (hold) |
+| FRONT UP / FRONT DOWN | Raise / lower the front linkage (hold) |
+| PTO | Power take-off on / off (drives the mower) |
+| ATTACH/DETACH | Couple the implement in reach / uncouple (lower it first) |
+| SEAT ADJ | Seat adjust mode: the sticks move the seat (height, forward / back, sideways) |
+| SEAT RESET | Seat back to the default position |
+| UNITS | km/h ↔ mph |
+| RESET TRACTOR | Back to the start, upright (a coupled trailer comes along) |
+| STOP / NEUTRAL | Speed lever to neutral and brake to a stop |
+| FOVEATION | Foveated rendering level (lower = sharper edges, slower) |
+| FRAME TIME | Shows the frame time on the HUD |
+| DOORS | Opens / closes both doors |
+| THROTTLE − / + | Hand throttle: engine speed down / up (hold) |
+| TIP UP / TIP DOWN | Raise / lower the tipping trailer's body (hold) |
+| 4WD | Front axle drive on / off |
+| DIFF LOCK | Rear diff lock on / off (lets go above 12° steering or 15 km/h) |
+| BRAKES | Brakes on all wheels ↔ rear only |
+| LIGHTS | Road lights: off / side / head |
+| WORK | Work lights: off / front / front + rear |
+| BEACON | Rotating roof beacons on / off |
+| HAZARDS | Hazard lights on / off |
+| < INDICATOR / INDICATOR > | Left / right indicator (press again to cancel) |
+| SKY | Time of day: day / dusk / night |
+
 ## Controls
 With **hand tracking** (controllers put down): make a fist (or pinch) on the wheel rim, a lever knob, the stalk or a door to grab;
 point with your index finger to press buttons and switches (pointing never grabs).
