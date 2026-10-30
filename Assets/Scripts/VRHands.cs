@@ -73,11 +73,14 @@ public class VRHands : MonoBehaviour
             // between thumb and index tips for a pinch (that's where a pinched rim or knob actually is). Chosen when the grab
             // starts and kept until it ends, so switching gesture mid-grab can't make the wheel jump.
             // Fist: average fingertip distance to the palm (close < 6.5 cm, open > 8.5 cm). Pinch: thumb to index tip (< 2.5 / > 4.5 cm).
+            // A pointing hand (index out > 8 cm, the others curled) is pressing a switch, not grabbing: it averaged under 6.5 cm
+            // and grabbed the remote lever next to the switch. So a fist only starts with the index curled too.
             float sum = 0f; int n = 0;
             foreach (var id in new[] { XRHandJointID.IndexTip, XRHandJointID.MiddleTip, XRHandJointID.RingTip })
                 if (Joint(xr, id, out Pose tip)) { sum += Vector3.Distance(tip.position, palm.position); n++; }
             float curl = n > 0 ? sum / n : 1f;
-            sig.fist = sig.fist ? curl < 0.085f : curl < 0.065f;
+            bool pointing = Vector3.Distance(index.position, palm.position) > 0.08f;
+            sig.fist = sig.fist ? curl < 0.085f : curl < 0.065f && !pointing;
             float pinch = Vector3.Distance(thumb.position, index.position);
             sig.pinch = sig.pinch ? pinch < 0.045f : pinch < 0.025f;
             if (!h.Grabbing) h.PinchGrab = sig.pinch && !sig.fist;

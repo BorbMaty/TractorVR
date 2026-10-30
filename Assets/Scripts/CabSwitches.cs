@@ -125,6 +125,13 @@ public class CabSwitches : MonoBehaviour
         }
     }
 
+    /// <summary>A fingertip / controller tip is on (or within 1.5 cm of) a switch.</summary>
+    public bool Touching(Vector3 tip)
+    {
+        foreach (var s in switches) if (InBox(s, tip, 0.03f)) return true;
+        return false;
+    }
+
     // The switch whose poke box (grown by 6 mm each way) holds the point, nearest to its centre; null if none.
     Switch Nearest(Vector3 world)
     {

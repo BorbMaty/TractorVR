@@ -733,3 +733,12 @@ Also: brake lights from `TractorController.Braking` (braking harder than coastin
 cab panel 31 buttons in three columns (LIGHTS, WORK, BEACON, HAZARDS, < INDICATOR, INDICATOR >, SKY); keys G / N / O / Y / , / . / U.
 PlayModeTest presses all 31 panel buttons and the 8 console switches, then drives on at night with lights, beacon and indicator: OK.
 PhysicsTest unchanged.
+
+**Fix after the first headset try (same day): levers grabbed while pressing switches.** The user: "the levers and the wheel are
+getting in the way sometimes". The headset log (hand tracking) showed remote levers 2 / 3 grabbed and let go within half a second,
+over and over, while reaching for the console. Cause: a fist was the average of the index, middle and ring tips' distance to the palm
+(< 6.5 cm); a pointing hand (index out, the others curled) averages under that, so pressing a switch was a fist grab, and a hand's swing
+reach (9 cm around the lever) covered the switches 5–7 cm away. Fixes: a fist only starts with the index curled too (index tip < 8 cm from
+the palm, `VRHands`); no grab at all while the fingertip is on a switch (`CabSwitches.Touching`, `CabControls.TryGrab`); the remote
+levers' grab reach is 4 cm (`Swing.reach`). The pointing rule also keeps the wheel from being grabbed while pressing something behind it.
+APK reinstalled, ⏳ headset check.

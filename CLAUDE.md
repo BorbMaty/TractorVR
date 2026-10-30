@@ -151,6 +151,8 @@ $u = "C:\Program Files\Unity\Hub\Editor\6000.6.3f1\Editor\Unity.exe"
   they don't blow out the tractor seen from the cab), cab light; no shadows. `TractorLights` changes the shared skybox material's `_Exposure`:
   editor code that cycles the sky must put it back to DAY (`OnDestroy` does it in play mode). The unlit cab glass is dimmed per material slot
   (`SetPropertyBlock(block, index)`) at dusk / night.
+- Hand tracking: a fist needs the index curled too (pointing = pressing, never a grab), and `CabControls` doesn't grab while the tip is on a
+  console switch. Small parts next to each other get a `Swing.reach` (remote levers 4 cm, stalk 2.5 cm) instead of the 9 cm hand reach.
 - In edit mode (tests, renders) `TractorInput`'s actions don't exist: set `input.scripted = true` before calling `TractorLights.FrameUpdate`.
 - **Quest GPU budget** (13.9 ms at 72 Hz): the app is GPU-bound. Measure with `adb logcat -s VrApi` (look at `FPS=`, `App=` ms, `GPU%`) while the
   headset is worn (it only renders then). In place: fixed foveated rendering (`Foveation`, OpenXR Foveated Rendering feature without eye tracking),

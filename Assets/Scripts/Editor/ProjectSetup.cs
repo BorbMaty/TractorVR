@@ -856,7 +856,9 @@ public static class ProjectSetup
                 // Grab box: knob + handle, in hinge space.
                 var grab = new Bounds(h.InverseTransformPoint(root.TransformPoint(p[knobs[r][0]])), Vector3.zero);
                 foreach (int i in knobs[r].Concat(handles[r])) grab.Encapsulate(h.InverseTransformPoint(root.TransformPoint(p[i])));
-                remoteList.Add(new CabControls.Swing { name = $"Remote {r + 1}", hinge = hinge, axis = Vector3.right, grabBox = grab, min = -20f, max = 20f, springBack = true });
+                // Grab reach 4 cm around knob + handle (the usual hand reach is 9 cm: it took a lever while the hand was over the
+                // console switches next to it).
+                remoteList.Add(new CabControls.Swing { name = $"Remote {r + 1}", hinge = hinge, axis = Vector3.right, grabBox = grab, min = -20f, max = 20f, springBack = true, reach = 0.04f });
                 log.AppendLine($"Remote lever {r + 1}: pivot {pivotPos:F3}, knob {PartBounds(knobs[r]).center:F3}, {sel.Count(b => b)} vertices");
             }
         }

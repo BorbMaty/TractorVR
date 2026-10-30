@@ -12,6 +12,8 @@ with Blender.
 - panel SKY → DUSK / NIGHT, with headlights, work lights and beacons on; check the view from the cab and the frame rate at night
   (up to 4 extra lights);
 - whether a switch flips by accident while grabbing the remote levers or the steering wheel next to the stalk.
+- fixed after the first try: pointing at a switch (hand tracking) counted as a fist and grabbed the remote levers / wheel; check that
+  pressing switches no longer grabs anything and the remote levers are still easy to take (reach now 4 cm).
 
 After that check, phase 3 is done (step 3 moved to the Blender section).
 

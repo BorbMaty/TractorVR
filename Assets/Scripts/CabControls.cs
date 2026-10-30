@@ -62,6 +62,7 @@ public class CabControls : MonoBehaviour
     }
 
     VRHands hands;
+    CabSwitches switches;
     TractorController tractor;
     TractorInput input;
     Hitch hitch;
@@ -114,6 +115,7 @@ public class CabControls : MonoBehaviour
         leverRenderers = speedLever.GetComponentsInChildren<Renderer>();
         block = new MaterialPropertyBlock();
         hitch = GetComponent<Hitch>();
+        switches = GetComponent<CabSwitches>();
         foreach (var sw in Swings())
         {
             sw.rest = sw.hinge.localRotation;
@@ -201,6 +203,8 @@ public class CabControls : MonoBehaviour
 
     void TryGrab(VRHands.Hand h)
     {
+        // A fingertip on a console switch is pressing it: no grab (the remote levers stand right next to the switches).
+        if (switches && switches.Touching(h.PokeTip)) return;
         // The nearest remote lever / door in reach; the speed lever wins if its knob is closer (they sit side by side).
         Swing best = null;
         float bestDistance = float.MaxValue;
