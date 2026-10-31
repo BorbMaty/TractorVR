@@ -1,5 +1,12 @@
 # Roadmap
 
+## ▶ Where we left off (2026-11-01, night)
+**Phase 5 step 1 (farmyard) built**: yard surface (Poly Haven concrete), speed bumps on the west track with a **moving front axle**
+(axle + cylinder rods follow the front springs), a silage clamp (18°) and an earth ramp (15° / 22°) to practise on, round wheel
+colliders + higher front collider (the old boxes stuck on steep ramps). `PhysicsTest` (new W, X, X2, X3) and `PlayModeTest` (both
+levels) pass. PC exe and Quest APK rebuilt. Next: the user's look (bumps from the cab, the ramps, the 22° descent for comfort), then
+step 2 (implements remade in Blender).
+
 ## ▶ Where we left off (2026-11-01, later)
 **Yard details built** (phase 5 step 1, second item): silos, diesel tank, tipping pad + muck heap, bale stack, yard gate, fences
 (`docs/images/phase5_yard.png`). `PlayModeTest` passes at both levels, `PhysicsTest` too (the trailer test no longer runs into the front
@@ -254,7 +261,7 @@ repeated things, no shadows on Quest except buildings, impostors for far trees, 
   the env assets; desktop: 1.4 vs 1.3 ms). Quest run 2 (2026-10-31): env 9.59 ms, noenv 9.96 ms GPU: the barn costs less than
   the hills it hides; ~4.3 ms of the 13.9 ms budget left with it on screen. ✅
 
-### Step 1: farmyard
+### Step 1: farmyard (built 2026-11-01; the user's headset look at the new parts still to do)
 - [x] Barn, open-front machine shed with marked parking bays per implement (tutorial spots), farmhouse.
   Barn ✅ (step 0). Machine shed ✅ 2026-10-31: `tools/blender/shed.py`, 36 × 10 m, lean-to corrugated roof, bays FRONT WEIGHT / MOWER /
   PLOUGH / TRAILER (`WorldLayout.ShedBays`, yellow lines, name boards); the implements start in their bays (`docs/images/phase5_shed.png`).
@@ -266,11 +273,19 @@ repeated things, no shadows on Quest except buildings, impostors for far trees, 
   filling auger east of the shed, a red diesel tank, a three-walled TIPPING PAD with a muck heap (north-west of the yard, open to the south),
   a round-bale stack north of the barn, a Székely-style carved gate (székelykapu, "ISTEN HOZOTT") on the yard road at x 28, a picket fence
   round the house garden, a rail fence south of the gate. User check in PC VR / Quest still to do
-- [ ] Better yard surface (concrete slabs with wear, dirt at the edges) from Poly Haven textures
-- [ ] Speed bumps (static colliders the wheel rays hit) where the suspension, the front axle cylinders (`Front_Small_Forcer_*`, still
-  static) and a raised implement can be seen working
-- [ ] Steep parts for practice: ramps / embankments up and down (steeper than the hills' ~11°), e.g. a silage clamp in the yard and an
-  earth ramp on the practice area. Check the comfort rules (pitch is seen from the cab) and the physics limits (`PhysicsTest` steepest hill)
+- [x] Better yard surface (concrete slabs with wear, dirt at the edges) from Poly Haven textures. Built 2026-11-01: Poly Haven
+  `dirty_concrete` with the 4 m slab joints baked in (`tools/make_yard_concrete.py`). Dirt at the yard edges: not done (the yard is one
+  textured patch; the grass / mud blend around it stays)
+- [x] Speed bumps (static colliders the wheel rays hit) where the suspension, the front axle cylinders (`Front_Small_Forcer_*`, still
+  static) and a raised implement can be seen working. Built 2026-11-01: two 10 cm bumps on the west track by the barn (`speedbump.py`,
+  sloped colliders); the **front axle now moves**: axle, steering cylinder and the suspension cylinder rods on `Hinge_FrontAxle`, rising
+  with the front wheels' spring travel and swinging with their difference, the rods sliding in the barrels. `PhysicsTest` W
+- [x] Steep parts for practice: ramps / embankments up and down (steeper than the hills' ~11°), e.g. a silage clamp in the yard and an
+  earth ramp on the practice area. Check the comfort rules (pitch is seen from the cab) and the physics limits (`PhysicsTest` steepest hill).
+  Built 2026-11-01: silage clamp behind the barn (1:3 = 18° ramps, `clamp.py`), earth ramp on the pasture north-west of the yard (15° and
+  22° sides, `earthramp.py`). The tractor first stuck on them: its box colliders (wheel blocks, a low front) hit the ramps; now round
+  wheel colliders and a higher front block. `PhysicsTest` X / X2 / X3: all three climbed at 8 km/h, slip <= 11 %, power <= 51 %.
+  Comfort: pitch up to 23° from the cab is real vehicle motion (no camera motion added); to be judged in the headset
 
 ### Step 2: implements remade (same sizes and coupling points, so `Hitch` / `Implement` stay)
 - [ ] Plough, disc mower, tipping trailer, front weight in Blender: frames, hoses, bolts, decals, worn edges, dirt

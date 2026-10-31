@@ -347,7 +347,16 @@ public static class ProjectSetup
         terrain.concrete = Surface("Concrete", 4f, 0.15f);
         terrain.gameObject.isStatic = true;
 
-        BuildFarmyard();
+        BuildFarmyard();   // imports the Env textures (ImportEnvAssets) on its first PlaceEnv
+
+        // Phase 5 yard surface: Poly Haven dirty_concrete with 4 m slab joints (tools/make_yard_concrete.py) instead of the generated slabs.
+        var yardDiff = AssetDatabase.LoadAssetAtPath<Texture2D>($"{EnvTexDir}/yard_concrete_diff.jpg");
+        if (yardDiff)
+        {
+            terrain.concrete.SetTexture("_DetailMap", yardDiff);
+            terrain.concrete.SetTexture("_NormalMap", AssetDatabase.LoadAssetAtPath<Texture2D>($"{EnvTexDir}/yard_concrete_nor.jpg"));
+            EditorUtility.SetDirty(terrain.concrete);
+        }
 
         // Round hay bales (Ø 1.5 m × 1.2 m, 350 kg) on the flat start area: things to push around.
         var baleMat = SaveMat(new Material(LitShader) { color = new Color(0.82f, 0.7f, 0.38f) }, "HayBale");
@@ -557,6 +566,12 @@ public static class ProjectSetup
         PlaceEnv("MuckPad", parent, new Vector3(tp.x, 0f, tp.y), 0f, prop: true);
         PlaceEnv("BaleStack", parent, new Vector3(WorldLayout.BaleStack.x, 0f, WorldLayout.BaleStack.y), 0f, prop: true);
         PlaceEnv("Fences", parent, Vector3.zero, 0f, prop: true);   // gate + fences, modelled in world coordinates
+        // Speed bumps across the west track (the wheel rays ride over their sloped colliders).
+        foreach (var sb in WorldLayout.SpeedBumps)
+            PlaceEnv("SpeedBump", parent, new Vector3(sb.x, TerrainGenerator.Height(sb.x, sb.y), sb.y), sb.z, prop: true);
+        // Steep practice slopes (sloped colliders under the driving surfaces).
+        foreach (var (asset, at) in new[] { ("SilageClamp", WorldLayout.SilageClamp), ("EarthRamp", WorldLayout.EarthRamp) })
+            PlaceEnv(asset, parent, new Vector3(at.x, TerrainGenerator.Height(at.x, at.y), at.y), at.z, prop: true);
     }
 
     // ------------------------------------------------------------------ environment assets (phase 5, Blender)
@@ -568,7 +583,7 @@ public static class ProjectSetup
 
     [System.Serializable] class EnvMat { public string name, tex; public float[] tint; public float smoothness; }
     [System.Serializable] class EnvMatList { public EnvMat[] materials; }
-    [System.Serializable] class EnvCollider { public float[] centre, size; public float yaw; }
+    [System.Serializable] class EnvCollider { public float[] centre, size; public float yaw, roll; }
     [System.Serializable] class EnvInfo { public EnvCollider[] colliders; }
 
     static System.Collections.Generic.Dictionary<string, Material> envMats;
@@ -651,7 +666,7 @@ public static class ProjectSetup
                 var ct = new GameObject($"Collider_{i}").transform;
                 ct.SetParent(go.transform, false);
                 ct.localPosition = new Vector3(c.centre[0], c.centre[1], c.centre[2]);
-                ct.localRotation = Quaternion.Euler(0f, c.yaw, 0f);
+                ct.localRotation = Quaternion.Euler(0f, c.yaw, c.roll);
                 ct.gameObject.AddComponent<BoxCollider>().size = new Vector3(c.size[0], c.size[1], c.size[2]);
             }
         foreach (var t in go.GetComponentsInChildren<Transform>(true)) t.gameObject.isStatic = true;
@@ -729,20 +744,38 @@ public static class ProjectSetup
         // the rear frame / hitch. A single full-width box out to the hitch stopped a coupled trailer from swinging past ~12°.
         const float clearance = 0.45f;
         Vector3 lo = root.transform.InverseTransformPoint(all.min), hi = root.transform.InverseTransformPoint(all.max);
-        const float mainBack = -0.55f;
+        // The main block ends 0.35 m ahead of the front axle; a front block (bonnet, front linkage) starts higher up, so the approach
+        // angle is ~38° (one 0.45 m-high block out to the bumper allowed only ~17°: it hit the 18° silage clamp ramp, phase 5).
+        const float mainBack = -0.55f, frontClearance = 0.65f;
+        float mainFront = wheels[0].steerPivot.localPosition.z + 0.35f;
         var main = root.AddComponent<BoxCollider>();
-        main.center = new Vector3(0f, (clearance + hi.y) * 0.5f, (mainBack + hi.z) * 0.5f);
-        main.size = new Vector3(hi.x - lo.x, hi.y - clearance, hi.z - mainBack);
+        main.center = new Vector3(0f, (clearance + hi.y) * 0.5f, (mainBack + mainFront) * 0.5f);
+        main.size = new Vector3(hi.x - lo.x, hi.y - clearance, mainFront - mainBack);
+        var frontBlock = root.AddComponent<BoxCollider>();
+        frontBlock.center = new Vector3(0f, (frontClearance + hi.y) * 0.5f, (mainFront + hi.z) * 0.5f);
+        frontBlock.size = new Vector3(hi.x - lo.x, hi.y - frontClearance, hi.z - mainFront);
         var rearBlock = root.AddComponent<BoxCollider>();
         rearBlock.center = new Vector3(0f, (clearance + 2.2f) * 0.5f, (lo.z + mainBack) * 0.5f);
         rearBlock.size = new Vector3(1.0f, 2.2f - clearance, mainBack - lo.z);
-        // Wheel blocks for bumping into things (the wheel rays only see static ground): tyre-sized boxes that stop 0.1 m above it.
+        // Wheel colliders for bumping into things (the wheel rays only see static ground): round like the tyre (a convex cylinder
+        // across it), 85 % of the tyre radius, so they stay off slopes up to ~30°. Tyre-sized boxes stuck their corners into ramps
+        // steeper than ~8° (phase 5). Children of the tractor (a collider's own scale), on its layer, part of its compound body.
+        var cylinder = Resources.GetBuiltinResource<Mesh>("Cylinder.fbx");   // along Y; scaled from its own bounds below
+        var wheelCols = new System.Collections.Generic.List<Collider>();
         foreach (var w in wheels)
         {
-            var wheelBox = root.AddComponent<BoxCollider>();
-            float width = w.steers ? 0.5f : 0.65f;
-            wheelBox.center = w.steerPivot.localPosition + Vector3.up * 0.05f;
-            wheelBox.size = new Vector3(width, 2f * w.radius - 0.1f, 2f * w.radius);
+            var t = new GameObject("WheelCollider_" + w.steerPivot.name).transform;
+            t.SetParent(root.transform, false);
+            t.gameObject.layer = 2;
+            t.localPosition = w.steerPivot.localPosition;
+            t.localRotation = Quaternion.Euler(0f, 0f, 90f);                    // cylinder axis across the tractor
+            float width = w.steers ? 0.5f : 0.65f, d = 2f * 0.85f * w.radius;
+            Vector3 ms = cylinder.bounds.size;
+            t.localScale = new Vector3(d / ms.x, width / ms.y, d / ms.z);
+            var mc = t.gameObject.AddComponent<MeshCollider>();
+            mc.sharedMesh = cylinder;
+            mc.convex = true;
+            wheelCols.Add(mc);
         }
         // Slippery body: a round bale rolling against a grippy flat front drags the nose up onto it (seen in PhysicsTest).
         var slick = new PhysicsMaterial("TractorBody")
@@ -753,7 +786,7 @@ public static class ProjectSetup
         string slickPath = GenDir + "/TractorBody.physicMaterial";
         AssetDatabase.DeleteAsset(slickPath);
         AssetDatabase.CreateAsset(slick, slickPath);
-        foreach (var col in root.GetComponents<Collider>()) col.sharedMaterial = slick;
+        foreach (var col in root.GetComponents<Collider>().Concat(wheelCols)) col.sharedMaterial = slick;
         root.layer = 2; // Ignore Raycast
 
         // 5) Driver seat (eye point) estimated from the cab geometry; fine-tune in VR (hold left grip).
@@ -793,6 +826,7 @@ public static class ProjectSetup
         ApplyDetailMaterials(root.transform, new System.Collections.Generic.HashSet<Mesh>(aoTargets.Select(t => t.sharedMesh)), log);
         var drivetrain = root.AddComponent<Drivetrain>();
         BuildLinkage(root.transform, Part, log);
+        BuildFrontAxle(root.transform, ctrl, Part, log);
         BuildDashboard(root.transform, clusterPose, clusterSize, ctrl, drivetrain, log);
         BuildLights(root.transform, model.transform, log);
 
@@ -2121,6 +2155,23 @@ public static class ProjectSetup
         log.AppendLine("Tractor triangles per mesh LOD level: " + string.Join(", ", perLod.Take(5).Select((t, i) => $"LOD{i} {t:N0}")));
     }
 
+    // ------------------------------------------------------------------ front axle suspension (visual)
+    // The axle, the steering cylinder across it and the rods of the two suspension cylinders go under Hinge_FrontAxle, on the axle's
+    // centre line at wheel-centre height; TractorController moves it with the front wheels' spring travel. The barrels
+    // (Front_Small_Forcer_01_*) stay on the frame, so the rods (…_02_*) slide in and out of them.
+    static void BuildFrontAxle(Transform root, TractorController ctrl, System.Func<string, Transform> part, StringBuilder log)
+    {
+        var axle = part("Front_Axle");
+        Vector3 wl = ctrl.wheels[0].steerPivot.localPosition, wr = ctrl.wheels[1].steerPivot.localPosition;
+        var hinge = new GameObject("Hinge_FrontAxle").transform;
+        hinge.SetParent(root, false);
+        hinge.localPosition = new Vector3(0f, (wl.y + wr.y) * 0.5f, root.InverseTransformPoint(axle.GetComponent<Renderer>().bounds.center).z);
+        foreach (var n in new[] { "Front_Axle", "Front_Main_Forcer_01", "Front_Small_Forcer_02_L", "Front_Small_Forcer_02_R" })
+            part(n).SetParent(hinge, true);
+        ctrl.frontAxle = hinge;
+        log.AppendLine($"Front axle hinge at {hinge.localPosition:F3} (axle, steering cylinder, suspension cylinder rods)");
+    }
+
     // ------------------------------------------------------------------ hydraulics: linkage hinges
     // The model's linkage parts have their pivots on the real hinge points (rockshaft, lower link pins, arm tips).
     // Each moving part gets a tractor-aligned hinge at its pivot, so Hitch only has to turn hinges around X.
@@ -3021,6 +3072,10 @@ public static class ProjectSetup
         Vector3 gateCam = new Vector3(42f, 2.2f, -5f), gateAt = new Vector3(28f, 3f, 0.5f);
         Vector3 silosCam = new Vector3(6f, 2.6f, -14f), silosAt = new Vector3(23f, 4f, -32f);
         Vector3 padCam = new Vector3(-8f, 2.6f, -2f), padAt = new Vector3(-24f, 1.5f, 16f);
+        // Speed bumps on the west track, the silage clamp from its south end, the earth ramp from the side.
+        Vector3 bumpCam = new Vector3(-27f, 1.8f, -31f), bumpAt = new Vector3(-37f, 0.2f, -40f);
+        Vector3 clampCam = new Vector3(-44f, 4.5f, -34f), clampAt = new Vector3(-52f, 1.5f, -6f);
+        Vector3 rampCam = new Vector3(-30f, 3.5f, 22f), rampAt = new Vector3(-35f, 1.5f, 40f);
         foreach (var t in new[] { QualityTier.Tier.PC, QualityTier.Tier.Quest })
         {
             QualityTier.ApplyEnvironment(t);
@@ -3036,6 +3091,9 @@ public static class ProjectSetup
                 Shot($"gate_{tier}.png", gateCam, Quaternion.LookRotation(gateAt - gateCam));
                 Shot($"silos_{tier}.png", silosCam, Quaternion.LookRotation(silosAt - silosCam));
                 Shot($"pad_{tier}.png", padCam, Quaternion.LookRotation(padAt - padCam));
+                Shot($"bump_{tier}.png", bumpCam, Quaternion.LookRotation(bumpAt - bumpCam));
+                Shot($"clamp_{tier}.png", clampCam, Quaternion.LookRotation(clampAt - clampCam));
+                Shot($"ramp_{tier}.png", rampCam, Quaternion.LookRotation(rampAt - rampCam));
             }
         }
         QualityTier.ApplyEnvironment(QualityTier.Current);

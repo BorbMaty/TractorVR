@@ -50,7 +50,7 @@ See `README.md` for controls, `docs/ROADMAP.md` for what's next and `docs/DEVLOG
 | `Assets/Scripts/Editor/BuildPC.cs` | Windows build → `Builds/PC/TractorVR.exe` (`-buildTarget StandaloneWindows64`) |
 | `Assets/Scripts/DesktopMode.cs` | PC desktop version in the same exe: VR if the OpenXR session is focused within 6 s, else XR off + monitor (`-desktop` / `-vr`, F9); mouse look / orbit, mouse fed into `VRHands` as the right hand (pick proxies on layer 30), on-screen menu from `CabPanel` entries |
 | `Assets/Scripts/QualityTier.cs` | Quest / PC tier at start: PC = model renderers cast shadows, `ShadowProxy` off; `CurrentBudget` for environment assets |
-| `tools/blender/` (`tvr.py`, `build.py`, one script per asset: `barn.py`, `shed.py`, `farmhouse.py`, `silos.py`, `fueltank.py`, `muckpad.py`, `balestack.py`, `fences.py`) | Phase 5 environment assets, modelled by script in Blender: Unity coordinates, Full (PC) + Light (Quest) variant, AO baked into the vertex colour → `Assets/Models/Env/<Asset>.fbx` + `.json`, `env_materials.json`. Run headless: `blender -b --factory-startup -P tools/blender/build.py -- barn` (or `all`) |
+| `tools/blender/` (`tvr.py`, `build.py`, one script per asset: `barn.py`, `shed.py`, `farmhouse.py`, `silos.py`, `fueltank.py`, `muckpad.py`, `balestack.py`, `fences.py`, `speedbump.py`, `clamp.py`, `earthramp.py`) | Phase 5 environment assets, modelled by script in Blender: Unity coordinates, Full (PC) + Light (Quest) variant, AO baked into the vertex colour → `Assets/Models/Env/<Asset>.fbx` + `.json`, `env_materials.json`. Run headless: `blender -b --factory-startup -P tools/blender/build.py -- barn` (or `all`) |
 | `tools/fetch_polyhaven.py` | Poly Haven (CC0) textures at 1k → `Assets/Textures/Env/` (+ `sizes.json`, `LICENSE.txt`); the list must match `tvr.MATERIALS` |
 | `Assets/Shaders/EnvLit.shader` + `Assets/Scripts/TierVariant.cs` | Env asset shader (albedo × tint × baked AO; normal map only with the global keyword `ENV_NORMALS` = PC tier). `TierVariant` marks the Full / Light child; `QualityTier.ApplyEnvironment` switches both |
 | `Assets/Scripts/PerfBenchmark.cs` | Version benchmark: fixed machine state, scripted 63 s drive, per-frame frame / CPU / GPU / XR runtime times → `persistentDataPath/Benchmark/` (summary, CSV, stills). Results in `docs/benchmark/` (Quest: `adb pull /sdcard/Android/data/com.sapientia.tractorvr/files/Benchmark`, with `MSYS_NO_PATHCONV=1` in Git Bash) |
@@ -110,7 +110,9 @@ $u = "C:\Program Files\Unity\Hub\Editor\6000.6.3f1\Editor\Unity.exe"
   `Rear_Holder_Ruler_02_L/R` lift rods (pivot = arm tip), `Rear_Holder_02` lower links (both in one mesh, pivot y 0.67 z −0.099), `Rear_Holder_Ruler_03_L/R`
   stabilisers, `Rear_Forcer_01/02` lift cylinder barrels/rods, `Rear_Holder_01` top link (stowed upright, not animated), `Front_Holder_02_L/R` front lower
   links (stowed upright). The model is drawn with the rear hitch fully raised. Drawbar (pick-up hitch) at (0, 0.43, −0.78).
-  `ProjectSetup.BuildLinkage` puts each moving part under a tractor-aligned `Hinge_*`. Still static: `Front_Small_Forcer_*` (front axle), `Front_Main_Forcer_01` (steering).
+  `ProjectSetup.BuildLinkage` puts each moving part under a tractor-aligned `Hinge_*`. Front axle (`BuildFrontAxle`): `Front_Axle`, `Front_Main_Forcer_01`
+  (steering cylinder, not steered) and the suspension cylinder rods `Front_Small_Forcer_02_*` under `Hinge_FrontAxle`, moved by `TractorController`
+  from the front springs (rise + swing); the barrels `Front_Small_Forcer_01_*` stay on the frame.
 - **Top link** `Rear_Holder_01`: pivot = tractor bracket (0, 1.179, −0.511), stowed upright, 0.936 m. Coupled: `Hitch` turns `Hinge_TopLink` onto the
   implement's `topPin` and scales it along its axis (length set at coupling).
 - **Front cylinders** `Front_Forcer_01_L/R` (barrels, pivot = frame pin at the top (1.162, 3.337)) and `Front_Forcer_02_L/R` (rods). The model's rod pivot
@@ -134,7 +136,9 @@ $u = "C:\Program Files\Unity\Hub\Editor\6000.6.3f1\Editor\Unity.exe"
   The trailer stays dynamic, with a `ConfigurableJoint` at the drawbar eye. Collisions between a **mounted** implement and the tractor are ignored while
   coupled. The **trailer keeps colliding** (joint `enableCollision = true`). After detaching, collisions come back as soon as nothing overlaps (`OverlapsTractor`).
   Detaching a trailer is refused above 25° articulation (its jack would come down inside the tractor).
-- Tractor colliders: a main block (full width, from z −0.55 forward), a narrow rear block (1 m wide, hitch/frame) and four wheel blocks.
+- Tractor colliders: a main block (full width, z −0.55 to 0.35 m ahead of the front axle, from 0.45 m up), a front block (from 0.65 m up:
+  approach angle ~38°), a narrow rear block (1 m wide, hitch/frame) and four round wheel colliders (convex cylinders at 85 % of the tyre
+  radius, children `WheelCollider_*` on layer 2). Box-shaped wheel blocks and a low front stuck on ramps steeper than ~15° (phase 5).
   A single full-width box out to the hitch limited a coupled trailer to ~12° of swing. The trailer body starts 1.6 m behind its eye, so it swings ~50° before touching the tyres (joint limit 70°). Plough draft is fed forward into the drive force (a P-only speed controller left a 4 km/h error).
 - Rear linkage reach: link ends 0.43–1.27 m, so 3-point implements need their lower-link pins at ~0.75 m when parked.
 - Three-point implements with a `topPin` pitch with the hitch: `RearMount` is rotated by `Hitch.RearPitch`, and implements take the mount's rotation.
@@ -208,6 +212,8 @@ $u = "C:\Program Files\Unity\Hub\Editor\6000.6.3f1\Editor\Unity.exe"
 - **Blender → Unity axes**: FBX export forward −Z, up Y, bake space transform → Unity (x, y, z) = Blender (−x, z, −y), scale 1. The asset
   scripts use Unity coordinates only (`tvr.U`). Placement in the scene: `ProjectSetup.PlaceEnv(asset, parent, position, yaw)`; the
   materials come from `env_materials.json` (don't edit `Generated/Env_*.mat`). Change an asset → run `build.py`, then the scene setup.
+- Ramps and bumps: `Builder.slope_collider` puts a box's top face on a slope (`collider(..., roll=)`); the wheel rays ride on it.
+  Put the visible surface exactly on it (`heightfield` with grid lines on the creases).
 - Env asset colliders: `Builder.collider(centre, size, yaw)` in the asset script → `<Asset>.json` → `PlaceEnv` adds BoxColliders (barn, shed,
   house still have theirs in `ProjectSetup`). `fences.py` is modelled in **world coordinates** (placed at the origin); its gate x must match
   `WorldLayout.GateX`. Small props: `PlaceEnv(..., prop: true)` (no Quest shadow).

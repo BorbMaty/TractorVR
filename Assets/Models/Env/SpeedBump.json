@@ -1,0 +1,63 @@
+{
+  "asset": "SpeedBump",
+  "notes": "Speed bump, 10 cm high, 1.3 m long, 4.4 m wide; two sloped colliders (from the JSON).",
+  "variants": {
+    "Full": {
+      "triangles": 320,
+      "vertices": 215,
+      "materials": [
+        "Env_PaintYellow",
+        "Env_RubberBlack",
+        "Env_Steel"
+      ],
+      "size_unity": [
+        1.3,
+        0.14,
+        4.4
+      ]
+    },
+    "Light": {
+      "triangles": 128,
+      "vertices": 80,
+      "materials": [
+        "Env_PaintYellow",
+        "Env_RubberBlack"
+      ],
+      "size_unity": [
+        1.3,
+        0.14,
+        4.4
+      ]
+    }
+  },
+  "colliders": [
+    {
+      "centre": [
+        -0.3098,
+        -0.0488,
+        0.0
+      ],
+      "size": [
+        0.6576,
+        0.2,
+        4.4
+      ],
+      "yaw": 0.0,
+      "roll": 8.746
+    },
+    {
+      "centre": [
+        0.3098,
+        -0.0488,
+        0.0
+      ],
+      "size": [
+        0.6576,
+        0.2,
+        4.4
+      ],
+      "yaw": 0.0,
+      "roll": -8.746
+    }
+  ]
+}

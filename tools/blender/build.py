@@ -16,7 +16,7 @@ sys.path.insert(0, str(HERE))
 
 import tvr  # noqa: E402
 
-ALL = ["barn", "shed", "farmhouse", "silos", "fueltank", "muckpad", "balestack", "fences"]
+ALL = ["barn", "shed", "farmhouse", "silos", "fueltank", "muckpad", "balestack", "fences", "speedbump", "clamp", "earthramp"]
 
 
 def main(names):

@@ -1083,3 +1083,36 @@ without them (yard 10.1 = noyard 10.1; at the barn +0.1 ms): the Light variants 
 static batching keeps the ~40 materials cheap. Worst case 10.1 ms of the 13.9 ms budget, **3.8 ms left** for the rest of phase 5.
 No stalls in the drive this time (the third-person stalls of run 2 did not come back).
 
+## 2026-11-01: Phase 5 step 1 — yard surface, speed bumps, front axle, steep slopes
+User question: "is the tractor suspension implemented?" Yes, since phase 2: per wheel a raycast spring-damper (±15 cm), the wheels
+move with it. Not animated were the front axle and its suspension cylinders. Now they are:
+
+- **Front axle** (`ProjectSetup.BuildFrontAxle`, `TractorController.frontAxle`): `Front_Axle`, the steering cylinder
+  `Front_Main_Forcer_01` and the suspension cylinder rods `Front_Small_Forcer_02_L/R` go under `Hinge_FrontAxle` (0, 0.757, 2.917:
+  the axle's centre line at wheel-centre height). Each frame it rises by the front wheels' average spring travel and swings by their
+  difference over the track (`FrontAxleRise`, `FrontAxleRoll`); the barrels `…_01_*` stay on the frame, so the rods slide in and out.
+- **Speed bumps** (`speedbump.py`, `WorldLayout.SpeedBumps`): two 10 cm, 1.3 m long rubber humps (yellow / black) across the west
+  track, 10 m and 24 m past the yard corner, away from every test and benchmark drive. Colliders: two boxes whose top faces lie on the
+  slopes (`Builder.collider` takes a roll now). `PhysicsTest` W: at ~8 km/h the front axle rises 4.8 cm, the body pitches 2.6°, the
+  springs work 10–17 cm (static 15); at 20 km/h the front axle rises 12.5 cm and the wheels nearly leave the ground (2 cm).
+- **Yard surface**: Poly Haven `dirty_concrete` (CC0, added to `fetch_polyhaven.py`) with the 4 m slab joints baked in by
+  `tools/make_yard_concrete.py` (dark sealant + a groove in the normal map) replaces the generated slabs on `Ground_Concrete`.
+- **Steep slopes**: a silage clamp behind the barn (`clamp.py`, `WorldLayout.SilageClamp`: walls 32 × 2.2 m, 8 m apart, a 2.4 m heap
+  under a black sheet with tyres, 1:3 = 18° ramps at both ends) and an earth ramp on the pasture north-west of the yard (`earthramp.py`,
+  `WorldLayout.EarthRamp`: 3 m high, 6 m track, 15° side west, 22° side east, 35° banks, signs "15°" / "22°"; Poly Haven
+  `brown_mud_dry`). New in `tvr.py`: `prism`, `heightfield` (+ `lines`: grid lines on every crease so slopes stay exact),
+  `slope_collider`.
+
+**The tractor couldn't climb them at first** (`PhysicsTest` X: stuck at the foot of the clamp, slip 75 %, power 46 %; X3: stuck at
+the foot of the 22° side; X2: up the 15° side but stuck at the top). Its collision boxes, not the engine: the four wheel blocks were
+tyre-sized boxes 10 cm above the ground, whose front corners reach a slope before the tyre does above ~8° (with the slippery body
+material they slid up 15°, not 18°); and the body block hung 0.45 m above the ground out to the front, 1.5 m ahead of the front axle:
+approach angle ~17°. Now each wheel has a convex cylinder collider at 85 % of the tyre radius (child `WheelCollider_*`, layer 2, off
+slopes up to ~30°), and the body block ends 0.35 m ahead of the front axle, with a front block from 0.65 m up (approach ~38°). Results:
+clamp at 8 km/h (pitch ±18°), ramp up 16° / down 24°, the 22° side from standstill, slip ≤ 11 %, power ≤ 51 %. The rest of `PhysicsTest`
+is unchanged (bale pushed 8.9 m instead of 9.0, trailer contact the same). (First try: the built-in cylinder mesh is twice the size
+its documentation suggests, so the colliders held the tractor 0.66 m up; they are scaled from the mesh's bounds now.)
+
+`PlayModeTest` passes at both levels (12 / 24 environment variants). Previews `bump_* / clamp_* / ramp_*`, `docs/images/phase5_slopes.png`.
+Comfort: the cab pitches up to 23° on the ramp. That is the vehicle's own motion (the rig adds none), but steeper than anything so far:
+to be judged in the headset.

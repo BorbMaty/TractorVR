@@ -27,6 +27,11 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: Env_Earth
+    second: {fileID: 2100000, guid: 94181c488deee2c45946f3524858250d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: Env_Glass
     second: {fileID: 2100000, guid: 770ba6365a7420c4ebbd1b4b43a5733e, type: 2}
   - first:
@@ -84,6 +89,16 @@ ModelImporter:
       assembly: UnityEngine.CoreModule
       name: Env_RoofTiles
     second: {fileID: 2100000, guid: d6e665ddfafda164c9c914d4b81ee152, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_RubberBlack
+    second: {fileID: 2100000, guid: 03d2342450b9ae24bab64ae51b694bef, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_SilageSheet
+    second: {fileID: 2100000, guid: 82971acc6516e9b448258e8e4a9161ed, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule

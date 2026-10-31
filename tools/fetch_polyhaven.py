@@ -21,6 +21,8 @@ TEXTURES = {
     "clay_roof_tiles_02": "roofs (red clay tiles)",
     "white_rough_plaster": "whitewashed plinths (flaking)",
     "corrugated_iron_02": "machine shed roof (weathered corrugated sheets)",
+    "dirty_concrete": "farmyard slabs (tools/make_yard_concrete.py adds the 4 m joints)",
+    "brown_mud_dry": "earth practice ramp (dry, rutted soil)",
 }
 
 UA = {"User-Agent": "TractorVR-university-project"}

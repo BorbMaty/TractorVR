@@ -121,6 +121,8 @@ public static class PhysicsTest
                            $"speed command {typeof(TractorController).GetField("speedCmd", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(ctrl)}");
             RunImplementScenarios();
             SurfaceScenario();
+            SpeedBumpScenario();
+            SteepSlopeScenario();
 
             Section("P. STOP button at 20 km/h (vs. letting go of the stick: coasting at 0.8 m/s²)");
             Place(new Vector3(32f, 0f, 0f), 90f);
@@ -250,6 +252,69 @@ public static class PhysicsTest
     static Implement Find(string name) => implements.First(i => i.name == name);
 
     // O. What the ground map says across the world, then 15 km/h on each surface: rolling resistance shows in the power.
+    // Over the two speed bumps on the west track at 10 km/h, then 20 km/h: suspension travel and the front axle.
+    static void SpeedBumpScenario()
+    {
+        Vector2 a = new Vector2(-25f, -30f), d = (new Vector2(-60f, -60f) - a).normalized, start = a - d * 12f;   // in the yard, so 20 km/h is reached before the first bump
+        float yaw = Mathf.Atan2(d.x, d.y) * Mathf.Rad2Deg;
+        foreach (float kmh in new[] { 10f, 20f })
+        {
+            Section($"W. Speed bumps (10 cm) on the west track, throttle for ~{kmh:0} km/h");
+            Place(new Vector3(start.x, 0f, start.y), yaw);
+            Simulate(1f, 0f, 0f, 10f);
+            float maxRise = 0f, maxRoll = 0f, maxPitch = 0f, maxComp = 0f, minComp = float.MaxValue, maxKmh = 0f;
+            extra = () =>
+            {
+                maxRise = Mathf.Max(maxRise, Mathf.Abs(ctrl.FrontAxleRise)); maxRoll = Mathf.Max(maxRoll, Mathf.Abs(ctrl.FrontAxleRoll));
+                maxPitch = Mathf.Max(maxPitch, Mathf.Abs(Mathf.DeltaAngle(0f, ctrl.transform.eulerAngles.x))); maxKmh = Mathf.Max(maxKmh, ctrl.SpeedKmh);
+                foreach (var w in ctrl.wheels) { maxComp = Mathf.Max(maxComp, w.compression); minComp = Mathf.Min(minComp, w.compression); }
+                Vector2 p = new Vector2(ctrl.transform.position.x, ctrl.transform.position.z);
+                return $"along {Vector2.Dot(p - a, d):0.0} m  front axle rise {ctrl.FrontAxleRise * 100f:0.0} cm  swing {ctrl.FrontAxleRoll:0.0}°  " +
+                       $"springs {string.Join(" ", ctrl.wheels.Select(w => (w.compression * 100f).ToString("0")))} cm";
+            };
+            float throttle = kmh / 45f;
+            Simulate(4f + 42f / (kmh / 3.6f), throttle, 0f, 0.1f);
+            extra = null;
+            log.AppendLine($"   at up to {maxKmh:0.0} km/h: max front axle rise {maxRise * 100f:0.0} cm, swing {maxRoll:0.0}°, body pitch {maxPitch:0.0}°, " +
+                           $"spring compression {minComp * 100f:0} … {maxComp * 100f:0} cm (static {ctrl.travel * 100f:0})");
+            input.scriptedThrottle = 0f;
+            Simulate(3f, -0.3f, 0f, 0f);
+        }
+    }
+
+    // The steep practice slopes: through the silage clamp (1:3), over the earth ramp (up 15°, down 22°) and back up its 22° side.
+    static void SteepSlopeScenario()
+    {
+        var c = WorldLayout.SilageClamp; var r = WorldLayout.EarthRamp;
+        var runs = new[]
+        {
+            ("X. Silage clamp, 1:3 (18°) ramps: through it northwards at ~8 km/h", new Vector3(c.x, 0f, c.y - 28f), 0f, 26f),
+            ("X2. Earth ramp: up the 15° side, down the 22° side, ~8 km/h", new Vector3(r.x - 20f, 0f, r.y), 90f, 26f),
+            ("X3. Earth ramp: up the 22° side from standstill, ~8 km/h", new Vector3(r.x + 18f, 0f, r.y), -90f, 22f),
+        };
+        foreach (var (title, at, yaw, seconds) in runs)
+        {
+            Section(title);
+            Place(at, yaw);
+            Simulate(1f, 0f, 0f, 10f);
+            float maxPitch = 0f, minPitch = 0f, maxSlip = 0f, minKmhOnSlope = float.MaxValue, maxPower = 0f;
+            extra = () =>
+            {
+                float pitch = -Mathf.DeltaAngle(0f, ctrl.transform.eulerAngles.x);   // + = nose up
+                maxPitch = Mathf.Max(maxPitch, pitch); minPitch = Mathf.Min(minPitch, pitch);
+                maxSlip = Mathf.Max(maxSlip, ctrl.Slip); maxPower = Mathf.Max(maxPower, ctrl.PowerFraction);
+                if (pitch > 10f) minKmhOnSlope = Mathf.Min(minKmhOnSlope, ctrl.SpeedKmh);
+                return $"slip {ctrl.Slip * 100f:0}%  {ctrl.GroundLabel}";
+            };
+            Simulate(seconds, 8f / 45f * 1.3f, 0f, 1f);
+            extra = null;
+            log.AppendLine($"   pitch {minPitch:0.0}° … +{maxPitch:0.0}°, slowest {(minKmhOnSlope < 1000f ? minKmhOnSlope.ToString("0.0") : "-")} km/h above 10° " +
+                           $"nose up, max slip {maxSlip * 100f:0}%, max power {maxPower * 100f:0}%, height now {ctrl.transform.position.y:0.00} m");
+            input.scriptedThrottle = 0f;
+            Simulate(3f, -0.3f, 0f, 0f);
+        }
+    }
+
     static void SurfaceScenario()
     {
         var counts = new int[System.Enum.GetValues(typeof(Ground)).Length];

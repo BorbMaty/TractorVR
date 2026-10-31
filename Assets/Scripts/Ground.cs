@@ -33,6 +33,20 @@ public static class WorldLayout
     /// tools/blender/fences.py, in world coordinates (GATE_X there).</summary>
     public const float GateX = 28f;
 
+    /// <summary>Speed bumps across the west track's first leg (from the yard's south-west corner past the barn): x, z, yaw. The asset's
+    /// local X runs along the track. Away from every scripted test and benchmark drive.</summary>
+    public static readonly Vector3[] SpeedBumps = { BumpOnWestTrack(10f), BumpOnWestTrack(24f) };
+
+    /// <summary>Steep practice slopes (steeper than the hills' ~11°), x, z, yaw. Silage clamp behind the barn: 32 m along Z, heap 2.4 m
+    /// with 1:3 (18°) ramps at both ends. Earth ramp on the pasture north-west of the yard: track along X, 15° side west, 22° side east.</summary>
+    public static readonly Vector3 SilageClamp = new Vector3(-52f, 0f, 90f), EarthRamp = new Vector3(-35f, 40f, 0f);
+
+    static Vector3 BumpOnWestTrack(float along)
+    {
+        Vector2 a = new Vector2(-25f, -30f), b = new Vector2(-60f, -60f), d = (b - a).normalized, p = a + d * along;
+        return new Vector3(p.x, p.y, Mathf.Atan2(-d.y, d.x) * Mathf.Rad2Deg);   // yaw that turns local +X onto d
+    }
+
     /// <summary>Parking bay in the machine shed (open to the yard, +Z): where an implement's coupling point stands and which way it faces.
     /// Rear implements face the yard (yaw 0: the tractor reverses in), front ones the back wall (yaw 180: the tractor drives in nose first).</summary>
     public struct Bay { public string implement; public Vector2 coupling; public float yaw; }

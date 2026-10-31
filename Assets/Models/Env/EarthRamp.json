@@ -1,0 +1,108 @@
+{
+  "asset": "EarthRamp",
+  "notes": "Earth practice ramp, 3 m high, 6 m wide track, 15\u00b0 side (11.2 m), top 4 m, 22\u00b0 side (7.4 m), 35\u00b0 banks. Colliders: the two slopes and the top, the sign posts.",
+  "variants": {
+    "Full": {
+      "triangles": 1496,
+      "vertices": 839,
+      "materials": [
+        "Env_Earth",
+        "Env_Timber",
+        "Env_PaintYellow",
+        "Env_RubberBlack"
+      ],
+      "size_unity": [
+        26.721,
+        4.5,
+        15.169
+      ]
+    },
+    "Light": {
+      "triangles": 576,
+      "vertices": 348,
+      "materials": [
+        "Env_Earth",
+        "Env_Timber",
+        "Env_PaintYellow",
+        "Env_RubberBlack"
+      ],
+      "size_unity": [
+        26.721,
+        4.5,
+        15.169
+      ]
+    }
+  },
+  "colliders": [
+    {
+      "centre": [
+        -13.3107,
+        0.75,
+        4.0
+      ],
+      "size": [
+        0.1,
+        1.5,
+        0.1
+      ],
+      "yaw": 0.0,
+      "roll": 0.0
+    },
+    {
+      "centre": [
+        13.3107,
+        0.75,
+        4.0
+      ],
+      "size": [
+        0.1,
+        1.5,
+        0.1
+      ],
+      "yaw": 0.0,
+      "roll": 0.0
+    },
+    {
+      "centre": [
+        -5.6738,
+        1.3551,
+        0.0
+      ],
+      "size": [
+        11.5911,
+        0.3,
+        6.0
+      ],
+      "yaw": 0.0,
+      "roll": 15.0
+    },
+    {
+      "centre": [
+        1.8854,
+        2.85,
+        0.0
+      ],
+      "size": [
+        4.0,
+        0.3,
+        6.0
+      ],
+      "yaw": 0.0,
+      "roll": 0.0
+    },
+    {
+      "centre": [
+        7.5419,
+        1.3609,
+        0.0
+      ],
+      "size": [
+        8.0084,
+        0.3,
+        6.0
+      ],
+      "yaw": 0.0,
+      "roll": -22.0
+    }
+  ]
+}

@@ -50,6 +50,9 @@ MATERIALS = {
     "Env_Hay":          dict(tex=None, rot=0, tint=(0.80, 0.68, 0.38), smooth=0.05),
     "Env_HayOld":       dict(tex=None, rot=0, tint=(0.60, 0.55, 0.40), smooth=0.05),
     "Env_Muck":         dict(tex=None, rot=0, tint=(0.20, 0.15, 0.10), smooth=0.30),
+    "Env_RubberBlack":  dict(tex=None, rot=0, tint=(0.05, 0.05, 0.05), smooth=0.20),
+    "Env_Earth":        dict(tex="brown_mud_dry",        rot=0,  tint=(0.95, 0.90, 0.82), smooth=0.06),
+    "Env_SilageSheet":  dict(tex=None, rot=0, tint=(0.03, 0.03, 0.035), smooth=0.55),
 }
 
 VARIANTS = {"Full": dict(cell=1.0, detail=True), "Light": dict(cell=3.0, detail=False)}
@@ -267,11 +270,12 @@ class Builder:
         bpy.data.curves.remove(cu)
         self._weld(first)
 
-    def collider(self, centre, size, yaw=0.0):
-        """A BoxCollider for Unity (asset space, Unity coords). Nothing is drawn; ProjectSetup adds it from the JSON."""
+    def collider(self, centre, size, yaw=0.0, roll=0.0):
+        """A BoxCollider for Unity (asset space, Unity coords), turned by Euler(0, yaw, roll) (roll: ramps, a speed bump's slopes).
+        Nothing is drawn; ProjectSetup adds it from the JSON."""
         if self.detail:   # recorded once (the Full pass)
-            self.colliders.append(dict(centre=[round(v, 3) for v in centre], size=[round(v, 3) for v in size],
-                                       yaw=round(yaw, 2)))
+            self.colliders.append(dict(centre=[round(v, 4) for v in centre], size=[round(v, 4) for v in size],
+                                       yaw=round(yaw, 3), roll=round(roll, 3)))
 
     def revolve(self, centre, profile, mat, segs=16, pitch=0.0, yaw=0.0, roll=0.0, cell=None, detail=False):
         """Solid of revolution around the local Y axis: `profile` = [(radius, y), ...] bottom to top (radius 0 = a point),
@@ -337,6 +341,61 @@ class Builder:
                     face((ring[i], ring[(i + 1) % segs], mid),
                          [(r * math.cos(a0), r * math.sin(a0)), (r * math.cos(a1), r * math.sin(a1)), (0.0, 0.0)])
         self._weld(first)
+
+    def prism(self, profile, z0, z1, mat, cell=None, detail=False):
+        """A convex polygon in the Unity X-Y plane (`profile`, counter-clockwise seen from +Z) extruded from z0 to z1: ramps,
+        mounds, a silage heap. Every side is gridded for the baked AO; the ends are fans."""
+        if detail and not self.detail:
+            return
+        first = len(self.bm.verts)
+        n = len(profile)
+        for i in range(n):
+            (xa, ya), (xb, yb) = profile[i], profile[(i + 1) % n]
+            self._grid(U(xa, ya, z0), U(xb, yb, z0), U(xa, ya, z1), mat, cell)
+        cx = sum(p[0] for p in profile) / n
+        cy = sum(p[1] for p in profile) / n
+        mi = self._mat(mat)
+        for z in (z0, z1):
+            mid = self.bm.verts.new(U(cx, cy, z))
+            ring = [self.bm.verts.new(U(x, y, z)) for x, y in profile]
+            for i in range(n):
+                self.bm.faces.new((ring[i], ring[(i + 1) % n], mid)).material_index = mi
+        self._weld(first)
+
+    def heightfield(self, xs, zs, fn, mat, detail=False):
+        """Ground-like surface y = fn(x, z) over the grid lines xs x zs (Unity coords; put grid lines on every crease so the
+        slopes stay exact), normals up, open underneath (edges should sink below the ground)."""
+        if detail and not self.detail:
+            return
+        first = len(self.bm.verts)
+        vs = [[self.bm.verts.new(U(x, fn(x, z), z)) for x in xs] for z in zs]
+        mi = self._mat(mat)
+        for j in range(len(zs) - 1):
+            for i in range(len(xs) - 1):
+                f = self.bm.faces.new((vs[j][i], vs[j][i + 1], vs[j + 1][i + 1], vs[j + 1][i]))
+                f.material_index = mi
+                f[self.keep] = 1
+                f.normal_update()
+                if f.normal.z < 0:
+                    f.normal_flip()
+        self._weld(first)
+
+    @staticmethod
+    def lines(breaks, cell):
+        """Grid lines through every value in `breaks` (sorted), with extra lines at most `cell` apart between them."""
+        out = [breaks[0]]
+        for a, b in zip(breaks, breaks[1:]):
+            n = max(1, math.ceil((b - a) / cell - 0.01))
+            out += [a + (b - a) * k / n for k in range(1, n + 1)]
+        return out
+
+    def slope_collider(self, p0, p1, z0, z1, thick=0.3):
+        """BoxCollider whose top face runs along the line p0 -> p1 (Unity X-Y, p0.x < p1.x) from z0 to z1: a ramp the wheel rays ride on."""
+        (xa, ya), (xb, yb) = p0, p1
+        a = math.atan2(yb - ya, xb - xa)
+        nx, ny = -math.sin(a), math.cos(a)
+        mx, my = (xa + xb) * 0.5 - nx * thick * 0.5, (ya + yb) * 0.5 - ny * thick * 0.5
+        self.collider((mx, my, (z0 + z1) * 0.5), (math.hypot(xb - xa, yb - ya), thick, z1 - z0), roll=math.degrees(a))
 
     def tube(self, p0, p1, radius, mat, segs=10, detail=False):
         """Round bar / pipe from p0 to p1 (Unity coords), closed ends."""

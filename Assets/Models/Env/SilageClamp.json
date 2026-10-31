@@ -1,0 +1,106 @@
+{
+  "asset": "SilageClamp",
+  "notes": "Silage clamp, walls 32 m x 2.2 m, 8 m apart, heap 2.4 m high with 1:3 ramps (18.4\u00b0) at both ends. Colliders: walls, ramps, top.",
+  "variants": {
+    "Full": {
+      "triangles": 6920,
+      "vertices": 3853,
+      "materials": [
+        "Env_Concrete",
+        "Env_Steel",
+        "Env_SilageSheet",
+        "Env_RubberBlack"
+      ],
+      "size_unity": [
+        32.04,
+        2.91,
+        8.64
+      ]
+    },
+    "Light": {
+      "triangles": 534,
+      "vertices": 302,
+      "materials": [
+        "Env_Concrete",
+        "Env_SilageSheet"
+      ],
+      "size_unity": [
+        32.0,
+        2.7,
+        8.6
+      ]
+    }
+  },
+  "colliders": [
+    {
+      "centre": [
+        0,
+        1.1,
+        -4.15
+      ],
+      "size": [
+        32.0,
+        2.2,
+        0.3
+      ],
+      "yaw": 0.0,
+      "roll": 0.0
+    },
+    {
+      "centre": [
+        0,
+        1.1,
+        4.15
+      ],
+      "size": [
+        32.0,
+        2.2,
+        0.3
+      ],
+      "yaw": 0.0,
+      "roll": 0.0
+    },
+    {
+      "centre": [
+        -12.354,
+        1.0972,
+        0.0
+      ],
+      "size": [
+        7.5645,
+        0.3,
+        8.0
+      ],
+      "yaw": 0.0,
+      "roll": 17.86
+    },
+    {
+      "centre": [
+        0.0,
+        2.25,
+        0.0
+      ],
+      "size": [
+        17.6,
+        0.3,
+        8.0
+      ],
+      "yaw": 0.0,
+      "roll": 0.0
+    },
+    {
+      "centre": [
+        12.354,
+        1.0972,
+        0.0
+      ],
+      "size": [
+        7.5645,
+        0.3,
+        8.0
+      ],
+      "yaw": 0.0,
+      "roll": -17.86
+    }
+  ]
+}

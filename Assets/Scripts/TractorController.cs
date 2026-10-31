@@ -90,6 +90,14 @@ public class TractorController : MonoBehaviour
 
     [Header("Cab")]
     public Transform steeringWheel;        // pivot; spins around its local Z (the steering column)
+    /// <summary>Front axle suspension (visual): axle, steering cylinder and the suspension cylinders' rods under one hinge on the axle's
+    /// centre line. It rises with the front wheels' average spring travel and swings with their difference (oscillating axle);
+    /// the rods slide in the frame-mounted barrels.</summary>
+    public Transform frontAxle;
+    Vector3 frontAxleRest;
+    /// <summary>Front axle swing (deg, + = right side up) and rise (m) from the last frame, for tests and the CommandCenter.</summary>
+    public float FrontAxleRoll { get; private set; }
+    public float FrontAxleRise { get; private set; }
     [Tooltip("Steering wheel degrees per degree of road-wheel angle: 40° lock × 13 ≈ 1.45 turns each way.")]
     public float steeringRatio = 13f;
 
@@ -178,6 +186,7 @@ public class TractorController : MonoBehaviour
             w.staticLoad = weight * (w.steers ? frontShare : 1f - frontShare) * 0.5f;
             w.compression = w.lastCompression = travel;
         }
+        if (frontAxle) frontAxleRest = frontAxle.localPosition;
     }
 
     void Update() => FrameUpdate(Time.deltaTime);
@@ -629,6 +638,15 @@ public class TractorController : MonoBehaviour
             // Spin from the tyre's own speed (ground speed + slip; faster when spinning, still when locked).
             float spinDeg = w.wheelSpeed * dt / Mathf.Max(0.05f, w.radius) * Mathf.Rad2Deg;
             w.spinPivot.localRotation *= Quaternion.Euler(spinDeg, 0f, 0f);
+        }
+        // Front axle between the two front wheels (wheels 0 = left, 1 = right).
+        float dl = wheels[0].compression - travel, dr = wheels[1].compression - travel;
+        FrontAxleRise = 0.5f * (dl + dr);
+        FrontAxleRoll = Mathf.Atan2(dr - dl, trackWidth) * Mathf.Rad2Deg;
+        if (frontAxle)
+        {
+            frontAxle.localPosition = frontAxleRest + Vector3.up * FrontAxleRise;
+            frontAxle.localRotation = Quaternion.Euler(0f, 0f, FrontAxleRoll);
         }
     }
 }

@@ -5,3 +5,5 @@ Downloaded by tools/fetch_polyhaven.py at 1k.
 - clay_roof_tiles_02: https://polyhaven.com/a/clay_roof_tiles_02 (roofs (red clay tiles), 2.5 x 2.5 m)
 - white_rough_plaster: https://polyhaven.com/a/white_rough_plaster (whitewashed plinths (flaking), 1.0 x 1.0 m)
 - corrugated_iron_02: https://polyhaven.com/a/corrugated_iron_02 (machine shed roof (weathered corrugated sheets), 2.7 x 2.7 m)
+- dirty_concrete: https://polyhaven.com/a/dirty_concrete (farmyard slabs (tools/make_yard_concrete.py adds the 4 m joints), 3.0 x 3.0 m)
+- brown_mud_dry: https://polyhaven.com/a/brown_mud_dry (earth practice ramp (dry, rutted soil), 1.3 x 1.3 m)
