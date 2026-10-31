@@ -50,24 +50,31 @@ def gate(b):
     b.box((x, (2.4 + POST_H) * 0.5, dz), (0.08, POST_H - 2.4, dw), "Env_Boards")
     b.box((x, 1.15, dz), (0.06, 2.0, dw - 0.04), "Env_BoardsDark")
     b.collider((x, 1.15, dz), (0.1, 2.3, dw))
-    # Top beam over all three posts, the pigeon-hole frieze above it, the roof.
+    # Top beam over all three posts; on each post a cross beam with two braces down to the post carries the wide top
+    # (without them the frieze and roof sat on a 0.4 m post like a hat on a stick: "floating" from the side).
     b.box((x, POST_H + 0.12, zc), (0.5, 0.24, span + 0.3), "Env_Timber")
-    b.box((x, POST_H + 0.5, zc), (0.7, 0.52, span + 0.3), "Env_Boards")
+    fw = 1.3                                  # frieze width (across the gate)
+    for z in zs:
+        b.box((x, POST_H + 0.34, z), (fw + 0.2, 0.2, POST * 0.7), "Env_Timber")
+        for sx in (-1, 1):
+            b.box((x + sx * 0.45, POST_H - 0.155, z), (0.93, 0.12, 0.14), "Env_Timber", roll=sx * 57.7)
+    top = POST_H + 0.44
+    b.box((x, top + 0.26, zc), (fw, 0.52, span + 0.3), "Env_Boards")
     n = 14
     for k in range(n):
         z = z0 + (k + 0.5) * (span + 0.3) / n - 0.15
         for sx in (-1, 1):
-            b.box((x + sx * 0.355, POST_H + 0.5, z), (0.02, 0.2, 0.16), "Env_Glass", detail=True)
-    pitch, half = 40.0, 0.95
+            b.box((x + sx * (fw * 0.5 + 0.005), top + 0.26, z), (0.02, 0.2, 0.16), "Env_Glass", detail=True)
+    pitch, half = 40.0, fw * 0.5
     rise = half * math.tan(math.radians(pitch))
-    ridge = POST_H + 0.76 + rise
-    length = math.hypot(half, rise) + 0.35
+    ridge = top + 0.52 + rise
+    length = math.hypot(half, rise) + 0.55
     c, s = math.cos(math.radians(pitch)), math.sin(math.radians(pitch))
     for side in (-1, 1):
         cx = side * c * length * 0.5 + side * s * 0.06
         cy = ridge - s * length * 0.5 + c * 0.06
         b.box((x + cx, cy, zc), (length, 0.12, span + 1.0), "Env_RoofTiles", roll=-side * pitch)
-    b.gable(x - half, x + half, POST_H + 0.76, rise, zc - span * 0.5 - 0.15, zc + span * 0.5 + 0.15, "Env_Boards")
+    b.gable(x - half, x + half, top + 0.52, rise, zc - span * 0.5 - 0.15, zc + span * 0.5 + 0.15, "Env_Boards")
     b.box((x, ridge + 0.06, zc), (0.2, 0.2, span + 1.05), "Env_RoofTiles", roll=45)
     # The big leaves, open: swung in against the yard side of the opening.
     for sz in (-1, 1):

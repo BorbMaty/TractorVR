@@ -1053,3 +1053,12 @@ north in from its bay (x 13.5): the tractor scooped it up and pushed it ~90 m, u
 test I moved). Test R now uses (6, −20); the trailer holds 29.4 km/h on the straight and turns as before. Test I moved from (30, 0) to
 (14, −20) (the garden fence runs along z 4.2 east of the gate). The trailer test logs the tractor position now. Other results unchanged.
 `PlayModeTest` passes at both levels (8 / 16 environment variants active). PC exe rebuilt.
+
+**Gate fix** (user in PC VR: "the gate has no connection, its top is floating"): the pigeon-hole frieze (0.7 m) and the roof (2.4 m wide)
+sat on 0.4 m posts with nothing across them, so from the side the top looked like a hat on a stick. Now each post carries a 1.5 m cross
+beam on two braces, the frieze is 1.3 m wide on the cross beams, and the roof sits flush on it (gable as wide as the frieze, 0.55 m eaves).
+
+**Benchmark**: a second farmyard view, `yard` / `noyard` (10 s each, from the west side of the yard looking east: shed, silos, tank, house,
+gate), after the barn view (`env` / `noenv`, unchanged, comparable with step 0). Still `yard.png`. Checked on the PC (over Link, the headset
+was connected): env 3.8 / noenv 2.7 ms GPU, yard 3.2 / noyard 2.6 ms. New APK installed on the Quest for the Quest run.
+

@@ -3,7 +3,7 @@
 ## ▶ Where we left off (2026-11-01, later)
 **Yard details built** (phase 5 step 1, second item): silos, diesel tank, tipping pad + muck heap, bale stack, yard gate, fences
 (`docs/images/phase5_yard.png`). `PlayModeTest` passes at both levels, `PhysicsTest` too (the trailer test no longer runs into the front
-weight, see the DEVLOG). PC exe rebuilt. Next: the user's look in PC VR, then a **Quest benchmark** of the full yard (the Light variants of
+weight, see the DEVLOG). PC exe and Quest APK rebuilt (gate top fixed after the user's first look: cross beams + braces). Benchmark has a second yard view (`yard` / `noyard`). Next: the user's look in PC VR, then a **Quest benchmark** of the full yard (the Light variants of
 the yard now add up to ~38 materials / draw calls before static batching), then the yard surface, speed bumps and steep slopes.
 
 **Farmhouse built** (phase 5 step 1, first item complete: barn, shed, farmhouse). `PlayModeTest` passes at both levels.
