@@ -966,3 +966,27 @@ Drive: GPU 9.72 ms (cab 9.90, third 9.54). The third-person part had three short
 frame time up to 32 ms while the GPU stayed at ~9 ms, 56 dropped frames). Not the barn (it is off screen there and the barn phase right after
 was smooth) and not in run 1 of the same build (only the barn phase was added); the first phase 4 run had a similar one-off (CPU 169 ms).
 Probably the headset doing something in the background; noted, to be checked if it shows up again.
+
+## 2026-10-31: Phase 5 step 1 — machine shed with parking bays
+`tools/blender/shed.py` replaces the grey block shed (same place, `WorldLayout.Shed`, 36 × 10 m, open to the yard): board walls on a
+whitewashed plinth, timber posts with knee braces and a header along the open front, back-wall posts and wall plate, rafters, a lean-to
+roof of weathered corrugated sheets (Poly Haven `corrugated_iron_02`; eaves 5.4 m at the front, 4.4 m at the back, so it drains behind
+and the bays get daylight). Full 8 600 triangles, Light 2 888 (no braces, rafters or fascia). Colliders: back and side walls, five front posts.
+
+**Bays** (the tutorial's implement spots): four 9 m bays west → east FRONT WEIGHT, MOWER, PLOUGH, TRAILER, yellow lines between them, a
+white line along the entrance, a name board above each on the back wall (3D letters from Blender's built-in font). `WorldLayout.ShedBays`
+holds each bay's coupling point and yaw; `ProjectSetup.NewImplement` now puts every implement in its bay (before: scattered in the yard).
+Rear implements face the yard (reverse in), the front mower and weight face the back wall (drive in nose first). The trailer bay is the
+eastern one: its lane north is clear of the hay bales.
+
+New in the library (`tvr.py`): `wall` (straight wall with a sloping top, for the lean-to's side walls), `text` (sign lettering), plain
+paint materials without a texture (`tex: None`), and the `Env_Corrugated` material.
+
+Tests: `PhysicsTest` K (mower) and R (front weight) now line up in the shed bay with the tractor heading south (`PlaceAt(..., 180)`),
+couple there, and are carried out to their old test spots; J (plough) and L/M (trailer) couple in the bays as before. Same results as
+before the move except where the start changed: the trailer's drive north from the bay (speed dips similar, no overlap), and the mower
+rests at front linkage 0.06 instead of 0.01 after being carried (still WORK, PTO 30 kW). `PlayModeTest` passes (`Shed_Full, Barn_Full`).
+
+Found on the way: some sign letters were missing in Unity (more in the Light variant). The final normal recalculation turned letters
+with font-fill triangles inside out; text faces now keep the font's winding (the mapping is two mirrorings = a rotation). And the knee
+braces first leaned the wrong way (an X at each post).

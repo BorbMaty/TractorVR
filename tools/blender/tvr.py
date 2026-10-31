@@ -29,13 +29,16 @@ OUT_DIR = ROOT / "Assets" / "Models" / "Env"
 TEX_DIR = ROOT / "Assets" / "Textures" / "Env"
 SIZES = json.loads((TEX_DIR / "sizes.json").read_text())
 
-# name -> texture id, UV rotation, Unity tint (multiplies the texture), smoothness.
+# name -> texture id (None = plain colour), UV rotation, Unity tint (multiplies the texture), smoothness.
 MATERIALS = {
     "Env_Boards":     dict(tex="weathered_plank_siding", rot=90, tint=(1.00, 0.92, 0.86), smooth=0.10),
     "Env_BoardsDark": dict(tex="weathered_plank_siding", rot=90, tint=(0.62, 0.50, 0.44), smooth=0.10),
     "Env_Timber":     dict(tex="weathered_plank_siding", rot=0,  tint=(0.55, 0.47, 0.40), smooth=0.08, grain=True),
     "Env_RoofTiles":  dict(tex="clay_roof_tiles_02",     rot=0,  tint=(0.92, 0.80, 0.76), smooth=0.18),
     "Env_Plaster":    dict(tex="white_rough_plaster",    rot=0,  tint=(0.95, 0.94, 0.90), smooth=0.05),
+    "Env_Corrugated": dict(tex="corrugated_iron_02",     rot=0,  tint=(0.95, 0.95, 0.95), smooth=0.30),
+    "Env_PaintYellow": dict(tex=None, rot=0, tint=(0.80, 0.58, 0.08), smooth=0.20),
+    "Env_PaintWhite":  dict(tex=None, rot=0, tint=(0.88, 0.88, 0.84), smooth=0.20),
 }
 
 VARIANTS = {"Full": dict(cell=1.0, detail=True), "Light": dict(cell=3.0, detail=False)}
@@ -58,6 +61,7 @@ class Builder:
         self.mats = []
         self.uv = self.bm.loops.layers.uv.new("UVMap")
         self.grain = [self.bm.faces.layers.float.new(f"grain_{a}") for a in "xyz"]   # long axis of the box (Blender)
+        self.keep = self.bm.faces.layers.int.new("keep_normals")   # text: winding from the font, not recalculated
 
     def _mat(self, name):
         if name not in MATERIALS:
@@ -84,7 +88,7 @@ class Builder:
 
     def _uv(self, f):
         info = MATERIALS[self.mats[f.material_index]]
-        size = SIZES[info["tex"]]
+        size = SIZES[info["tex"]] if info["tex"] else (1.0, 1.0)
         n = f.normal
         up = Vector((0, 0, 1))
         t = up.cross(n) if abs(n.z) < 0.99 else Vector((1, 0, 0))
@@ -174,6 +178,82 @@ class Builder:
             self.bm.faces.new((f_rows[0][i], f_rows[0][i + 1], b_rows[0][i + 1], b_rows[0][i])).material_index = mi
         self._weld(first)
 
+    def wall(self, p0, p1, y0, top0, top1, thick, mat, cell=None, detail=False):
+        """Straight wall from p0 to p1 (Unity XZ, centre line), bottom y0, top rising from top0 at p0 to top1 at p1
+        (a lean-to roof's side walls). Gridded on both faces for the baked AO."""
+        if detail and not self.detail:
+            return
+        cell = cell or self.cell
+        first = len(self.bm.verts)
+        a, b = Vector((p0[0], p0[1])), Vector((p1[0], p1[1]))
+        along = b - a
+        n = Vector((-along.y, along.x)).normalized() * (thick * 0.5)
+        nu = max(1, math.ceil(along.length / cell - 0.01))
+        nv = max(1, math.ceil((max(top0, top1) - y0) / cell - 0.01))
+        mi = self._mat(mat)
+        sides = []
+        for sgn in (-1, 1):
+            vs = []
+            for j in range(nv + 1):
+                row = []
+                for i in range(nu + 1):
+                    f = i / nu
+                    q = a + along * f + n * sgn
+                    top = top0 + (top1 - top0) * f
+                    row.append(self.bm.verts.new(U(q.x, y0 + (top - y0) * j / nv, q.y)))
+                vs.append(row)
+            sides.append(vs)
+            for j in range(nv):
+                for i in range(nu):
+                    self.bm.faces.new((vs[j][i], vs[j][i + 1], vs[j + 1][i + 1], vs[j + 1][i])).material_index = mi
+        A, B = sides
+        for i in range(nu):   # bottom, top
+            self.bm.faces.new((A[0][i], A[0][i + 1], B[0][i + 1], B[0][i])).material_index = mi
+            self.bm.faces.new((A[nv][i], A[nv][i + 1], B[nv][i + 1], B[nv][i])).material_index = mi
+        for i in (0, nu):     # ends
+            for j in range(nv):
+                self.bm.faces.new((A[j][i], A[j + 1][i], B[j + 1][i], B[j][i])).material_index = mi
+        self._weld(first)
+
+    def text(self, body, centre, height, mat, yaw=0.0, depth=0.02, detail=False):
+        """Upright letters as geometry (Blender's built-in font), centred on `centre` (Unity), cap height about
+        `height`, readable from the +Z side turned by `yaw` degrees. For signs (bays, tutorial spots)."""
+        if detail and not self.detail:
+            return
+        cu = bpy.data.curves.new("_tvr_text", "FONT")
+        cu.body = body
+        cu.align_x, cu.align_y = "CENTER", "CENTER"
+        cu.resolution_u = 2 if not self.detail else 3
+        ob = bpy.data.objects.new("_tvr_text", cu)
+        bpy.context.scene.collection.objects.link(ob)
+        bpy.context.view_layer.update()
+        dims_y = max(ob.dimensions.y, 1e-3)
+        scale = height / (dims_y * 0.75)   # dimensions include descenders: caps are ~3/4 of it
+        cu.extrude = depth * 0.5 / scale
+        dg = bpy.context.evaluated_depsgraph_get()
+        ev = ob.evaluated_get(dg)
+        me = ev.to_mesh()
+        rot = _unity_rotation(0.0, yaw, 0.0)
+        right = rot @ Vector((-1, 0, 0))   # a reader facing the sign looks along -Z: their right is -X
+        up = Vector((0, 1, 0))
+        out = rot @ Vector((0, 0, 1))
+        c = Vector(centre)
+        first = len(self.bm.verts)
+        vs = [self.bm.verts.new(U(*(c + right * (v.co.x * scale) + up * (v.co.y * scale) + out * (v.co.z * scale))))
+              for v in me.vertices]
+        mi = self._mat(mat)
+        for poly in me.polygons:
+            try:
+                f = self.bm.faces.new([vs[i] for i in poly.vertices])
+                f.material_index = mi
+                f[self.keep] = 1
+            except ValueError:   # duplicate face from the font fill
+                pass
+        ev.to_mesh_clear()
+        bpy.data.objects.remove(ob, do_unlink=True)
+        bpy.data.curves.remove(cu)
+        self._weld(first)
+
     def _weld(self, first):
         """Merge the vertices of the piece just added (from index `first`), never across pieces."""
         self.bm.verts.ensure_lookup_table()
@@ -182,7 +262,9 @@ class Builder:
     def finish(self, name):
         """Normals outward per connected piece, UVs, then an object with the material slots."""
         self.bm.normal_update()
-        bmesh.ops.recalc_face_normals(self.bm, faces=self.bm.faces)
+        # Per connected piece. Text keeps the font's winding: the mapping (mirror across X, then U()) is a rotation, so
+        # the letters' front faces still face out, and the font fill confuses the recalculation (letters turned inside out).
+        bmesh.ops.recalc_face_normals(self.bm, faces=[f for f in self.bm.faces if not f[self.keep]])
         for f in self.bm.faces:
             self._uv(f)
         me = bpy.data.meshes.new(name)
@@ -215,6 +297,10 @@ def _material(name):
     m.use_nodes = True
     nt = m.node_tree
     bsdf = next(n for n in nt.nodes if n.type == "BSDF_PRINCIPLED")
+    bsdf.inputs["Roughness"].default_value = 1.0 - info["smooth"]
+    if not info["tex"]:
+        bsdf.inputs["Base Color"].default_value = (*info["tint"], 1.0)
+        return m
     img = bpy.data.images.load(str(TEX_DIR / f"{info['tex']}_diff.jpg"), check_existing=True)
     tex = nt.nodes.new("ShaderNodeTexImage")
     tex.image = img

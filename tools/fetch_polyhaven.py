@@ -20,6 +20,7 @@ TEXTURES = {
     "weathered_plank_siding": "barn walls, doors (vertical boards)",
     "clay_roof_tiles_02": "roofs (red clay tiles)",
     "white_rough_plaster": "whitewashed plinths (flaking)",
+    "corrugated_iron_02": "machine shed roof (weathered corrugated sheets)",
 }
 
 UA = {"User-Agent": "TractorVR-university-project"}

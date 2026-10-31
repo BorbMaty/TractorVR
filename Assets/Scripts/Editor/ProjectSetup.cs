@@ -516,44 +516,32 @@ public static class ProjectSetup
     {
         var parent = new GameObject("Farmyard").transform;
         parent.gameObject.isStatic = true;
-        foreach (var old in new[] { "Barn_Boards", "Barn_Door", "Barn_Trim" }) AssetDatabase.DeleteAsset($"{GenDir}/{old}.mat");
-        var roof = SaveMat(new Material(LitShader) { color = new Color(0.26f, 0.27f, 0.28f) }, "Barn_Roof");
-        roof.SetFloat("_Smoothness", 0.35f); roof.SetFloat("_Metallic", 0.4f);
-        var shedWall = SaveMat(new Material(LitShader) { color = new Color(0.33f, 0.40f, 0.35f) }, "Shed_Wall");
-        shedWall.SetFloat("_Smoothness", 0.3f); shedWall.SetFloat("_Metallic", 0.3f);
-        var steelMat = SaveMat(new Material(LitShader) { color = new Color(0.45f, 0.46f, 0.47f) }, "Shed_Steel");
+        foreach (var old in new[] { "Barn_Boards", "Barn_Door", "Barn_Trim", "Barn_Roof", "Shed_Wall", "Shed_Steel" })
+            AssetDatabase.DeleteAsset($"{GenDir}/{old}.mat");
 
-        Transform Block(string name, Vector3 centre, Vector3 size, Material m, Vector3 euler = default, bool solid = true)
+        void Box(Transform t, Vector3 centre, Vector3 size)
         {
-            var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            go.name = name;
-            go.transform.SetParent(parent, false);
-            go.transform.localPosition = centre;
-            go.transform.localRotation = Quaternion.Euler(euler);
-            go.transform.localScale = size;
-            go.GetComponent<Renderer>().sharedMaterial = m;
-            if (!solid) Object.DestroyImmediate(go.GetComponent<Collider>());
-            go.isStatic = true;
-            return go.transform;
+            var c = t.gameObject.AddComponent<BoxCollider>();
+            c.center = centre;
+            c.size = size;
         }
 
         // Barn: 14 × 24 m, made in Blender (tools/blender/barn.py), Full / Light variant per tier. The collider is the wall block.
         var b = WorldLayout.Barn;
         Vector2 bc = b.Centre; float bw = b.x1 - b.x0, bl = b.z1 - b.z0;
         var barn = PlaceEnv("Barn", parent, new Vector3(bc.x, 0f, bc.y), 0f);
-        var barnBox = barn.gameObject.AddComponent<BoxCollider>();
-        barnBox.center = new Vector3(0f, 3f, 0f);
-        barnBox.size = new Vector3(bw + 0.12f, 6f, bl + 0.12f);
+        Box(barn, new Vector3(0f, 3f, 0f), new Vector3(bw + 0.12f, 6f, bl + 0.12f));
 
-        // Machine shed: back and side walls, a roof on posts, open to the yard (north).
+        // Machine shed (tools/blender/shed.py): open to the yard (north), four bays (WorldLayout.ShedBays) with lines and name boards.
+        // Colliders: back and side walls, the five front posts (the roof is out of reach).
         var s = WorldLayout.Shed;
         Vector2 sc = s.Centre; float sw = s.x1 - s.x0, sd = s.z1 - s.z0;
-        Block("Shed back wall", new Vector3(sc.x, 2.5f, s.z0 + 0.15f), new Vector3(sw, 5f, 0.3f), shedWall);
-        Block("Shed wall W", new Vector3(s.x0 + 0.15f, 2.5f, sc.y), new Vector3(0.3f, 5f, sd), shedWall);
-        Block("Shed wall E", new Vector3(s.x1 - 0.15f, 2.5f, sc.y), new Vector3(0.3f, 5f, sd), shedWall);
-        Block("Shed roof", new Vector3(sc.x, 5.3f, sc.y), new Vector3(sw + 1f, 0.2f, sd + 1.2f), roof, new Vector3(-6f, 0f, 0f));
-        for (int i = 1; i < 4; i++)
-            Block("Shed post", new Vector3(s.x0 + i * sw / 4f, 2.6f, s.z1 - 0.2f), new Vector3(0.25f, 5.2f, 0.25f), steelMat);
+        var shed = PlaceEnv("Shed", parent, new Vector3(sc.x, 0f, sc.y), 0f);
+        Box(shed, new Vector3(0f, 2.2f, -sd * 0.5f + 0.08f), new Vector3(sw, 4.4f, 0.22f));
+        foreach (float sx in new[] { -1f, 1f })
+            Box(shed, new Vector3(sx * (sw * 0.5f - 0.08f), 2.4f, -0.1f), new Vector3(0.22f, 4.8f, sd - 0.2f));
+        for (int i = 0; i <= 4; i++)
+            Box(shed, new Vector3(-sw * 0.5f + 0.15f + i * (sw - 0.3f) / 4f, 2.7f, sd * 0.5f - 0.2f), new Vector3(0.26f, 5.4f, 0.26f));
     }
 
     // ------------------------------------------------------------------ environment assets (phase 5, Blender)
@@ -2252,7 +2240,7 @@ public static class ProjectSetup
 
         // ---- 3-furrow mounted plough on the rear linkage (right-turning: bodies stepped to the right and back)
         {
-            var go = NewImplement(parent, "Plough", new Vector3(-6f, 0f, -6.2f), 0f);
+            var go = NewImplement(parent, "Plough");
             var imp = go.AddComponent<Implement>();
             imp.displayName = "PLOUGH"; imp.mount = Implement.Mount.Rear;
             imp.mass = 1200f; imp.centreOfMassOffset = new Vector3(0.3f, -0.1f, -1.4f);
@@ -2305,7 +2293,7 @@ public static class ProjectSetup
 
         // ---- 3 m front disc mower on the front linkage (PTO)
         {
-            var go = NewImplement(parent, "Mower", new Vector3(-14f, 0f, 6f), 0f);
+            var go = NewImplement(parent, "Mower");
             var imp = go.AddComponent<Implement>();
             imp.displayName = "MOWER"; imp.mount = Implement.Mount.Front;
             imp.mass = 900f; imp.centreOfMassOffset = new Vector3(0f, -0.2f, 0.8f);
@@ -2354,7 +2342,7 @@ public static class ProjectSetup
 
         // ---- 900 kg front weight on the front linkage (ballast for heavy rear implements)
         {
-            var go = NewImplement(parent, "FrontWeight", new Vector3(-19.5f, 0f, 6f), 0f);
+            var go = NewImplement(parent, "FrontWeight");
             var imp = go.AddComponent<Implement>();
             imp.displayName = "FRONT WEIGHT"; imp.mount = Implement.Mount.Front;
             imp.mass = 900f; imp.centreOfMassOffset = new Vector3(0f, 0.05f, 0.38f);
@@ -2384,7 +2372,7 @@ public static class ProjectSetup
         // It tips backwards on a hinge at the rear of the chassis, pushed by a telescopic ram in front of the headboard.
         {
             float eyeY = hitch.drawbarMount.localPosition.y;
-            var go = NewImplement(parent, "Trailer", new Vector3(9f, 0f, -6f), 0f);
+            var go = NewImplement(parent, "Trailer");
             var imp = go.AddComponent<Implement>();
             imp.displayName = "TRAILER"; imp.mount = Implement.Mount.Drawbar;
             imp.mass = 2500f;
@@ -2480,11 +2468,14 @@ public static class ProjectSetup
         log.AppendLine("Implements: plough (rear), mower (front), front weight (front), tipping trailer (drawbar)");
     }
 
-    static GameObject NewImplement(Transform parent, string name, Vector3 pos, float yaw)
+    /// <summary>Implement root in its machine shed bay (WorldLayout.ShedBays): coupling point (= the root, for all four) over the bay's spot.</summary>
+    static GameObject NewImplement(Transform parent, string name)
     {
+        var bay = WorldLayout.ShedBayOf(name);
         var go = new GameObject(name);
         go.transform.SetParent(parent, false);
-        go.transform.SetPositionAndRotation(new Vector3(pos.x, TerrainGenerator.Height(pos.x, pos.z) + 0.02f, pos.z), Quaternion.Euler(0f, yaw, 0f));
+        Vector2 p = bay.coupling;
+        go.transform.SetPositionAndRotation(new Vector3(p.x, TerrainGenerator.Height(p.x, p.y) + 0.02f, p.y), Quaternion.Euler(0f, bay.yaw, 0f));
         return go;
     }
 
@@ -2991,13 +2982,19 @@ public static class ProjectSetup
         // Each shot twice: the first render with a newly needed shader variant (ENV_NORMALS) comes out black.
         Vector3 barnCam = new Vector3(-12f, 2.8f, 16f), barnAt = new Vector3(-31f, 4.5f, -2f);
         Vector3 closeCam = new Vector3(-27.5f, 1.7f, 4.5f), closeAt = new Vector3(-30f, 2.2f, 0.5f);
+        // Machine shed from the yard and from the entrance of the plough bay (implements in their bays).
+        Vector3 shedCam = new Vector3(10f, 3.2f, -12f), shedAt = new Vector3(-1f, 2f, -38f);
+        Vector3 bayCam = new Vector3(7f, 1.9f, -27.5f), bayAt = new Vector3(3f, 1.6f, -41f);
         foreach (var t in new[] { QualityTier.Tier.PC, QualityTier.Tier.Quest })
         {
             QualityTier.ApplyEnvironment(t);
+            string tier = t.ToString().ToLower();
             for (int k = 0; k < 2; k++)
             {
-                Shot($"barn_{t.ToString().ToLower()}.png", barnCam, Quaternion.LookRotation(barnAt - barnCam));
-                Shot($"barn_close_{t.ToString().ToLower()}.png", closeCam, Quaternion.LookRotation(closeAt - closeCam));
+                Shot($"barn_{tier}.png", barnCam, Quaternion.LookRotation(barnAt - barnCam));
+                Shot($"barn_close_{tier}.png", closeCam, Quaternion.LookRotation(closeAt - closeCam));
+                Shot($"shed_{tier}.png", shedCam, Quaternion.LookRotation(shedAt - shedCam));
+                Shot($"shed_bay_{tier}.png", bayCam, Quaternion.LookRotation(bayAt - bayCam));
             }
         }
         QualityTier.ApplyEnvironment(QualityTier.Current);

@@ -1,0 +1,42 @@
+{
+  "asset": "Shed",
+  "notes": "Machine shed, 36 x 10 m, open to the north, lean-to roof 5.4 -> 4.4 m, bays FRONT WEIGHT, MOWER, PLOUGH, TRAILER (west -> east). Colliders: walls and front posts (ProjectSetup).",
+  "variants": {
+    "Full": {
+      "triangles": 8600,
+      "vertices": 4893,
+      "materials": [
+        "Env_Plaster",
+        "Env_Boards",
+        "Env_Timber",
+        "Env_Corrugated",
+        "Env_PaintYellow",
+        "Env_PaintWhite",
+        "Env_BoardsDark"
+      ],
+      "size_unity": [
+        36.8,
+        5.839,
+        11.317
+      ]
+    },
+    "Light": {
+      "triangles": 2888,
+      "vertices": 1774,
+      "materials": [
+        "Env_Plaster",
+        "Env_Boards",
+        "Env_Timber",
+        "Env_Corrugated",
+        "Env_PaintYellow",
+        "Env_PaintWhite",
+        "Env_BoardsDark"
+      ],
+      "size_unity": [
+        36.8,
+        5.839,
+        11.294
+      ]
+    }
+  }
+}

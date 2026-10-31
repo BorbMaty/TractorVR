@@ -6,7 +6,8 @@ remade, farmyard first, plus speed bumps and steep practice slopes.
 **Step 0 (pipeline) built the same day**: Blender scripts → FBX with a Full / Light variant → `ProjectSetup` → `TractorVR/EnvLit`;
 first asset = the barn (replaces the grey block barn), `PlayModeTest` passes at both quality levels. First Quest run: no change on the
 drive (it never shows the barn), so the benchmark got a barn phase (`env` / `noenv`). Run 2: facing the barn the Quest GPU is 9.6 ms
-with it and 10.0 ms without (it hides hills that cost more than it does) → **step 0 done**. Next: step 1 (farmyard).
+with it and 10.0 ms without (it hides hills that cost more than it does) → **step 0 done**.
+**Step 1 started**: the machine shed is built (Blender, 4 marked bays, the implements now wait in them). Next: farmhouse, yard details.
 Phase 4 has no open items left (desktop screen UI ✅ user, 2026-10-31).
 
 ## ▶ Where we left off (2026-10-30, end of day)
@@ -238,7 +239,10 @@ repeated things, no shadows on Quest except buildings, impostors for far trees, 
   the hills it hides; ~4.3 ms of the 13.9 ms budget left with it on screen. ✅
 
 ### Step 1: farmyard
-- [ ] Barn, open-front machine shed with marked parking bays per implement (tutorial spots), farmhouse
+- [ ] Barn, open-front machine shed with marked parking bays per implement (tutorial spots), farmhouse.
+  Barn ✅ (step 0). Machine shed ✅ 2026-10-31: `tools/blender/shed.py`, 36 × 10 m, lean-to corrugated roof, bays FRONT WEIGHT / MOWER /
+  PLOUGH / TRAILER (`WorldLayout.ShedBays`, yellow lines, name boards); the implements start in their bays (`docs/images/phase5_shed.png`).
+  Farmhouse: open
 - [ ] Yard details: grain silos, fuel tank, muck heap / tipping pad for the trailer, bale stack, wooden fences, yard gate
 - [ ] Better yard surface (concrete slabs with wear, dirt at the edges) from Poly Haven textures
 - [ ] Speed bumps (static colliders the wheel rays hit) where the suspension, the front axle cylinders (`Front_Small_Forcer_*`, still

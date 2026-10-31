@@ -50,7 +50,7 @@ See `README.md` for controls, `docs/ROADMAP.md` for what's next and `docs/DEVLOG
 | `Assets/Scripts/Editor/BuildPC.cs` | Windows build → `Builds/PC/TractorVR.exe` (`-buildTarget StandaloneWindows64`) |
 | `Assets/Scripts/DesktopMode.cs` | PC desktop version in the same exe: VR if the OpenXR session is focused within 6 s, else XR off + monitor (`-desktop` / `-vr`, F9); mouse look / orbit, mouse fed into `VRHands` as the right hand (pick proxies on layer 30), on-screen menu from `CabPanel` entries |
 | `Assets/Scripts/QualityTier.cs` | Quest / PC tier at start: PC = model renderers cast shadows, `ShadowProxy` off; `CurrentBudget` for environment assets |
-| `tools/blender/` (`tvr.py`, `build.py`, one script per asset e.g. `barn.py`) | Phase 5 environment assets, modelled by script in Blender: Unity coordinates, Full (PC) + Light (Quest) variant, AO baked into the vertex colour → `Assets/Models/Env/<Asset>.fbx` + `.json`, `env_materials.json`. Run headless: `blender -b --factory-startup -P tools/blender/build.py -- barn` (or `all`) |
+| `tools/blender/` (`tvr.py`, `build.py`, one script per asset: `barn.py`, `shed.py`) | Phase 5 environment assets, modelled by script in Blender: Unity coordinates, Full (PC) + Light (Quest) variant, AO baked into the vertex colour → `Assets/Models/Env/<Asset>.fbx` + `.json`, `env_materials.json`. Run headless: `blender -b --factory-startup -P tools/blender/build.py -- barn` (or `all`) |
 | `tools/fetch_polyhaven.py` | Poly Haven (CC0) textures at 1k → `Assets/Textures/Env/` (+ `sizes.json`, `LICENSE.txt`); the list must match `tvr.MATERIALS` |
 | `Assets/Shaders/EnvLit.shader` + `Assets/Scripts/TierVariant.cs` | Env asset shader (albedo × tint × baked AO; normal map only with the global keyword `ENV_NORMALS` = PC tier). `TierVariant` marks the Full / Light child; `QualityTier.ApplyEnvironment` switches both |
 | `Assets/Scripts/PerfBenchmark.cs` | Version benchmark: fixed machine state, scripted 63 s drive, per-frame frame / CPU / GPU / XR runtime times → `persistentDataPath/Benchmark/` (summary, CSV, stills). Results in `docs/benchmark/` (Quest: `adb pull /sdcard/Android/data/com.sapientia.tractorvr/files/Benchmark`, with `MSYS_NO_PATHCONV=1` in Git Bash) |
@@ -143,6 +143,8 @@ $u = "C:\Program Files\Unity\Hub\Editor\6000.6.3f1\Editor\Unity.exe"
 - Editor tests teleport the tractor: anything still coupled (especially the trailer on its joint) gets dragged and blows up the physics.
   Uncouple at the end of each scenario.
 - Implement models are generated: primitives via `Part`, procedural meshes via `MeshPart` (`TyreMesh`, `MouldboardMesh`, `Tipper.Mound`), saved as `Generated/Impl_*.asset`.
+  They start in their machine shed bays (`WorldLayout.ShedBays`: coupling point + yaw; front implements face the back wall, yaw 180, so
+  `PhysicsTest` couples them with `PlaceAt(..., yaw 180)` and carries them out). Bay order / width also live in `tools/blender/shed.py`.
 - The **grips are for grabbing** (wheel, lever). Seat adjust moved to the cab panel (`TractorInput.seatAdjust`; Left Shift in the editor).
   Steering by hand: `HoldSteer(angle)` while held. After `ReleaseHeldSteer()` the angle is latched until |left stick| > 0.15. The comfort lock still clamps it.
 - XR Hands: `XRHandSkeletonDriver.jointTransformReferences` is null on a component added from code, so set a new list before `FindJointsFromRoot`.
@@ -206,6 +208,8 @@ $u = "C:\Program Files\Unity\Hub\Editor\6000.6.3f1\Editor\Unity.exe"
 - **Blender → Unity axes**: FBX export forward −Z, up Y, bake space transform → Unity (x, y, z) = Blender (−x, z, −y), scale 1. The asset
   scripts use Unity coordinates only (`tvr.U`). Placement in the scene: `ProjectSetup.PlaceEnv(asset, parent, position, yaw)`; the
   materials come from `env_materials.json` (don't edit `Generated/Env_*.mat`). Change an asset → run `build.py`, then the scene setup.
+- Blender text (`Builder.text`, sign lettering) keeps the font's winding: the normal recalculation turns some letters inside out (they
+  vanished in Unity), so text faces are flagged and skipped.
 - Baking AO in Blender: bake each variant alone (the variants share the origin and would occlude each other), keep the grid fine enough
   (vertex AO), and keep the 0.3 m of plinth below ground out of sight.
 - If a preview PNG is open in a viewer, Windows locks it and `RenderPreviews` fails with `IOException ... 1224`. Delete or close the old images first.

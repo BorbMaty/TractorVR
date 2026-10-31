@@ -357,15 +357,18 @@ public static class PhysicsTest
         log.AppendLine($"   plough parked at {plough.transform.position:F2}, upright {Vector3.Angle(plough.transform.up, Vector3.up):0}°, mass back to {rb.mass:0}");
 
         var mower = Find("Mower");
-        Section("K. Mower: lower the front linkage, line up, attach, PTO on, 10 km/h for 15 s");
+        Section("K. Mower: lower the front linkage, line up in its shed bay (nose in), attach, carry out, PTO on, 10 km/h for 15 s");
         input.scriptedFront = true; input.scriptedHitch = -1f;
         Place(new Vector3(30f, 0f, 40f), 0f);
         Simulate(6f, 0f, 0f, 10f);
         input.scriptedHitch = 0f;
-        PlaceAt(hitch.frontMount, mower.hitchPoint.position);
+        PlaceAt(hitch.frontMount, mower.hitchPoint.position, WorldLayout.ShedBayOf("Mower").yaw);
         Simulate(0.5f, 0f, 0f, 10f);
         hitch.ToggleAttach();
         Simulate(1.5f, 0f, 0f, 10f);
+        log.AppendLine($"   coupled in the shed bay: {(mower.Attached ? "attached" : "NOT ATTACHED")}");
+        Place(new Vector3(30f, 0f, 40f), 0f);   // carried out to the open (the shed faces the yard, the test drives north)
+        Simulate(1f, 0f, 0f, 10f);
         hitch.SetPto(true);
         extra = () => $"front {hitch.FrontPosition:0.00}  depth {mower.Depth:0.00}  {(mower.Working ? "WORK" : "")}  PTO {hitch.PtoPowerKW:0} kW";
         input.scriptedHitch = -1f; Simulate(3f, 0f, 0f, 1f); input.scriptedHitch = 0f;
@@ -384,10 +387,12 @@ public static class PhysicsTest
         Simulate(2f, 0f, 0f, 10f);
         float front0 = FrontAxleKN, rear0 = RearAxleKN;
         input.scriptedFront = true; input.scriptedHitch = -1f; Simulate(6f, 0f, 0f, 10f); input.scriptedHitch = 0f;
-        PlaceAt(hitch.frontMount, weight.hitchPoint.position);
+        PlaceAt(hitch.frontMount, weight.hitchPoint.position, WorldLayout.ShedBayOf("FrontWeight").yaw);   // its shed bay, nose in
         Simulate(0.5f, 0f, 0f, 10f);
         hitch.ToggleAttach();
         Simulate(1.5f, 0f, 0f, 10f);
+        Place(new Vector3(14f, 0f, -20f), 0f);   // back to where the axle loads without it were taken
+        Simulate(1f, 0f, 0f, 10f);
         input.scriptedHitch = 1f; Simulate(5f, 0f, 0f, 10f); input.scriptedHitch = 0f;
         input.scriptedFront = false;
         Simulate(3f, 0f, 0f, 10f);

@@ -23,6 +23,26 @@ public static class WorldLayout
     public static readonly Area Barn = new Area { name = "Barn", x0 = -44f, z0 = -12f, x1 = -30f, z1 = 12f };
     public static readonly Area Shed = new Area { name = "Machine shed", x0 = -18f, z0 = -42f, x1 = 18f, z1 = -32f };
 
+    /// <summary>Parking bay in the machine shed (open to the yard, +Z): where an implement's coupling point stands and which way it faces.
+    /// Rear implements face the yard (yaw 0: the tractor reverses in), front ones the back wall (yaw 180: the tractor drives in nose first).</summary>
+    public struct Bay { public string implement; public Vector2 coupling; public float yaw; }
+
+    /// <summary>The tutorial's implement spots, west to east. Same order and bay width (shed width / 4) as tools/blender/shed.py,
+    /// which paints the lines and the name boards.</summary>
+    public static readonly Bay[] ShedBays =
+    {
+        ShedBay(0, "FrontWeight", true), ShedBay(1, "Mower", true), ShedBay(2, "Plough", false), ShedBay(3, "Trailer", false),
+    };
+
+    static Bay ShedBay(int i, string implement, bool front) => new Bay
+    {
+        implement = implement,
+        coupling = new Vector2(Shed.x0 + (i + 0.5f) * (Shed.x1 - Shed.x0) / 4f, Shed.z1 - (front ? 3f : 2f)),
+        yaw = front ? 180f : 0f,
+    };
+
+    public static Bay ShedBayOf(string implement) => System.Array.Find(ShedBays, b => b.implement == implement);
+
     public static readonly Area[] Fields =
     {
         new Area { name = "North field (crop)", type = Ground.Crop, x0 = -160f, z0 = 115f, x1 = 160f, z1 = 420f },

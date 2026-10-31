@@ -16,7 +16,7 @@ sys.path.insert(0, str(HERE))
 
 import tvr  # noqa: E402
 
-ALL = ["barn"]
+ALL = ["barn", "shed"]
 
 
 def main(names):

@@ -50,8 +50,8 @@ Future ideas: working mirrors, original model textures. See the [Roadmap](docs/R
 ## What's in it
 
 ### The world
-2 × 2 km of rolling farmland built at start-up: a farmyard with a barn and an open machine shed, gravel tracks out to three fields on the
-hills, an asphalt road, mud at the field gates and in the hollows. Every surface has its own tyre grip and rolling resistance
+2 × 2 km of rolling farmland built at start-up: a farmyard with a Transylvanian-style barn and an open machine shed (both modelled
+by script in Blender, phase 5), gravel tracks out to three fields on the hills, an asphalt road, mud at the field gates and in the hollows. Every surface has its own tyre grip and rolling resistance
 (asphalt 0.015 … mud 0.15), so mud and ploughed ground make the engine work.
 
 | Farmyard | The main road |
@@ -84,6 +84,8 @@ hills, an asphalt road, mud at the field gates and in the hollows. Every surface
 
 ### Implements and hydraulics
 Rear three-point hitch (real four-bar linkage motion from the model's pivots), front linkage, drawbar and PTO.
+The implements wait in the machine shed on the south side of the yard, one marked bay each (name board on the back wall):
+FRONT WEIGHT and MOWER face the back wall, so drive in nose first; PLOUGH and TRAILER face the yard, so reverse in.
 Back up or drive up to an implement and press attach.
 - **Top link**: stowed upright until a three-point implement is coupled, then set to the length that fits and connected to the
   implement's top pin. The implement pitches as the hitch moves, as with real three-point geometry (level at work, tail up when raised).

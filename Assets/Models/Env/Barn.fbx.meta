@@ -17,6 +17,21 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: Env_Corrugated
+    second: {fileID: 2100000, guid: 33d352eafb158634c95dc611797391a9, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_PaintWhite
+    second: {fileID: 2100000, guid: 04d4d506f07b82245aa788539507977e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_PaintYellow
+    second: {fileID: 2100000, guid: d2e63ef3333ab694b96a40e34479a3ec, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: Env_Plaster
     second: {fileID: 2100000, guid: d656e6c81cb14ee4ba07bcfe73706003, type: 2}
   - first:
