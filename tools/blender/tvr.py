@@ -39,6 +39,10 @@ MATERIALS = {
     "Env_Corrugated": dict(tex="corrugated_iron_02",     rot=0,  tint=(0.95, 0.95, 0.95), smooth=0.30),
     "Env_PaintYellow": dict(tex=None, rot=0, tint=(0.80, 0.58, 0.08), smooth=0.20),
     "Env_PaintWhite":  dict(tex=None, rot=0, tint=(0.88, 0.88, 0.84), smooth=0.20),
+    "Env_PlasterHouse": dict(tex="white_rough_plaster",  rot=0,  tint=(0.98, 0.86, 0.62), smooth=0.05),
+    "Env_PlasterBase":  dict(tex="white_rough_plaster",  rot=0,  tint=(0.48, 0.54, 0.60), smooth=0.08),
+    "Env_PaintGreen":   dict(tex=None, rot=0, tint=(0.16, 0.34, 0.24), smooth=0.25),
+    "Env_Glass":        dict(tex=None, rot=0, tint=(0.08, 0.10, 0.12), smooth=0.85),
 }
 
 VARIANTS = {"Full": dict(cell=1.0, detail=True), "Light": dict(cell=3.0, detail=False)}

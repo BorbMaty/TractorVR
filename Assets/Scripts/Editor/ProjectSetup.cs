@@ -511,7 +511,7 @@ public static class ProjectSetup
         return result;
     }
 
-    // Barn on the west side of the yard (doors facing the yard) and an open machine shed along the south side.
+    // Barn on the west side of the yard (doors facing the yard), an open machine shed along the south side, the farmhouse to the east.
     static void BuildFarmyard()
     {
         var parent = new GameObject("Farmyard").transform;
@@ -542,6 +542,13 @@ public static class ProjectSetup
             Box(shed, new Vector3(sx * (sw * 0.5f - 0.08f), 2.4f, -0.1f), new Vector3(0.22f, 4.8f, sd - 0.2f));
         for (int i = 0; i <= 4; i++)
             Box(shed, new Vector3(-sw * 0.5f + 0.15f + i * (sw - 0.3f) / 4f, 2.7f, sd * 0.5f - 0.2f), new Vector3(0.26f, 5.4f, 0.26f));
+
+        // Farmhouse (tools/blender/farmhouse.py): east of the yard, porch facing it. One box over the footprint up to the eaves
+        // keeps the tractor off the porch.
+        var h = WorldLayout.Farmhouse;
+        Vector2 hc = h.Centre;
+        var house = PlaceEnv("Farmhouse", parent, new Vector3(hc.x, 0f, hc.y), 0f);
+        Box(house, new Vector3(0f, 1.7f, 0f), new Vector3(h.x1 - h.x0, 3.4f, h.z1 - h.z0));
     }
 
     // ------------------------------------------------------------------ environment assets (phase 5, Blender)
@@ -2985,6 +2992,9 @@ public static class ProjectSetup
         // Machine shed from the yard and from the entrance of the plough bay (implements in their bays).
         Vector3 shedCam = new Vector3(10f, 3.2f, -12f), shedAt = new Vector3(-1f, 2f, -38f);
         Vector3 bayCam = new Vector3(7f, 1.9f, -27.5f), bayAt = new Vector3(3f, 1.6f, -41f);
+        // Farmhouse from the yard corner by the road (south gable + porch) and from the yard at the porch steps.
+        Vector3 houseCam = new Vector3(18f, 2.4f, -4f), houseAt = new Vector3(35f, 3.5f, 12f);
+        Vector3 porchCam = new Vector3(24f, 1.7f, 10f), porchAt = new Vector3(31.5f, 2.2f, 14f);
         foreach (var t in new[] { QualityTier.Tier.PC, QualityTier.Tier.Quest })
         {
             QualityTier.ApplyEnvironment(t);
@@ -2995,6 +3005,8 @@ public static class ProjectSetup
                 Shot($"barn_close_{tier}.png", closeCam, Quaternion.LookRotation(closeAt - closeCam));
                 Shot($"shed_{tier}.png", shedCam, Quaternion.LookRotation(shedAt - shedCam));
                 Shot($"shed_bay_{tier}.png", bayCam, Quaternion.LookRotation(bayAt - bayCam));
+                Shot($"house_{tier}.png", houseCam, Quaternion.LookRotation(houseAt - houseCam));
+                Shot($"house_porch_{tier}.png", porchCam, Quaternion.LookRotation(porchAt - porchCam));
             }
         }
         QualityTier.ApplyEnvironment(QualityTier.Current);

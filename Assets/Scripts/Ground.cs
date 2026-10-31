@@ -5,7 +5,7 @@ public enum Ground : byte { Grass, Soil, Crop, Ploughed, Mud, Gravel, Asphalt, C
 
 /// <summary>
 /// Where things are in the 2 × 2 km world. The start (origin, flat within 60 m) is the farmyard:
-/// concrete yard with the barn on the west side and an open machine shed on the south side.
+/// concrete yard with the barn on the west side, an open machine shed on the south side and the farmhouse to the east.
 /// Gravel tracks lead to the fields; an asphalt road runs north–south at x = 80.
 /// </summary>
 public static class WorldLayout
@@ -22,6 +22,8 @@ public static class WorldLayout
     public static readonly Area Yard = new Area { name = "Yard", type = Ground.Concrete, x0 = -26f, z0 = -42f, x1 = 26f, z1 = 22f };
     public static readonly Area Barn = new Area { name = "Barn", x0 = -44f, z0 = -12f, x1 = -30f, z1 = 12f };
     public static readonly Area Shed = new Area { name = "Machine shed", x0 = -18f, z0 = -42f, x1 = 18f, z1 = -32f };
+    /// <summary>Farmhouse east of the yard: gable end to the yard road (south), porch along the yard side (west).</summary>
+    public static readonly Area Farmhouse = new Area { name = "Farmhouse", x0 = 31f, z0 = 6f, x1 = 40f, z1 = 21f };
 
     /// <summary>Parking bay in the machine shed (open to the yard, +Z): where an implement's coupling point stands and which way it faces.
     /// Rear implements face the yard (yaw 0: the tractor reverses in), front ones the back wall (yaw 180: the tractor drives in nose first).</summary>

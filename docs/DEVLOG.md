@@ -997,3 +997,21 @@ Blender, `phase5_barn.png`, `phase5_shed.png`, updated `farmyard.png`), the barn
 in the project layout. User question: "did the menu button get further away?" No code change moved it (the cab panel sits at the same
 rig-local spot since phase 2, 0.30 / −0.17 / 0.40 m from the eye point); the head position relative to the seat comes from the recenter
 and the saved seat offset (kept across APK installs). Suggested: RECENTER while sitting normally, then SEAT RESET; can move it 5 cm closer.
+
+## 2026-11-01: Phase 5 step 1 — farmhouse
+`tools/blender/farmhouse.py`: a Transylvanian village house east of the yard (`WorldLayout.Farmhouse`, x 31–40, z 6–21, 5 m from the
+yard edge, north of the yard road). Long and narrow (9 × 15 m), gable end to the road (south) like the village houses, a covered porch
+(tornác, 2 m) along the long side facing the yard under the same 45° clay-tile roof (ridge 7.9 m): board deck on a plinth, two steps at
+the front door, six posts with knee braces, a board parapet. Ochre plaster (`white_rough_plaster`, warm tint) on a grey-blue plinth,
+boarded gable with an attic window to the road and a vent to the north, eight windows (white frames, glazing bars on PC, green shutters
+folded back), a chimney. No new textures: four new materials in `tvr.MATERIALS` (`Env_PlasterHouse`, `Env_PlasterBase`, `Env_PaintGreen`,
+`Env_Glass`) reuse the plaster texture or are plain colours.
+
+Full 6 496 triangles, Light 1 660 (no braces, glazing bars, rails, cornice, barge boards); mean AO 0.36 / 0.29. Both variants use 9
+materials (barn 5): fine for 1.7k triangles, to be checked with a Quest benchmark once the yard details are in (merging the plain
+paints into one material with vertex colours is the fix if needed). Collider: one box over the whole footprint up to the eaves, so the
+tractor can't drive onto the porch. Previews `house_pc / house_quest / house_porch_*` (`docs/images/phase5_house.png`).
+`PlayModeTest` passes at both levels (`Farmhouse_Full` / `Farmhouse_Light` active).
+
+Found on the way: the attic window showed as a white patch: its frame stood in front of the glass. Frame now behind.
+

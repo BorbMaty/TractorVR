@@ -1,0 +1,46 @@
+{
+  "asset": "Farmhouse",
+  "notes": "Farmhouse, 9 x 15 m (porch 2 m on the yard side), ridge 7.9 m, roof 45 deg. Collider: one box over the whole footprint up to the eaves (ProjectSetup).",
+  "variants": {
+    "Full": {
+      "triangles": 6496,
+      "vertices": 3951,
+      "materials": [
+        "Env_PlasterBase",
+        "Env_PlasterHouse",
+        "Env_Boards",
+        "Env_BoardsDark",
+        "Env_Timber",
+        "Env_PaintWhite",
+        "Env_Glass",
+        "Env_PaintGreen",
+        "Env_RoofTiles"
+      ],
+      "size_unity": [
+        10.176,
+        9.2,
+        15.9
+      ]
+    },
+    "Light": {
+      "triangles": 1660,
+      "vertices": 1083,
+      "materials": [
+        "Env_PlasterBase",
+        "Env_PlasterHouse",
+        "Env_Boards",
+        "Env_BoardsDark",
+        "Env_Timber",
+        "Env_PaintWhite",
+        "Env_Glass",
+        "Env_PaintGreen",
+        "Env_RoofTiles"
+      ],
+      "size_unity": [
+        10.137,
+        9.2,
+        15.9
+      ]
+    }
+  }
+}

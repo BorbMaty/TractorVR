@@ -79,6 +79,46 @@
         0.84
       ],
       "smoothness": 0.2
+    },
+    {
+      "name": "Env_PlasterHouse",
+      "tex": "white_rough_plaster",
+      "tint": [
+        0.98,
+        0.86,
+        0.62
+      ],
+      "smoothness": 0.05
+    },
+    {
+      "name": "Env_PlasterBase",
+      "tex": "white_rough_plaster",
+      "tint": [
+        0.48,
+        0.54,
+        0.6
+      ],
+      "smoothness": 0.08
+    },
+    {
+      "name": "Env_PaintGreen",
+      "tex": null,
+      "tint": [
+        0.16,
+        0.34,
+        0.24
+      ],
+      "smoothness": 0.25
+    },
+    {
+      "name": "Env_Glass",
+      "tex": null,
+      "tint": [
+        0.08,
+        0.1,
+        0.12
+      ],
+      "smoothness": 0.85
     }
   ]
 }

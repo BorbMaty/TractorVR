@@ -22,6 +22,16 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: Env_Glass
+    second: {fileID: 2100000, guid: 770ba6365a7420c4ebbd1b4b43a5733e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_PaintGreen
+    second: {fileID: 2100000, guid: ece21b7414d14144e82e413a3fafb06a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: Env_PaintWhite
     second: {fileID: 2100000, guid: 04d4d506f07b82245aa788539507977e, type: 2}
   - first:
@@ -34,6 +44,16 @@ ModelImporter:
       assembly: UnityEngine.CoreModule
       name: Env_Plaster
     second: {fileID: 2100000, guid: d656e6c81cb14ee4ba07bcfe73706003, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_PlasterBase
+    second: {fileID: 2100000, guid: 089947f08078a88439048db1050bda98, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_PlasterHouse
+    second: {fileID: 2100000, guid: 51aea7046a6128f41ae8b4fc48140d4f, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
