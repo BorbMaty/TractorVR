@@ -1015,3 +1015,4 @@ tractor can't drive onto the porch. Previews `house_pc / house_quest / house_por
 
 Found on the way: the attic window showed as a white patch: its frame stood in front of the glass. Frame now behind.
 
+PC exe rebuilt with the house; the user checked it in PC VR over Link: "got the house, love it".

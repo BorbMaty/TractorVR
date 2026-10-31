@@ -4,6 +4,7 @@
 **Farmhouse built** (phase 5 step 1, first item complete: barn, shed, farmhouse). `PlayModeTest` passes at both levels.
 Still open with the user from 2026-10-31: the check of the new shed (and now the house) in PC VR over Link and on the desktop.
 `Builds/PC/TractorVR.exe` rebuilt with the farmhouse (2026-11-01, 00:13).
+User check in PC VR over Link: house ✅ ("love it"), shed seen. Desktop check of the shed bays with the mouse still open.
 Next: yard details (silos, fuel tank, muck heap / tipping pad, bale stack, fences, yard gate). The house's Light variant has 9 materials
 (= 9 draw calls, the barn 5): fine at 1.7k triangles, but worth a Quest benchmark once the yard details are in.
 
@@ -254,6 +255,7 @@ repeated things, no shadows on Quest except buildings, impostors for far trees, 
   PLOUGH / TRAILER (`WorldLayout.ShedBays`, yellow lines, name boards); the implements start in their bays (`docs/images/phase5_shed.png`).
   Farmhouse ✅ 2026-11-01: `tools/blender/farmhouse.py`, 9 × 15 m east of the yard (`WorldLayout.Farmhouse`), gable to the yard road,
   porch (tornác) facing the yard, ochre plaster, green shutters, clay tiles; Full 6.5k / Light 1.7k triangles (`docs/images/phase5_house.png`)
+  ✅ user, PC VR over Link 2026-11-01: "got the house, love it" (the shed was seen in the same session)
 - [ ] Yard details: grain silos, fuel tank, muck heap / tipping pad for the trailer, bale stack, wooden fences, yard gate
 - [ ] Better yard surface (concrete slabs with wear, dirt at the edges) from Poly Haven textures
 - [ ] Speed bumps (static colliders the wheel rays hit) where the suspension, the front axle cylinders (`Front_Small_Forcer_*`, still
