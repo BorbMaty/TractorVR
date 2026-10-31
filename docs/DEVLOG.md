@@ -1062,3 +1062,8 @@ beam on two braces, the frieze is 1.3 m wide on the cross beams, and the roof si
 gate), after the barn view (`env` / `noenv`, unchanged, comparable with step 0). Still `yard.png`. Checked on the PC (over Link, the headset
 was connected): env 3.8 / noenv 2.7 ms GPU, yard 3.2 / noyard 2.6 ms. New APK installed on the Quest for the Quest run.
 
+**Gate fix, second try** (user's desktop screenshot, camera above the yard): the first fix stood the frieze on the cross beams, which
+are only on the posts, so along the opening a 20 cm slot between the top beam and the frieze showed the fields behind: the top still
+floated. The frieze (now 0.72 m) stands directly on the top beam; the cross beam ends stick out of its sides as brackets. Checked from
+the user's viewpoint in Blender; APK reinstalled, PC exe rebuilt.
+

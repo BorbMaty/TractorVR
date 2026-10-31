@@ -58,23 +58,26 @@ def gate(b):
         b.box((x, POST_H + 0.34, z), (fw + 0.2, 0.2, POST * 0.7), "Env_Timber")
         for sx in (-1, 1):
             b.box((x + sx * 0.45, POST_H - 0.155, z), (0.93, 0.12, 0.14), "Env_Timber", roll=sx * 57.7)
-    top = POST_H + 0.44
-    b.box((x, top + 0.26, zc), (fw, 0.52, span + 0.3), "Env_Boards")
+    # The frieze stands directly on the top beam (the cross beams only on the posts left a slot you could see through
+    # from the yard); the cross beam ends stick out of its sides as brackets.
+    top = POST_H + 0.24
+    fh = 0.72
+    b.box((x, top + fh * 0.5, zc), (fw, fh, span + 0.3), "Env_Boards")
     n = 14
     for k in range(n):
         z = z0 + (k + 0.5) * (span + 0.3) / n - 0.15
         for sx in (-1, 1):
-            b.box((x + sx * (fw * 0.5 + 0.005), top + 0.26, z), (0.02, 0.2, 0.16), "Env_Glass", detail=True)
+            b.box((x + sx * (fw * 0.5 + 0.005), top + 0.46, z), (0.02, 0.2, 0.16), "Env_Glass", detail=True)
     pitch, half = 40.0, fw * 0.5
     rise = half * math.tan(math.radians(pitch))
-    ridge = top + 0.52 + rise
+    ridge = top + fh + rise
     length = math.hypot(half, rise) + 0.55
     c, s = math.cos(math.radians(pitch)), math.sin(math.radians(pitch))
     for side in (-1, 1):
         cx = side * c * length * 0.5 + side * s * 0.06
         cy = ridge - s * length * 0.5 + c * 0.06
         b.box((x + cx, cy, zc), (length, 0.12, span + 1.0), "Env_RoofTiles", roll=-side * pitch)
-    b.gable(x - half, x + half, top + 0.52, rise, zc - span * 0.5 - 0.15, zc + span * 0.5 + 0.15, "Env_Boards")
+    b.gable(x - half, x + half, top + fh, rise, zc - span * 0.5 - 0.15, zc + span * 0.5 + 0.15, "Env_Boards")
     b.box((x, ridge + 0.06, zc), (0.2, 0.2, span + 1.05), "Env_RoofTiles", roll=45)
     # The big leaves, open: swung in against the yard side of the opening.
     for sz in (-1, 1):
