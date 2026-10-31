@@ -8,9 +8,9 @@ first asset = the barn (replaces the grey block barn), `PlayModeTest` passes at 
 drive (it never shows the barn), so the benchmark got a barn phase (`env` / `noenv`). Run 2: facing the barn the Quest GPU is 9.6 ms
 with it and 10.0 ms without (it hides hills that cost more than it does) → **step 0 done**.
 **Step 1 started**: the machine shed is built (Blender, 4 marked bays, the implements now wait in them). Next: farmhouse, yard details.
-**Next session (user, 2026-10-31):** bring the new shed to the PC version: the Quest APK has it, but `Builds/PC/TractorVR.exe` was
-built before it (old block shed, implements in the yard). Rebuild the exe, check the shed in PC VR over Link and on the desktop
-(Full variant, normal maps, coupling from the bays with the mouse), then go on with the farmhouse and yard details.
+**Next session (user, 2026-10-31):** the new shed in the PC version. `Builds/PC/TractorVR.exe` rebuilt the same night with the shed
+(desktop benchmark run: 144 fps, GPU 1.2 ms, no new errors in Player.log). Still to do: the user's check in PC VR over Link and on the
+desktop (Full variant, normal maps, coupling from the bays with the mouse), then go on with the farmhouse and yard details.
 Phase 4 has no open items left (desktop screen UI ✅ user, 2026-10-31).
 
 ## ▶ Where we left off (2026-10-30, end of day)
