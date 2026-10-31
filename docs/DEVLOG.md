@@ -1067,3 +1067,19 @@ are only on the posts, so along the opening a 20 cm slot between the top beam an
 floated. The frieze (now 0.72 m) stands directly on the top beam; the cross beam ends stick out of its sides as brackets. Checked from
 the user's viewpoint in Blender; APK reinstalled, PC exe rebuilt.
 
+**Quest run with the full yard** (`docs/benchmark/QuestStandalone_2026-11-01_00-54-52`, user, headset on; APK with the first gate fix,
+the second only moves the frieze):
+
+| Phase | GPU ms avg / p95 | Dropped | Before (2026-10-31 run 2) |
+|---|---|---|---|
+| drive (all) | 9.6 / 10.6 | 0 | 9.7 / 10.9 (62 dropped, the stalls) |
+| env (facing the barn) | 9.3 / 9.4 | 0 | 9.6 / 9.7 |
+| noenv | 9.2 / 9.3 | 0 | 10.0 / 11.9 |
+| yard (looking east across the yard) | 10.1 / 10.2 | 4 | new |
+| noyard | 10.1 / 10.2 | 0 | new |
+
+Every frame at 72 fps (one 27.8 ms frame in the yard phase). With all eight environment assets on screen the GPU needs the same as
+without them (yard 10.1 = noyard 10.1; at the barn +0.1 ms): the Light variants cost about what the terrain and sky they hide cost, so
+static batching keeps the ~40 materials cheap. Worst case 10.1 ms of the 13.9 ms budget, **3.8 ms left** for the rest of phase 5.
+No stalls in the drive this time (the third-person stalls of run 2 did not come back).
+
