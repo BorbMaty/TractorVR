@@ -5,7 +5,8 @@
 remade, farmyard first, plus speed bumps and steep practice slopes.
 **Step 0 (pipeline) built the same day**: Blender scripts → FBX with a Full / Light variant → `ProjectSetup` → `TractorVR/EnvLit`;
 first asset = the barn (replaces the grey block barn), `PlayModeTest` passes at both quality levels. First Quest run: no change on the
-drive (it never shows the barn), so the benchmark got a barn phase (`env` / `noenv`). Next: one more Quest run (headset on), then step 1.
+drive (it never shows the barn), so the benchmark got a barn phase (`env` / `noenv`). Run 2: facing the barn the Quest GPU is 9.6 ms
+with it and 10.0 ms without (it hides hills that cost more than it does) → **step 0 done**. Next: step 1 (farmyard).
 Phase 4 has no open items left (desktop screen UI ✅ user, 2026-10-31).
 
 ## ▶ Where we left off (2026-10-30, end of day)
@@ -230,10 +231,11 @@ repeated things, no shadows on Quest except buildings, impostors for far trees, 
 - [x] Blender → Unity pipeline: script layout, export settings (metric, +Z forward), full / light versions, import in `ProjectSetup`.
   Built 2026-10-31: `tools/blender/` (`tvr.py` library, one script per asset, `build.py` headless or through blender-mcp),
   `tools/fetch_polyhaven.py` (textures + licence list), `TractorVR/EnvLit` shader, `TierVariant` + `QualityTier.ApplyEnvironment`
-- [ ] One asset end to end, measured on the Quest (GPU ms) before making the rest. Barn built 2026-10-31 (Full 11.1k / Light 1.6k
+- [x] One asset end to end, measured on the Quest (GPU ms) before making the rest. Barn built 2026-10-31 (Full 11.1k / Light 1.6k
   triangles, `docs/images/phase5_barn.png`), `PlayModeTest` passes at both levels. Quest run 1 (2026-10-31): drive GPU 9.48 ms vs 9.55
   before = no regression, but the drive never shows the barn; benchmark now has `env` / `noenv` (10 s each facing the barn, with / without
-  the env assets; desktop: 1.4 vs 1.3 ms). ⏳ Quest run with the new phase
+  the env assets; desktop: 1.4 vs 1.3 ms). Quest run 2 (2026-10-31): env 9.59 ms, noenv 9.96 ms GPU: the barn costs less than
+  the hills it hides; ~4.3 ms of the 13.9 ms budget left with it on screen. ✅
 
 ### Step 1: farmyard
 - [ ] Barn, open-front machine shed with marked parking bays per implement (tutorial spots), farmhouse

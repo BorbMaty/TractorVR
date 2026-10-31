@@ -957,3 +957,12 @@ only, so new runs compare with the phase 4 ones, and `benchmark_charts.py` plots
 `PhysicsTest` and `PlayModeTest` pass.
 
 Phase 4's last open item closed: the user checked the desktop screen UI (after the wider-buttons fix).
+
+**Quest run 2** (`docs/benchmark/QuestStandalone_2026-10-31_01-58-07`, user, headset on): standing 16 m from the barn doors, GPU
+**9.59 ms with the environment assets, 9.96 ms without** (p95 9.69 / 11.89). Hidden, the barn uncovers hills and sky further away, which cost
+more than the barn's 1.6k triangles and 5 draw calls, so its net cost is below zero, and with it on screen ~4.3 ms of the 13.9 ms frame are
+left. The Light variant + EnvLit (one texture read) are cheap enough; **step 0 is done**, and the same recipe goes on for the farmyard.
+Drive: GPU 9.72 ms (cab 9.90, third 9.54). The third-person part had three short stalls (33, 35–36 and 55 s: frames held 2–3 vsyncs, CPU
+frame time up to 32 ms while the GPU stayed at ~9 ms, 56 dropped frames). Not the barn (it is off screen there and the barn phase right after
+was smooth) and not in run 1 of the same build (only the barn phase was added); the first phase 4 run had a similar one-off (CPU 169 ms).
+Probably the headset doing something in the background; noted, to be checked if it shows up again.
