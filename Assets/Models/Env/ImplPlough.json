@@ -1,0 +1,67 @@
+{
+  "asset": "ImplPlough",
+  "notes": "3-furrow plough (remade): frame, 3 bodies with twisted mouldboards, coulters, depth wheel (own part), warning panel.",
+  "variants": {
+    "Main_Full": {
+      "triangles": 2248,
+      "vertices": 1286,
+      "materials": [
+        "Impl_Steel",
+        "Impl_Yellow",
+        "Impl_Blue",
+        "Impl_Polished",
+        "Impl_White",
+        "Impl_Lamp"
+      ],
+      "size_unity": [
+        1.973,
+        1.46,
+        3.353
+      ]
+    },
+    "Wheel_Full": {
+      "triangles": 728,
+      "vertices": 505,
+      "materials": [
+        "Impl_Rubber",
+        "Impl_Yellow",
+        "Impl_Steel"
+      ],
+      "size_unity": [
+        0.18,
+        0.61,
+        0.61
+      ]
+    },
+    "Main_Light": {
+      "triangles": 968,
+      "vertices": 618,
+      "materials": [
+        "Impl_Steel",
+        "Impl_Yellow",
+        "Impl_Blue",
+        "Impl_Polished",
+        "Impl_White"
+      ],
+      "size_unity": [
+        1.973,
+        1.46,
+        3.3
+      ]
+    },
+    "Wheel_Light": {
+      "triangles": 200,
+      "vertices": 106,
+      "materials": [
+        "Impl_Rubber",
+        "Impl_Yellow",
+        "Impl_Steel"
+      ],
+      "size_unity": [
+        0.18,
+        0.582,
+        0.591
+      ]
+    }
+  }
+}

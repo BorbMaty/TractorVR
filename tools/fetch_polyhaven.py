@@ -23,6 +23,7 @@ TEXTURES = {
     "corrugated_iron_02": "machine shed roof (weathered corrugated sheets)",
     "dirty_concrete": "farmyard slabs (tools/make_yard_concrete.py adds the 4 m joints)",
     "brown_mud_dry": "earth practice ramp (dry, rutted soil)",
+    "green_metal_rust": "implements: tools/make_impl_paint.py turns it into a neutral worn-paint texture, tinted per colour",
 }
 
 UA = {"User-Agent": "TractorVR-university-project"}

@@ -114,6 +114,66 @@ ModelImporter:
       assembly: UnityEngine.CoreModule
       name: Env_Timber
     second: {fileID: 2100000, guid: a05c4ab7a60197440a6d9f83c82405cd, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Impl_Amber
+    second: {fileID: 2100000, guid: a56e15e475ea7d443b73d13cac7ba569, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Impl_Blue
+    second: {fileID: 2100000, guid: 5122f7763c6f48b4d92266a3011c8230, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Impl_Cast
+    second: {fileID: 2100000, guid: 4b95cfde4dfb9c84ea97c7f2b214e7f4, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Impl_Chrome
+    second: {fileID: 2100000, guid: afd28643abfeb4c499f574f1c35e553a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Impl_Green
+    second: {fileID: 2100000, guid: d066358fdc68aec47b54e8749c31985a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Impl_Lamp
+    second: {fileID: 2100000, guid: cdc07d60dc1712a449ada53edf091477, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Impl_Polished
+    second: {fileID: 2100000, guid: 781de672a653d3f41b6ce1974890b21a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Impl_Red
+    second: {fileID: 2100000, guid: e8a2461cd008b9c4da840d3ba24dd743, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Impl_Rubber
+    second: {fileID: 2100000, guid: f4097bcb5cf8af947b37bd64dbbd0cff, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Impl_Steel
+    second: {fileID: 2100000, guid: b0014a7611f8a5649b8589452fda6cb0, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Impl_White
+    second: {fileID: 2100000, guid: 7f313d350225a574cb8b1f7486cc9b41, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Impl_Yellow
+    second: {fileID: 2100000, guid: 39c17dec45e4415448d935a21540aec3, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

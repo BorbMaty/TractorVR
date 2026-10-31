@@ -1116,3 +1116,33 @@ its documentation suggests, so the colliders held the tractor 0.66 m up; they ar
 `PlayModeTest` passes at both levels (12 / 24 environment variants). Previews `bump_* / clamp_* / ramp_*`, `docs/images/phase5_slopes.png`.
 Comfort: the cab pitches up to 23° on the ramp. That is the vehicle's own motion (the rig adds none), but steeper than anything so far:
 to be judged in the headset.
+
+## 2026-11-01: Phase 5 step 2 — implements remade in Blender
+The plough, the front disc mower, the front weight and the tipping trailer were built from ~150 Unity primitives (each its own
+renderer). Now they are Blender meshes: `tools/blender/plough.py`, `mower.py`, `frontweight.py`, `trailer.py`. Every point, pivot,
+collider, mass and component in `ProjectSetup.BuildImplements` is the same as before; only the visuals changed, so `Hitch`,
+`Implement`, `SimpleWheels` and `Tipper` are untouched and `PhysicsTest` gives the same numbers (bale push 8.83 vs 8.88 m: noise).
+
+How: an implement script defines `PARTS` = {part: describe}, each modelled in the space of the pivot it hangs on in Unity:
+
+| Implement | Parts (Full / Light triangles) |
+|---|---|
+| Plough | Main 2 248 / 968 (headstock, beam, 3 bodies with twisted polished mouldboards, shares, landsides, coulters, depth-wheel fork and spindle, stand, red / white warning panel), Wheel 728 / 200 (depth wheel, spins) |
+| Mower | Main 824 / 276 (A-frame, gearbox, PTO guard, arm, hoses, cutter bar, hood with ribs, shields with warning stripes and reflectors, slit rubber curtain), Disc 228 / 108 (on all six hubs, spins) |
+| Front weight | Main 1 148 / 288 (carrier with gussets and pins, five cast slabs, sloping top, lifting and tow eyes, badge "900 kg") |
+| Trailer | Main 1 632 / 640 (drawbar, jack, chassis, leaf springs, curved mudguards, light bar with lamps / indicators / number plate, tipping hose and air lines), Wheel 1 408 / 276, Body 1 012 / 392 (hinge space), Gate 192 / 72, Stage0–6 (ram tubes, each in its stage's space) |
+
+`tvr.build_parts` builds every part × variant into one FBX (`<Asset>_<Part>_Full / _Light`), baking AO per part (parts that don't
+stand on the ground in their own space bake without the ground plane). `ProjectSetup.ImplVisual(pivot, asset, part)` instantiates the
+FBX under the pivot and keeps that part's two objects (TierVariant per tier). New library pieces: `bar` (a box between two points),
+`sheet` (a curved plate from a point grid: mouldboards, mudguards), `tyre` (rounded carcass + staggered bar lugs; Light: carcass only,
+at the full radius so it doesn't sink). Materials: `Impl_*` EnvLit; the painted ones share `impl_paint`, made by
+`tools/make_impl_paint.py` from Poly Haven `green_metal_rust` (divided by its mean colour: near-white paint whose drips, rust spots and
+scratches stay, tinted blue / red / green / yellow per material). The old Lit `Impl_*` materials and the `TyreMesh` / `MouldboardMesh`
+generators are gone (their names clashed with the new materials).
+
+Draw calls: about 150 primitive renderers before, now ~20 meshes (each 2–8 materials). `PlayModeTest` passes at both levels (34 / 68
+variants active). Note for the benchmark: `noenv` / `noyard` now also hide the implements (they are TierVariants too); they stand in
+the shed, which only the yard view shows.
+
+Also: the yard concrete's stains repeated visibly every 4 m slab from above: `make_yard_concrete.py` halves their contrast.

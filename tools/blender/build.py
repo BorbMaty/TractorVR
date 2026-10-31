@@ -16,7 +16,7 @@ sys.path.insert(0, str(HERE))
 
 import tvr  # noqa: E402
 
-ALL = ["barn", "shed", "farmhouse", "silos", "fueltank", "muckpad", "balestack", "fences", "speedbump", "clamp", "earthramp"]
+ALL = ["barn", "shed", "farmhouse", "silos", "fueltank", "muckpad", "balestack", "fences", "speedbump", "clamp", "earthramp", "frontweight", "plough", "mower", "trailer"]
 
 
 def main(names):
@@ -27,7 +27,11 @@ def main(names):
     for name in names:
         mod = importlib.import_module(name)
         importlib.reload(mod)
-        results[name] = tvr.build_asset(getattr(mod, "NAME", name.capitalize()), mod.describe, getattr(mod, "NOTES", ""))
+        asset = getattr(mod, "NAME", name.capitalize())
+        if hasattr(mod, "PARTS"):    # implements: one mesh per moving part (tvr.build_parts)
+            results[name] = tvr.build_parts(asset, mod.PARTS, getattr(mod, "NOTES", ""), getattr(mod, "NO_GROUND", ()))
+        else:
+            results[name] = tvr.build_asset(asset, mod.describe, getattr(mod, "NOTES", ""))
     return results
 
 

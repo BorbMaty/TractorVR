@@ -1,0 +1,37 @@
+{
+  "asset": "ImplFrontWeight",
+  "notes": "Front weight 900 kg (remade): carrier, cast block, tow / lifting eyes, badge. Colliders and mass in ProjectSetup.",
+  "variants": {
+    "Main_Full": {
+      "triangles": 1148,
+      "vertices": 650,
+      "materials": [
+        "Impl_Green",
+        "Impl_Yellow",
+        "Impl_Steel",
+        "Impl_Cast",
+        "Impl_White"
+      ],
+      "size_unity": [
+        0.98,
+        1.07,
+        0.748
+      ]
+    },
+    "Main_Light": {
+      "triangles": 288,
+      "vertices": 192,
+      "materials": [
+        "Impl_Green",
+        "Impl_Yellow",
+        "Impl_Cast",
+        "Impl_Steel"
+      ],
+      "size_unity": [
+        0.98,
+        1.07,
+        0.74
+      ]
+    }
+  }
+}

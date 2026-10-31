@@ -28,6 +28,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 OUT_DIR = ROOT / "Assets" / "Models" / "Env"
 TEX_DIR = ROOT / "Assets" / "Textures" / "Env"
 SIZES = json.loads((TEX_DIR / "sizes.json").read_text())
+SIZES.setdefault("impl_paint", SIZES.get("green_metal_rust", [1.0, 1.0]))   # tools/make_impl_paint.py, from green_metal_rust
 
 # name -> texture id (None = plain colour), UV rotation, Unity tint (multiplies the texture), smoothness.
 MATERIALS = {
@@ -53,6 +54,19 @@ MATERIALS = {
     "Env_RubberBlack":  dict(tex=None, rot=0, tint=(0.05, 0.05, 0.05), smooth=0.20),
     "Env_Earth":        dict(tex="brown_mud_dry",        rot=0,  tint=(0.95, 0.90, 0.82), smooth=0.06),
     "Env_SilageSheet":  dict(tex=None, rot=0, tint=(0.03, 0.03, 0.035), smooth=0.55),
+    # Implements (phase 5 step 2): worn paint (impl_paint is near white, the tint is the paint colour), bare metal, rubber.
+    "Impl_Blue":        dict(tex="impl_paint", rot=0, tint=(0.14, 0.26, 0.60), smooth=0.35),
+    "Impl_Red":         dict(tex="impl_paint", rot=0, tint=(0.80, 0.12, 0.09), smooth=0.35),
+    "Impl_Green":       dict(tex="impl_paint", rot=0, tint=(0.24, 0.55, 0.19), smooth=0.35),
+    "Impl_Yellow":      dict(tex="impl_paint", rot=0, tint=(1.00, 0.80, 0.12), smooth=0.35),
+    "Impl_Steel":       dict(tex="impl_paint", rot=0, tint=(0.62, 0.62, 0.64), smooth=0.55),
+    "Impl_Cast":        dict(tex="impl_paint", rot=0, tint=(0.20, 0.20, 0.21), smooth=0.25),
+    "Impl_Polished":    dict(tex=None, rot=0, tint=(0.55, 0.57, 0.60), smooth=0.85),   # mouldboards, shares: polished by the soil
+    "Impl_Chrome":      dict(tex=None, rot=0, tint=(0.82, 0.84, 0.88), smooth=0.90),
+    "Impl_Rubber":      dict(tex=None, rot=0, tint=(0.07, 0.07, 0.07), smooth=0.15),
+    "Impl_Lamp":        dict(tex=None, rot=0, tint=(0.85, 0.08, 0.05), smooth=0.90),
+    "Impl_Amber":       dict(tex=None, rot=0, tint=(1.00, 0.55, 0.05), smooth=0.90),
+    "Impl_White":       dict(tex=None, rot=0, tint=(0.92, 0.92, 0.88), smooth=0.30),
 }
 
 VARIANTS = {"Full": dict(cell=1.0, detail=True), "Light": dict(cell=3.0, detail=False)}
@@ -397,6 +411,72 @@ class Builder:
         mx, my = (xa + xb) * 0.5 - nx * thick * 0.5, (ya + yb) * 0.5 - ny * thick * 0.5
         self.collider((mx, my, (z0 + z1) * 0.5), (math.hypot(xb - xa, yb - ya), thick, z1 - z0), roll=math.degrees(a))
 
+    def bar(self, p0, p1, size, mat, cell=None, detail=False):
+        """Rectangular bar from p0 to p1 (Unity coords), cross-section size = (width, height) before it is turned onto the
+        line (width stays horizontal unless the line is vertical)."""
+        if detail and not self.detail:
+            return
+        d = Vector(p1) - Vector(p0)
+        length = d.length
+        d.normalize()
+        pitch = -math.degrees(math.asin(max(-1.0, min(1.0, d.y))))
+        yaw = math.degrees(math.atan2(d.x, d.z))
+        c = (Vector(p0) + Vector(p1)) * 0.5
+        self.box(tuple(c), (size[0], size[1], length), mat, yaw=yaw, pitch=pitch, cell=cell)
+
+    def sheet(self, rows, mat, thick=0.008, detail=False):
+        """A curved plate from a grid of Unity points (rows[j][i]), `thick` thick (offset along the surface normal): mouldboards,
+        mudguards, hoods. Closed (both faces and the rim)."""
+        if detail and not self.detail:
+            return
+        nj, ni = len(rows), len(rows[0])
+        P = [[Vector(p) for p in r] for r in rows]
+
+        def normal(j, i):
+            a = P[j][min(i + 1, ni - 1)] - P[j][max(i - 1, 0)]
+            b = P[min(j + 1, nj - 1)][i] - P[max(j - 1, 0)][i]
+            n = a.cross(b)
+            return n.normalized() if n.length > 1e-9 else Vector((0, 1, 0))
+
+        first = len(self.bm.verts)
+        top = [[self.bm.verts.new(U(*(P[j][i] + normal(j, i) * thick * 0.5))) for i in range(ni)] for j in range(nj)]
+        bot = [[self.bm.verts.new(U(*(P[j][i] - normal(j, i) * thick * 0.5))) for i in range(ni)] for j in range(nj)]
+        mi = self._mat(mat)
+
+        def quad(vs):
+            self.bm.faces.new(vs).material_index = mi
+
+        for j in range(nj - 1):
+            for i in range(ni - 1):
+                quad((top[j][i], top[j][i + 1], top[j + 1][i + 1], top[j + 1][i]))
+                quad((bot[j][i], bot[j + 1][i], bot[j + 1][i + 1], bot[j][i + 1]))
+        for i in range(ni - 1):
+            for j in (0, nj - 1):
+                quad((top[j][i], bot[j][i], bot[j][i + 1], top[j][i + 1]))
+        for j in range(nj - 1):
+            for i in (0, ni - 1):
+                quad((top[j][i], top[j + 1][i], bot[j + 1][i], bot[j][i]))
+        self._weld(first)
+
+    def tyre(self, centre, radius, width, mat_rubber, lugs=20, lug_h=0.03, segs=24, detail_lugs=True):
+        """Agricultural tyre around the local X axis at `centre` (Unity): rounded carcass (revolve) and bar lugs staggered left /
+        right across the tread (Full variant only when detail_lugs)."""
+        lugs_here = self.detail or not detail_lugs
+        r, hw = (radius - lug_h if lugs_here else radius), width * 0.5   # no lugs: the carcass takes the full radius
+        rim_r = radius * 0.62
+        prof = [(rim_r, -hw * 0.9), (r - 0.06, -hw), (r - 0.015, -hw * 0.94), (r, -hw * 0.75), (r, hw * 0.75),
+                (r - 0.015, hw * 0.94), (r - 0.06, hw), (rim_r, hw * 0.9)]
+        self.revolve(centre, prof, mat_rubber, segs=segs, roll=90)
+        if detail_lugs and not self.detail:
+            return
+        cx, cy, cz = centre
+        for k in range(lugs):
+            for side in (-1, 1):
+                a = 2 * math.pi * (k + (0.5 if side > 0 else 0.0)) / lugs
+                rr = r + lug_h * 0.5
+                self.box((cx + side * hw * 0.42, cy + rr * math.cos(a), cz + rr * math.sin(a)),
+                         (hw * 0.9, lug_h + 0.01, width * 0.12), mat_rubber, pitch=math.degrees(a), cell=1.0)
+
     def tube(self, p0, p1, radius, mat, segs=10, detail=False):
         """Round bar / pipe from p0 to p1 (Unity coords), closed ends."""
         d = Vector(p1) - Vector(p0)
@@ -514,13 +594,14 @@ def reset():
     return sc
 
 
-def bake_ao(ob, distance=2.5, samples=64):
+def bake_ao(ob, distance=2.5, samples=64, ground=True):
     """Cycles AO into the corner colour attribute "AO" (stored in red/green/blue, read as red in Unity).
     A big ground plane takes part as an occluder, so walls darken where they meet the ground."""
     sc = bpy.context.scene
     ground_me = bpy.data.meshes.new("_ao_ground")
     s = 200.0
-    ground_me.from_pydata([(-s, -s, 0), (s, -s, 0), (s, s, 0), (-s, s, 0)], [], [(0, 1, 2, 3)])
+    z = 0.0 if ground else -1000.0      # parts not standing on the ground in their own space: the plane goes far away
+    ground_me.from_pydata([(-s, -s, z), (s, -s, z), (s, s, z), (-s, s, z)], [], [(0, 1, 2, 3)])
     ground = bpy.data.objects.new("_ao_ground", ground_me)
     sc.collection.objects.link(ground)
 
@@ -564,7 +645,7 @@ def stats(ob):
                 size_unity=[round(size.x, 3), round(size.z, 3), round(size.y, 3)])
 
 
-def export(asset, objects, notes="", colliders=()):
+def export(asset, objects, notes="", colliders=(), key=None):
     """FBX with both variants + a JSON with their numbers (read by ProjectSetup's report and the DEVLOG)."""
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     for o in bpy.context.scene.objects:
@@ -576,7 +657,8 @@ def export(asset, objects, notes="", colliders=()):
         axis_forward="-Z", axis_up="Y", mesh_smooth_type="FACE", use_mesh_modifiers=True,
         colors_type="LINEAR", prioritize_active_color=True, add_leaf_bones=False, bake_anim=False,
         path_mode="STRIP", use_custom_props=False)
-    info = {"asset": asset, "notes": notes, "variants": {o.name.split("_")[-1]: stats(o) for o in objects}}
+    key = key or (lambda o: o.name.split("_")[-1])
+    info = {"asset": asset, "notes": notes, "variants": {key(o): stats(o) for o in objects}}
     if colliders:
         info["colliders"] = list(colliders)
     (OUT_DIR / f"{asset}.json").write_text(json.dumps(info, indent=2) + "\n")
@@ -584,6 +666,30 @@ def export(asset, objects, notes="", colliders=()):
     (OUT_DIR / "env_materials.json").write_text(json.dumps(
         {"materials": [dict(name=k, **v) for k, v in mats.items()]}, indent=2) + "\n")
     print("exported", path, json.dumps(info["variants"]))
+    return info
+
+
+def build_parts(asset, parts, notes="", no_ground=(), ao_distance=1.0):
+    """Asset made of several meshes, each modelled in the space of the pivot it hangs on in Unity (an implement's frame, a wheel's
+    spin pivot, a tipping body's hinge ...): `parts` = {part: describe}. Objects <Asset>_<Part>_Full / _Light. Parts in `no_ground`
+    bake their AO without the ground plane (they are not standing at y = 0 in their own space)."""
+    reset()
+    objects = []
+    for vname, v in VARIANTS.items():
+        for part, describe in parts.items():
+            b = Builder(v["cell"], v["detail"])
+            describe(b)
+            if not b.bm.faces:
+                b.bm.free()
+                continue
+            ob = b.finish(f"{asset}_{part}_{vname}")
+            mean = bake_ao(ob, distance=ao_distance, samples=48 if vname == "Full" else 24, ground=part not in no_ground)
+            print(f"{ob.name}: mean AO {mean:.2f}")
+            objects.append(ob)
+    info = export(asset, objects, notes, key=lambda o: o.name[len(asset) + 1:])
+    for k, o in enumerate(objects):
+        o.location.x = -(k % len(parts)) * 4.0
+        o.location.y = (k // len(parts)) * 8.0
     return info
 
 

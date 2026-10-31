@@ -146,7 +146,11 @@ $u = "C:\Program Files\Unity\Hub\Editor\6000.6.3f1\Editor\Unity.exe"
   "lower it first" detach rule works for it too.
 - Editor tests teleport the tractor: anything still coupled (especially the trailer on its joint) gets dragged and blows up the physics.
   Uncouple at the end of each scenario.
-- Implement models are generated: primitives via `Part`, procedural meshes via `MeshPart` (`TyreMesh`, `MouldboardMesh`, `Tipper.Mound`), saved as `Generated/Impl_*.asset`.
+- Implement models come from Blender (phase 5 step 2): `tools/blender/{plough,mower,frontweight,trailer}.py` define `PARTS` (one mesh per
+  moving part, modelled in the space of the pivot it hangs on: frame, wheel Spin, disc hub, body hinge, tailgate, ram stages) →
+  `Assets/Models/Env/Impl*.fbx` (objects `<Asset>_<Part>_Full / _Light`). `ProjectSetup.BuildImplements` keeps every point, pivot, collider
+  and component and hangs the meshes on with `ImplVisual(pivot, asset, part)`. Change a size or a pivot in both places. The load heap
+  stays generated (`Tipper.Mound` via `MeshPart`). Materials `Impl_*` are EnvLit (`impl_paint` = worn paint tinted per colour).
   They start in their machine shed bays (`WorldLayout.ShedBays`: coupling point + yaw; front implements face the back wall, yaw 180, so
   `PhysicsTest` couples them with `PlaceAt(..., yaw 180)` and carries them out). Bay order / width also live in `tools/blender/shed.py`.
 - The **grips are for grabbing** (wheel, lever). Seat adjust moved to the cab panel (`TractorInput.seatAdjust`; Left Shift in the editor).

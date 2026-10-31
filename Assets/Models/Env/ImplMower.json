@@ -1,0 +1,69 @@
+{
+  "asset": "ImplMower",
+  "notes": "3 m front disc mower (remade): A-frame, gearbox, arm, cutter bar, hood, shields with warning stripes; discs (own part).",
+  "variants": {
+    "Main_Full": {
+      "triangles": 824,
+      "vertices": 524,
+      "materials": [
+        "Impl_Red",
+        "Impl_Yellow",
+        "Impl_Cast",
+        "Impl_Rubber",
+        "Impl_Steel",
+        "Impl_Lamp",
+        "Impl_White",
+        "Impl_Amber"
+      ],
+      "size_unity": [
+        3.09,
+        1.055,
+        1.542
+      ]
+    },
+    "Disc_Full": {
+      "triangles": 228,
+      "vertices": 128,
+      "materials": [
+        "Impl_Red",
+        "Impl_Steel",
+        "Impl_Cast"
+      ],
+      "size_unity": [
+        0.505,
+        0.05,
+        0.36
+      ]
+    },
+    "Main_Light": {
+      "triangles": 276,
+      "vertices": 184,
+      "materials": [
+        "Impl_Red",
+        "Impl_Yellow",
+        "Impl_Cast",
+        "Impl_Steel",
+        "Impl_Rubber"
+      ],
+      "size_unity": [
+        3.07,
+        1.055,
+        1.537
+      ]
+    },
+    "Disc_Light": {
+      "triangles": 108,
+      "vertices": 62,
+      "materials": [
+        "Impl_Red",
+        "Impl_Steel",
+        "Impl_Cast"
+      ],
+      "size_unity": [
+        0.505,
+        0.048,
+        0.36
+      ]
+    }
+  }
+}

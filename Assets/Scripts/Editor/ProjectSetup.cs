@@ -2281,40 +2281,27 @@ public static class ProjectSetup
     // Implement space: +Z points to the tractor (it is the tractor's forward when coupled), Y up, ground at y = 0 when parked.
     static void BuildImplements(Hitch hitch, StringBuilder log)
     {
-        var frameBlue = SaveMat(new Material(LitShader) { color = new Color(0.12f, 0.22f, 0.5f) }, "Impl_FrameBlue");
-        var steel = SaveMat(new Material(LitShader) { color = new Color(0.62f, 0.64f, 0.66f) }, "Impl_Steel");
-        steel.SetFloat("_Metallic", 0.8f); steel.SetFloat("_Smoothness", 0.7f);
-        var red = SaveMat(new Material(LitShader) { color = new Color(0.72f, 0.1f, 0.08f) }, "Impl_Red");
-        var dark = SaveMat(new Material(LitShader) { color = new Color(0.08f, 0.08f, 0.08f) }, "Impl_Rubber");
-        var green = SaveMat(new Material(LitShader) { color = new Color(0.21f, 0.49f, 0.17f) }, "Impl_Green");
+        // Phase 5 step 2: the visuals are Blender meshes (tools/blender/{plough,mower,frontweight,trailer}.py, EnvLit materials Impl_*),
+        // one per moving part, each modelled in the space of the pivot it hangs on (ImplVisual). The points, pivots, colliders and
+        // components below are the same as when the implements were built from primitives (phase 2).
+        foreach (var old in new[] { "Impl_FrameBlue", "Impl_CastIron", "Impl_Mouldboard", "Impl_Plate" })
+            AssetDatabase.DeleteAsset($"{GenDir}/{old}.mat");
+        foreach (var old in new[] { "Impl_TrailerTyre", "Impl_SmallTyre", "Impl_Mouldboard" })
+            AssetDatabase.DeleteAsset($"{GenDir}/{old}.asset");
+        if (envMats == null) ImportEnvAssets();
         var unlit = Shader.Find("Universal Render Pipeline/Unlit");
         var soil = SaveMat(new Material(unlit), "Trail_Soil"); soil.SetColor("_BaseColor", new Color(0.33f, 0.22f, 0.13f));
         var mown = SaveMat(new Material(unlit), "Trail_Mown"); mown.SetColor("_BaseColor", new Color(0.5f, 0.62f, 0.27f));
-        var cast = SaveMat(new Material(LitShader) { color = new Color(0.16f, 0.16f, 0.17f) }, "Impl_CastIron");
-        cast.SetFloat("_Smoothness", 0.25f);
-        var chrome = SaveMat(new Material(LitShader) { color = new Color(0.8f, 0.82f, 0.85f) }, "Impl_Chrome");
-        chrome.SetFloat("_Metallic", 1f); chrome.SetFloat("_Smoothness", 0.85f);
-        var board = SaveMat(new Material(LitShader) { color = new Color(0.32f, 0.34f, 0.36f) }, "Impl_Mouldboard");
-        board.SetFloat("_Metallic", 0.7f); board.SetFloat("_Smoothness", 0.8f);
-        var lamp = SaveMat(new Material(LitShader) { color = new Color(0.85f, 0.08f, 0.05f) }, "Impl_Lamp");
-        lamp.SetFloat("_Smoothness", 0.9f);
-        var plate = SaveMat(new Material(LitShader) { color = new Color(0.92f, 0.92f, 0.88f) }, "Impl_Plate");
-        var yellow = SaveMat(new Material(LitShader) { color = new Color(0.95f, 0.75f, 0.1f) }, "Impl_Yellow");
         var heapMat = SaveMat(new Material(LitShader) { color = new Color(0.36f, 0.25f, 0.16f) }, "Impl_Soil");
         heapMat.SetFloat("_Smoothness", 0.05f);
-        var tyre = SaveMesh(TyreMesh(0.5f, 0.38f, 20, 0.035f), "Impl_TrailerTyre");
-        var smallTyre = SaveMesh(TyreMesh(0.3f, 0.16f, 14, 0.02f), "Impl_SmallTyre");
-        var mouldboard = SaveMesh(MouldboardMesh(), "Impl_Mouldboard");
         var parent = new GameObject("Implements").transform;
 
-        // A wheel: lugged tyre + rim dish + hub, spinning around its local X (SimpleWheels turns the "Spin" child).
-        Transform Wheel(Transform at, string name, Vector3 pos, Mesh tyreMesh, float radius, float width, Material rimMat)
+        // A wheel: pivot > Spin (SimpleWheels turns it around its local X) > the wheel mesh.
+        Transform Wheel(Transform at, string name, Vector3 pos, string asset)
         {
             var pivot = Point(at, name, pos);
             var spin = Point(pivot, "Spin", Vector3.zero);
-            MeshPart(spin, "Tyre", tyreMesh, Vector3.zero, Vector3.zero, dark);
-            Part(spin, "Rim", PrimitiveType.Cylinder, Vector3.zero, new Vector3(radius * 1.25f, width * 0.46f, radius * 1.25f), rimMat, new Vector3(0f, 0f, 90f));
-            Part(spin, "Hub", PrimitiveType.Cylinder, Vector3.zero, new Vector3(radius * 0.45f, width * 0.56f, radius * 0.45f), steel, new Vector3(0f, 0f, 90f));
+            ImplVisual(spin, asset, "Wheel");
             return pivot;
         }
 
@@ -2328,41 +2315,14 @@ public static class ProjectSetup
             var t = go.transform;
             imp.hitchPoint = Point(t, "HitchPoint", new Vector3(0f, 0.75f, 0f));   // lower link pins (this linkage reaches down to 0.43 m)
             imp.topPin = Point(t, "TopPin", new Vector3(0f, 1.36f, -0.12f));
-            // Headstock: cross shaft with the two lower pins, an A-frame up to the top pin, braces back to the beam.
-            Part(t, "CrossShaft", PrimitiveType.Cylinder, new Vector3(0f, 0.75f, 0f), new Vector3(0.07f, 0.48f, 0.07f), steel, new Vector3(0f, 0f, 90f));
-            foreach (float x in new[] { -0.42f, 0.42f })
-                Part(t, "LowerPin", PrimitiveType.Cylinder, new Vector3(x, 0.75f, 0f), new Vector3(0.035f, 0.06f, 0.035f), yellow, new Vector3(0f, 0f, 90f));
-            Part(t, "Headstock_L", PrimitiveType.Cube, new Vector3(-0.17f, 1.05f, -0.06f), new Vector3(0.08f, 0.66f, 0.1f), frameBlue, new Vector3(-8f, 0f, -27f));
-            Part(t, "Headstock_R", PrimitiveType.Cube, new Vector3(0.17f, 1.05f, -0.06f), new Vector3(0.08f, 0.66f, 0.1f), frameBlue, new Vector3(-8f, 0f, 27f));
-            Part(t, "TopPlates", PrimitiveType.Cube, new Vector3(0f, 1.36f, -0.12f), new Vector3(0.1f, 0.14f, 0.14f), frameBlue);
-            Part(t, "TopPinBolt", PrimitiveType.Cylinder, new Vector3(0f, 1.36f, -0.12f), new Vector3(0.03f, 0.07f, 0.03f), yellow, new Vector3(0f, 0f, 90f));
-            Part(t, "Brace", PrimitiveType.Cube, new Vector3(0.12f, 1.0f, -0.45f), new Vector3(0.07f, 0.07f, 0.85f), frameBlue, new Vector3(-36f, 8f, 0f));
-            Part(t, "HeadBox", PrimitiveType.Cube, new Vector3(0.12f, 0.72f, -0.38f), new Vector3(0.36f, 0.22f, 0.36f), frameBlue);
-            // Main beam (rectangular tube) running diagonally back to the right, over the bodies.
-            Part(t, "Beam", PrimitiveType.Cube, new Vector3(0.45f, 0.72f, -1.7f), new Vector3(0.16f, 0.16f, 3.1f), frameBlue, new Vector3(0f, 9f, 0f));
+            ImplVisual(t, "ImplPlough", "Main");
             var grounds = new System.Collections.Generic.List<Transform>();
             for (int i = 0; i < 3; i++)
             {
                 float z = -0.95f - i * 0.9f, x = 0.25f + i * 0.36f;
-                // Leg (standard) from the beam down to the frog, slightly raked.
-                Part(t, "Leg" + i, PrimitiveType.Cube, new Vector3(x + 0.02f, 0.42f, z - 0.02f), new Vector3(0.06f, 0.6f, 0.14f), frameBlue, new Vector3(10f, 0f, 0f));
-                Part(t, "Clamp" + i, PrimitiveType.Cube, new Vector3(x + 0.02f, 0.72f, z), new Vector3(0.2f, 0.2f, 0.2f), frameBlue);
-                // Body: share (pointed plate), mouldboard (twisted surface), landside on the left, disc coulter ahead.
-                Part(t, "Share" + i, PrimitiveType.Cube, new Vector3(x + 0.04f, 0.035f, z + 0.18f), new Vector3(0.38f, 0.02f, 0.16f), steel, new Vector3(-8f, -38f, 0f));
-                Part(t, "Point" + i, PrimitiveType.Cube, new Vector3(x - 0.12f, 0.03f, z + 0.27f), new Vector3(0.05f, 0.03f, 0.14f), steel, new Vector3(-12f, -20f, 0f));
-                MeshPart(t, "Mouldboard" + i, mouldboard, new Vector3(x - 0.14f, 0.04f, z + 0.3f), Vector3.zero, board);
-                Part(t, "Landside" + i, PrimitiveType.Cube, new Vector3(x - 0.14f, 0.08f, z - 0.05f), new Vector3(0.02f, 0.12f, 0.6f), steel);
-                Part(t, "Frog" + i, PrimitiveType.Cube, new Vector3(x - 0.05f, 0.14f, z + 0.02f), new Vector3(0.14f, 0.2f, 0.3f), frameBlue);
-                var coulter = Point(t, "Coulter" + i, new Vector3(x - 0.13f, 0.2f, z + 0.62f));
-                Part(coulter, "Disc", PrimitiveType.Cylinder, Vector3.zero, new Vector3(0.42f, 0.006f, 0.42f), steel, new Vector3(0f, 0f, 90f));
-                Part(coulter, "Arm", PrimitiveType.Cube, new Vector3(0f, 0.3f, -0.05f), new Vector3(0.04f, 0.55f, 0.05f), frameBlue, new Vector3(-12f, 0f, 0f));
                 grounds.Add(Point(t, "ShareTip" + i, new Vector3(x - 0.12f, 0.02f, z + 0.25f)));
             }
-            // Depth wheel on a swinging arm at the rear, and a parking stand under the headstock.
-            Part(t, "DepthArm", PrimitiveType.Cube, new Vector3(1.05f, 0.62f, -2.65f), new Vector3(0.06f, 0.06f, 0.5f), frameBlue, new Vector3(-20f, 0f, 0f));
-            Wheel(t, "DepthWheel", new Vector3(1.15f, 0.55f, -2.85f) /* rides on the surface at working depth */, smallTyre, 0.3f, 0.16f, yellow);
-            Part(t, "Stand", PrimitiveType.Cube, new Vector3(0.12f, 0.33f, -0.38f), new Vector3(0.06f, 0.62f, 0.06f), frameBlue);
-            Part(t, "StandFoot", PrimitiveType.Cube, new Vector3(0.12f, 0.02f, -0.38f), new Vector3(0.2f, 0.03f, 0.2f), frameBlue);
+            Wheel(t, "DepthWheel", new Vector3(1.15f, 0.55f, -2.85f) /* rides on the surface at working depth */, "ImplPlough");
             imp.groundPoints = grounds.ToArray();
             // Physics: frame + bodies box (rests on the shares), a stand under the headstock.
             Box(go, new Vector3(0.5f, 0.45f, -1.8f), new Vector3(1.4f, 0.85f, 2.4f));
@@ -2380,39 +2340,15 @@ public static class ProjectSetup
             imp.workingDepth = 0f; imp.ptoKW = 30f; imp.spinRatio = 3f;
             var t = go.transform;
             imp.hitchPoint = Point(t, "HitchPoint", new Vector3(0f, 0.45f, 0f));
-            // A-frame headstock with the two lower hooks and a top bracket, gearbox, PTO shaft guard.
-            Part(t, "AFrame_L", PrimitiveType.Cube, new Vector3(-0.2f, 0.72f, 0.12f), new Vector3(0.08f, 0.62f, 0.08f), red, new Vector3(0f, 0f, 22f));
-            Part(t, "AFrame_R", PrimitiveType.Cube, new Vector3(0.2f, 0.72f, 0.12f), new Vector3(0.08f, 0.62f, 0.08f), red, new Vector3(0f, 0f, -22f));
-            Part(t, "LowerBar", PrimitiveType.Cube, new Vector3(0f, 0.45f, 0.12f), new Vector3(0.8f, 0.09f, 0.09f), red);
-            foreach (float x in new[] { -0.38f, 0.38f })
-                Part(t, "Hook", PrimitiveType.Cube, new Vector3(x, 0.45f, 0.05f), new Vector3(0.05f, 0.12f, 0.1f), yellow);
-            Part(t, "TopBracket", PrimitiveType.Cube, new Vector3(0f, 1.0f, 0.12f), new Vector3(0.14f, 0.12f, 0.12f), red);
-            Part(t, "Gearbox", PrimitiveType.Cube, new Vector3(0f, 0.6f, 0.38f), new Vector3(0.3f, 0.26f, 0.26f), dark);
-            Part(t, "ShaftGuard", PrimitiveType.Cylinder, new Vector3(0f, 0.62f, 0.05f), new Vector3(0.1f, 0.18f, 0.1f), yellow, new Vector3(90f, 0f, 0f));
-            Part(t, "Arm", PrimitiveType.Cube, new Vector3(0f, 0.48f, 0.62f), new Vector3(0.18f, 0.14f, 0.5f), red, new Vector3(18f, 0f, 0f));
-            // Cutter bar with six discs, each with two knives; the drum carriers.
-            Part(t, "CutterBar", PrimitiveType.Cube, new Vector3(0f, 0.06f, 1.15f), new Vector3(3.0f, 0.06f, 0.5f), steel);
-            Part(t, "BarNose", PrimitiveType.Cube, new Vector3(0f, 0.05f, 1.42f), new Vector3(3.0f, 0.04f, 0.06f), dark);
+            ImplVisual(t, "ImplMower", "Main");
             var discs = new System.Collections.Generic.List<Transform>();
             for (int i = 0; i < 6; i++)
             {
                 var hub = Point(t, "Disc" + i, new Vector3(-1.25f + i * 0.5f, 0.11f, 1.15f));
-                Part(hub, "Plate", PrimitiveType.Cylinder, Vector3.zero, new Vector3(0.36f, 0.015f, 0.24f), red);
-                Part(hub, "Knife_A", PrimitiveType.Cube, new Vector3(0.2f, 0f, 0f), new Vector3(0.1f, 0.006f, 0.045f), steel);
-                Part(hub, "Knife_B", PrimitiveType.Cube, new Vector3(-0.2f, 0f, 0f), new Vector3(0.1f, 0.006f, 0.045f), steel);
-                Part(hub, "Cap", PrimitiveType.Cylinder, new Vector3(0f, 0.025f, 0f), new Vector3(0.1f, 0.02f, 0.1f), dark);
+                ImplVisual(hub, "ImplMower", "Disc");
                 discs.Add(hub);
             }
             imp.spinners = discs.ToArray();
-            // Guard: frame tubes, a sloping hood, side shields and a rubber curtain at the front.
-            Part(t, "GuardFrame", PrimitiveType.Cube, new Vector3(0f, 0.55f, 1.0f), new Vector3(3.0f, 0.06f, 0.06f), red);
-            Part(t, "Hood", PrimitiveType.Cube, new Vector3(0f, 0.48f, 1.08f), new Vector3(3.0f, 0.03f, 0.76f), red, new Vector3(12.5f, 0f, 0f));   // slopes down to the front
-            Part(t, "HoodTop", PrimitiveType.Cube, new Vector3(0f, 0.57f, 0.64f), new Vector3(3.0f, 0.03f, 0.2f), red);
-            foreach (float x in new[] { -1.52f, 1.52f })
-                Part(t, "SideShield", PrimitiveType.Cube, new Vector3(x, 0.3f, 1.05f), new Vector3(0.03f, 0.5f, 0.85f), red);
-            Part(t, "Curtain", PrimitiveType.Cube, new Vector3(0f, 0.22f, 1.48f), new Vector3(3.0f, 0.36f, 0.015f), dark);
-            foreach (float x in new[] { -1.45f, 1.45f })
-                Part(t, "Skid", PrimitiveType.Cube, new Vector3(x, 0.02f, 1.15f), new Vector3(0.08f, 0.03f, 0.55f), steel);
             imp.groundPoints = new[] { Point(t, "Skid_L", new Vector3(-1.45f, 0.03f, 1.15f)), Point(t, "Skid_R", new Vector3(1.45f, 0.03f, 1.15f)) };
             Box(go, new Vector3(0f, 0.25f, 1.05f), new Vector3(3.0f, 0.5f, 1.0f));
             Box(go, new Vector3(0f, 0.22f, 0.1f), new Vector3(0.6f, 0.44f, 0.15f));
@@ -2428,21 +2364,7 @@ public static class ProjectSetup
             imp.mass = 900f; imp.centreOfMassOffset = new Vector3(0f, 0.05f, 0.38f);
             var t = go.transform;
             imp.hitchPoint = Point(t, "HitchPoint", new Vector3(0f, 0.45f, 0f));
-            // Carrier: lower pin bar, two side plates up to a top bracket; the cast weight in front, a tow eye at the bottom.
-            Part(t, "PinBar", PrimitiveType.Cube, new Vector3(0f, 0.45f, 0.04f), new Vector3(0.82f, 0.08f, 0.08f), green);
-            foreach (float x in new[] { -0.38f, 0.38f })
-                Part(t, "Pin", PrimitiveType.Cylinder, new Vector3(x, 0.45f, 0.04f), new Vector3(0.035f, 0.05f, 0.035f), yellow, new Vector3(0f, 0f, 90f));
-            foreach (float x in new[] { -0.25f, 0.25f })
-                Part(t, "SidePlate", PrimitiveType.Cube, new Vector3(x, 0.66f, 0.1f), new Vector3(0.03f, 0.5f, 0.2f), green);
-            Part(t, "TopBracket", PrimitiveType.Cube, new Vector3(0f, 0.92f, 0.1f), new Vector3(0.55f, 0.06f, 0.18f), green);
-            // Cast iron block: a stack of slabs with grooves between them and a sloping top.
-            for (int i = 0; i < 5; i++)
-                Part(t, "Slab" + i, PrimitiveType.Cube, new Vector3(0f, 0.22f + i * 0.14f, 0.42f), new Vector3(0.98f - i * 0.03f, 0.125f, 0.5f), cast);
-            Part(t, "TopSlope", PrimitiveType.Cube, new Vector3(0f, 0.9f, 0.5f), new Vector3(0.82f, 0.09f, 0.36f), cast, new Vector3(14f, 0f, 0f));
-            Part(t, "Badge", PrimitiveType.Cube, new Vector3(0f, 0.6f, 0.675f), new Vector3(0.4f, 0.16f, 0.01f), green);
-            Part(t, "BadgeStripe", PrimitiveType.Cube, new Vector3(0f, 0.6f, 0.68f), new Vector3(0.36f, 0.04f, 0.01f), yellow);
-            Part(t, "TowEye", PrimitiveType.Cylinder, new Vector3(0f, 0.16f, 0.71f), new Vector3(0.1f, 0.03f, 0.1f), steel, new Vector3(90f, 0f, 0f));
-            Part(t, "Feet", PrimitiveType.Cube, new Vector3(0f, 0.04f, 0.42f), new Vector3(0.9f, 0.08f, 0.45f), cast);
+            ImplVisual(t, "ImplFrontWeight", "Main");
             Box(go, new Vector3(0f, 0.5f, 0.42f), new Vector3(0.98f, 0.98f, 0.52f));
             Body(go, imp.mass, new Vector3(0f, 0.5f, 0.4f));
         }
@@ -2451,63 +2373,24 @@ public static class ProjectSetup
         // The body starts 1.6 m behind the drawbar eye (like a real tipping trailer), so it can swing ~50° before touching the rear tyres.
         // It tips backwards on a hinge at the rear of the chassis, pushed by a telescopic ram in front of the headboard.
         {
-            float eyeY = hitch.drawbarMount.localPosition.y;
+            float eyeY = hitch.drawbarMount.localPosition.y;   // tools/blender/trailer.py models the eye at EYE_Y = 0.43 (keep in step)
             var go = NewImplement(parent, "Trailer");
             var imp = go.AddComponent<Implement>();
             imp.displayName = "TRAILER"; imp.mount = Implement.Mount.Drawbar;
             imp.mass = 2500f;
             var t = go.transform;
             imp.hitchPoint = Point(t, "Eye", new Vector3(0f, eyeY, 0f));
-            // Drawbar: an A-frame from the eye back to the chassis, eye ring, jack with crank and foot.
-            float rise = -Mathf.Atan2(0.85f - eyeY, 1.7f) * Mathf.Rad2Deg;
-            Part(t, "Drawbar_L", PrimitiveType.Cube, new Vector3(-0.28f, (eyeY + 0.85f) * 0.5f, -0.9f), new Vector3(0.1f, 0.12f, 1.85f), green, new Vector3(rise, 17f, 0f));
-            Part(t, "Drawbar_R", PrimitiveType.Cube, new Vector3(0.28f, (eyeY + 0.85f) * 0.5f, -0.9f), new Vector3(0.1f, 0.12f, 1.85f), green, new Vector3(rise, -17f, 0f));
-            Part(t, "EyeRing", PrimitiveType.Cylinder, new Vector3(0f, eyeY, 0f), new Vector3(0.14f, 0.025f, 0.14f), steel);
-            Part(t, "EyeBlock", PrimitiveType.Cube, new Vector3(0f, eyeY + 0.01f, -0.14f), new Vector3(0.12f, 0.1f, 0.18f), green);
-            Part(t, "RamMount", PrimitiveType.Cube, new Vector3(0f, 0.8f, -1.48f), new Vector3(0.62f, 0.1f, 0.16f), green);
-            Part(t, "Jack", PrimitiveType.Cylinder, new Vector3(0.3f, 0.35f, -0.62f), new Vector3(0.07f, 0.3f, 0.07f), dark);
-            Part(t, "JackCrank", PrimitiveType.Cube, new Vector3(0.3f, 0.7f, -0.62f), new Vector3(0.18f, 0.02f, 0.02f), dark);
-            Part(t, "JackFoot", PrimitiveType.Cube, new Vector3(0.3f, 0.03f, -0.62f), new Vector3(0.18f, 0.03f, 0.18f), dark);
-            // Chassis: two rails, cross members, axle, mudguards over the wheels, rear light bar with lamps and a number plate.
-            foreach (float x in new[] { -0.55f, 0.55f })
-                Part(t, "Rail", PrimitiveType.Cube, new Vector3(x, 0.88f, -3.9f), new Vector3(0.12f, 0.18f, 4.4f), green);
-            for (int i = 0; i < 4; i++)
-                Part(t, "CrossMember", PrimitiveType.Cube, new Vector3(0f, 0.88f, -2.0f - i * 1.35f), new Vector3(1.1f, 0.12f, 0.08f), green);
-            Part(t, "Axle", PrimitiveType.Cube, new Vector3(0f, 0.5f, -4.2f), new Vector3(1.9f, 0.1f, 0.1f), dark);
-            foreach (float x in new[] { -0.55f, 0.55f })
-                Part(t, "Spring", PrimitiveType.Cube, new Vector3(x, 0.66f, -4.2f), new Vector3(0.08f, 0.1f, 1.0f), dark);
-            foreach (float x in new[] { -0.95f, 0.95f })
-            {
-                Part(t, "Mudguard", PrimitiveType.Cube, new Vector3(x, 1.0f, -4.2f), new Vector3(0.44f, 0.025f, 0.7f), green);
-                Part(t, "MudguardFront", PrimitiveType.Cube, new Vector3(x, 0.88f, -3.72f), new Vector3(0.44f, 0.025f, 0.32f), green, new Vector3(-50f, 0f, 0f));
-                Part(t, "MudguardBack", PrimitiveType.Cube, new Vector3(x, 0.88f, -4.68f), new Vector3(0.44f, 0.025f, 0.32f), green, new Vector3(50f, 0f, 0f));
-            }
-            Part(t, "LightBar", PrimitiveType.Cube, new Vector3(0f, 0.72f, -6.12f), new Vector3(2.1f, 0.06f, 0.06f), dark);
-            foreach (float x in new[] { -0.95f, 0.95f })
-                Part(t, "Lamp", PrimitiveType.Cube, new Vector3(x, 0.72f, -6.16f), new Vector3(0.18f, 0.1f, 0.04f), lamp);
-            Part(t, "NumberPlate", PrimitiveType.Cube, new Vector3(0.45f, 0.72f, -6.15f), new Vector3(0.34f, 0.1f, 0.01f), plate);
+            ImplVisual(t, "ImplTrailer", "Main");
             var wheels = new System.Collections.Generic.List<SimpleWheels.Wheel>();
             foreach (float x in new[] { -0.95f, 0.95f })
-                wheels.Add(new SimpleWheels.Wheel { pivot = Wheel(t, x < 0f ? "Wheel_L" : "Wheel_R", new Vector3(x, 0.5f, -4.2f), tyre, 0.5f, 0.38f, green), radius = 0.5f });
+                wheels.Add(new SimpleWheels.Wheel { pivot = Wheel(t, x < 0f ? "Wheel_L" : "Wheel_R", new Vector3(x, 0.5f, -4.2f), "ImplTrailer"), radius = 0.5f });
 
             // Tipping body: hinge at the rear of the chassis; everything below is in hinge space (z forward from the hinge).
             var body = Point(t, "Body", new Vector3(0f, 1.0f, -6.05f));
             Vector3 B(float x, float y, float z) => new Vector3(x, y - 1.0f, z + 6.05f);   // trailer space → hinge space
-            Part(body, "Floor", PrimitiveType.Cube, B(0f, 1.04f, -3.9f), new Vector3(2.3f, 0.08f, 4.6f), green);
-            Part(body, "SubFrame", PrimitiveType.Cube, B(0f, 0.97f, -3.9f), new Vector3(1.2f, 0.06f, 4.5f), dark);
-            foreach (float x in new[] { -1.12f, 1.12f })
-            {
-                Part(body, "Side", PrimitiveType.Cube, B(x, 1.43f, -3.9f), new Vector3(0.05f, 0.7f, 4.6f), green);
-                Part(body, "TopRail", PrimitiveType.Cylinder, B(x, 1.79f, -3.9f), new Vector3(0.07f, 2.3f, 0.07f), green, new Vector3(90f, 0f, 0f));
-                for (int i = 0; i < 6; i++)
-                    Part(body, "Stake", PrimitiveType.Cube, B(x * 1.03f, 1.43f, -1.75f - i * 0.86f), new Vector3(0.04f, 0.72f, 0.07f), green);
-            }
-            Part(body, "Headboard", PrimitiveType.Cube, B(0f, 1.53f, -1.63f), new Vector3(2.3f, 0.9f, 0.05f), green);
-            for (int i = 0; i < 4; i++)
-                Part(body, "Ladder", PrimitiveType.Cube, B(0.7f, 1.2f + i * 0.2f, -1.58f), new Vector3(0.35f, 0.025f, 0.04f), steel);
+            ImplVisual(body, "ImplTrailer", "Body");
             var gate = Point(body, "Tailgate", B(0f, 1.78f, -6.17f));
-            Part(gate, "Gate", PrimitiveType.Cube, new Vector3(0f, -0.35f, 0f), new Vector3(2.3f, 0.7f, 0.05f), green);
-            Part(gate, "GateBar", PrimitiveType.Cube, new Vector3(0f, -0.6f, -0.03f), new Vector3(2.2f, 0.06f, 0.03f), dark);
+            ImplVisual(gate, "ImplTrailer", "Gate");
             var cargo = Point(body, "Load", B(0f, 1.08f, -3.9f));
             MeshPart(cargo, "Heap", SaveMesh(Tipper.Mound(1.1f, 2.25f, 0.85f, 20, 6), "Impl_LoadHeap"), Vector3.zero, Vector3.zero, heapMat);
             var bodyBox = body.gameObject.AddComponent<BoxCollider>();
@@ -2518,12 +2401,11 @@ public static class ProjectSetup
             // Telescopic ram: base on the drawbar, top pin at the headboard; seven nested stages.
             var ram = Point(t, "Ram", new Vector3(0f, 0.86f, -1.48f));
             var stages = new System.Collections.Generic.List<Transform>();
-            const float stageLength = 0.7f;
+            const float stageLength = 0.7f;   // = STAGE_LEN in trailer.py
             for (int i = 0; i < 7; i++)
             {
                 var st = Point(ram, "Stage" + i, Vector3.zero);
-                float r = 0.13f - i * 0.012f;
-                Part(st, "Tube", PrimitiveType.Cylinder, new Vector3(0f, 0f, stageLength * 0.5f), new Vector3(r, stageLength * 0.5f, r), i == 0 ? dark : chrome, new Vector3(90f, 0f, 0f));
+                ImplVisual(st, "ImplTrailer", "Stage" + i);
                 stages.Add(st);
             }
 
@@ -2545,7 +2427,30 @@ public static class ProjectSetup
             tip.ramPinOnBody = B(0f, 1.56f, -1.52f);
             tip.emptyMass = imp.mass;
         }
-        log.AppendLine("Implements: plough (rear), mower (front), front weight (front), tipping trailer (drawbar)");
+        log.AppendLine("Implements: plough (rear), mower (front), front weight (front), tipping trailer (drawbar); Blender meshes (ImplVisual)");
+    }
+
+    /// <summary>The <paramref name="part"/> meshes of an implement FBX (objects &lt;asset&gt;_&lt;part&gt;_Full / _Light, modelled in the
+    /// pivot's own space) under <paramref name="pivot"/>, one per quality tier (TierVariant). Shadows from both, as the primitives had.</summary>
+    static Transform ImplVisual(Transform pivot, string asset, string part)
+    {
+        var fbx = AssetDatabase.LoadAssetAtPath<GameObject>($"{EnvDir}/{asset}.fbx");
+        var go = (GameObject)PrefabUtility.InstantiatePrefab(fbx);
+        PrefabUtility.UnpackPrefabInstance(go, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+        go.name = "Visual_" + part;
+        go.transform.SetParent(pivot, false);
+        go.transform.localPosition = Vector3.zero;
+        go.transform.localRotation = Quaternion.identity;
+        string prefix = $"{asset}_{part}_";
+        foreach (var r in go.GetComponentsInChildren<MeshRenderer>(true))
+        {
+            if (!r.name.StartsWith(prefix)) { Object.DestroyImmediate(r.gameObject); continue; }
+            bool full = r.name.EndsWith("_Full");
+            r.gameObject.AddComponent<TierVariant>().tier = full ? QualityTier.Tier.PC : QualityTier.Tier.Quest;
+            r.shadowCastingMode = ShadowCastingMode.On;
+            r.gameObject.SetActive(full == (QualityTier.Current == QualityTier.Tier.PC));
+        }
+        return go.transform;
     }
 
     /// <summary>Implement root in its machine shed bay (WorldLayout.ShedBays): coupling point (= the root, for all four) over the bay's spot.</summary>
@@ -2567,19 +2472,6 @@ public static class ProjectSetup
         return t;
     }
 
-    static Transform Part(Transform parent, string name, PrimitiveType type, Vector3 pos, Vector3 size, Material mat, Vector3 euler = default)
-    {
-        var go = GameObject.CreatePrimitive(type);
-        go.name = name;
-        Object.DestroyImmediate(go.GetComponent<Collider>());
-        go.transform.SetParent(parent, false);
-        go.transform.localPosition = pos;
-        go.transform.localRotation = Quaternion.Euler(euler);
-        go.transform.localScale = size;
-        go.GetComponent<Renderer>().sharedMaterial = mat;
-        return go.transform;
-    }
-
     static Transform MeshPart(Transform parent, string name, Mesh mesh, Vector3 pos, Vector3 euler, Material mat)
     {
         var go = new GameObject(name);
@@ -2589,80 +2481,6 @@ public static class ProjectSetup
         go.AddComponent<MeshFilter>().sharedMesh = mesh;
         go.AddComponent<MeshRenderer>().sharedMaterial = mat;
         return go.transform;
-    }
-
-    // Flat-shaded quads: each gets its own four vertices, wound to face `outward`.
-    static void FlatQuad(System.Collections.Generic.List<Vector3> v, System.Collections.Generic.List<int> t, Vector3 a, Vector3 b, Vector3 c, Vector3 d, Vector3 outward)
-    {
-        if (Vector3.Dot(Vector3.Cross(b - a, c - a), outward) < 0f) { var x = b; b = d; d = x; }
-        int i = v.Count;
-        v.Add(a); v.Add(b); v.Add(c); v.Add(d);
-        t.AddRange(new[] { i, i + 1, i + 2, i, i + 2, i + 3 });
-    }
-
-    static Mesh FlatMesh(string name, System.Collections.Generic.List<Vector3> v, System.Collections.Generic.List<int> t)
-    {
-        var m = new Mesh { name = name, indexFormat = v.Count > 65000 ? IndexFormat.UInt32 : IndexFormat.UInt16 };
-        m.SetVertices(v);
-        m.SetTriangles(t, 0);
-        m.RecalculateNormals();
-        m.RecalculateBounds();
-        return m;
-    }
-
-    // Tractor-style tyre around the X axis: two staggered rows of lugs (a left and a right half, offset by half a pitch),
-    // flat sidewalls down to the rim. Each half's tread is a castellated profile swept across its width.
-    static Mesh TyreMesh(float radius, float width, int lugs, float lugDepth)
-    {
-        var v = new System.Collections.Generic.List<Vector3>();
-        var t = new System.Collections.Generic.List<int>();
-        int steps = lugs * 4;
-        float rim = radius * 0.62f, half = width * 0.5f;
-        Vector3 P(float a, float r, float x) => new Vector3(x, Mathf.Sin(a) * r, Mathf.Cos(a) * r);
-        float R(int k, bool right) => ((k + (right ? 2 : 0)) % 4) < 2 ? radius : radius - lugDepth;   // lug for 2 of every 4 steps
-        for (int k = 0; k < steps; k++)
-        {
-            float a0 = k * Mathf.PI * 2f / steps, a1 = (k + 1) * Mathf.PI * 2f / steps, am = 0.5f * (a0 + a1);
-            Vector3 radial = P(am, 1f, 0f);
-            foreach (bool right in new[] { false, true })
-            {
-                float x0 = right ? 0f : -half, x1 = right ? half : 0f, r = R(k, right), rNext = R(k + 1, right);
-                FlatQuad(v, t, P(a0, r, x0), P(a0, r, x1), P(a1, r, x1), P(a1, r, x0), radial);   // tread / groove floor
-                if (rNext != r)   // lug side face, looking into the groove next to it
-                    FlatQuad(v, t, P(a1, r, x0), P(a1, r, x1), P(a1, rNext, x1), P(a1, rNext, x0), (P(a1 + 0.01f, 1f, 0f) - P(a1, 1f, 0f)) * Mathf.Sign(r - rNext));
-                // Sidewall from the rim to the tread at this half's outer edge.
-                float xs = right ? half : -half;
-                FlatQuad(v, t, P(a0, rim, xs), P(a0, r, xs), P(a1, r, xs), P(a1, rim, xs), new Vector3(right ? 1f : -1f, 0f, 0f));
-            }
-            // Step between the two halves at x = 0 where one has a lug and the other a groove.
-            float rl = R(k, false), rr = R(k, true);
-            if (rl != rr)
-                FlatQuad(v, t, P(a0, rl, 0f), P(a0, rr, 0f), P(a1, rr, 0f), P(a1, rl, 0f), new Vector3(rl > rr ? 1f : -1f, 0f, 0f));
-        }
-        return FlatMesh("Tyre", v, t);
-    }
-
-    // Mouldboard of a right-turning plough body, from the share's leading corner (origin): it sweeps back (−Z) and turns
-    // the soil to the right (+X), the top curling further out than the bottom. Both sides are drawn.
-    static Mesh MouldboardMesh()
-    {
-        const int nu = 6, nv = 8;
-        const float length = 0.75f, height = 0.38f;
-        Vector3 S(float u, float w) => new Vector3(w * (0.30f + 0.22f * u) + 0.14f * u * u * w * w,
-                                                   height * u * (1f - 0.12f * w),
-                                                   -length * w - 0.1f * u * (1f - w));
-        var v = new System.Collections.Generic.List<Vector3>();
-        var t = new System.Collections.Generic.List<int>();
-        for (int i = 0; i < nu; i++)
-        for (int j = 0; j < nv; j++)
-        {
-            float u0 = i / (float)nu, u1 = (i + 1) / (float)nu, w0 = j / (float)nv, w1 = (j + 1) / (float)nv;
-            Vector3 a = S(u0, w0), b = S(u1, w0), c = S(u1, w1), d = S(u0, w1);
-            Vector3 front = Vector3.Cross(c - a, b - d);   // either side; both are emitted
-            FlatQuad(v, t, a, b, c, d, front);
-            FlatQuad(v, t, a, b, c, d, -front);
-        }
-        return FlatMesh("Mouldboard", v, t);
     }
 
     static Collider Box(GameObject go, Vector3 centre, Vector3 size)

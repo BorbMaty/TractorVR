@@ -7,7 +7,7 @@ along two edges (dark in the albedo, a groove in the normal map), so the tiled y
 """
 import pathlib
 
-from PIL import Image, ImageChops, ImageFilter
+from PIL import Image, ImageChops, ImageFilter, ImageStat
 
 TEX = pathlib.Path(__file__).resolve().parent.parent / "Assets" / "Textures" / "Env"
 N = 1024
@@ -16,6 +16,9 @@ JOINT = 5            # px (~2 cm at 4 m per 1024 px)
 
 def main():
     diff = Image.open(TEX / "dirty_concrete_diff.jpg").convert("RGB").resize((N, N), Image.LANCZOS)
+    # Halve the stains' contrast: at full strength they repeat visibly every 4 m slab across the 52 m yard.
+    mean = tuple(int(m) for m in ImageStat.Stat(diff).mean)
+    diff = Image.blend(diff, Image.new("RGB", (N, N), mean), 0.5)
     nor = Image.open(TEX / "dirty_concrete_nor.jpg").convert("RGB").resize((N, N), Image.LANCZOS)
 
     # Joint mask: a line along the left and the bottom edge, soft so it doesn't alias when tiled.

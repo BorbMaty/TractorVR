@@ -1,0 +1,303 @@
+{
+  "asset": "ImplTrailer",
+  "notes": "Tipping trailer (remade): frame, wheel, body, tailgate, 7 ram stages, each in its pivot's space.",
+  "variants": {
+    "Main_Full": {
+      "triangles": 1632,
+      "vertices": 981,
+      "materials": [
+        "Impl_Green",
+        "Impl_Steel",
+        "Impl_Cast",
+        "Impl_Rubber",
+        "Impl_Lamp",
+        "Impl_Amber",
+        "Impl_White",
+        "Impl_Yellow"
+      ],
+      "size_unity": [
+        2.36,
+        1.117,
+        6.263
+      ]
+    },
+    "Wheel_Full": {
+      "triangles": 1408,
+      "vertices": 905,
+      "materials": [
+        "Impl_Rubber",
+        "Impl_Green",
+        "Impl_Steel"
+      ],
+      "size_unity": [
+        0.432,
+        1.01,
+        1.01
+      ]
+    },
+    "Body_Full": {
+      "triangles": 1012,
+      "vertices": 626,
+      "materials": [
+        "Impl_Green",
+        "Impl_Cast",
+        "Impl_Steel"
+      ],
+      "size_unity": [
+        2.347,
+        1.04,
+        4.75
+      ]
+    },
+    "Gate_Full": {
+      "triangles": 192,
+      "vertices": 123,
+      "materials": [
+        "Impl_Green",
+        "Impl_Cast",
+        "Impl_Steel"
+      ],
+      "size_unity": [
+        2.3,
+        0.725,
+        0.085
+      ]
+    },
+    "Stage0_Full": {
+      "triangles": 144,
+      "vertices": 78,
+      "materials": [
+        "Impl_Cast",
+        "Impl_Steel"
+      ],
+      "size_unity": [
+        0.18,
+        0.142,
+        0.7
+      ]
+    },
+    "Stage1_Full": {
+      "triangles": 112,
+      "vertices": 60,
+      "materials": [
+        "Impl_Chrome",
+        "Impl_Cast"
+      ],
+      "size_unity": [
+        0.134,
+        0.131,
+        0.7
+      ]
+    },
+    "Stage2_Full": {
+      "triangles": 112,
+      "vertices": 60,
+      "materials": [
+        "Impl_Chrome",
+        "Impl_Cast"
+      ],
+      "size_unity": [
+        0.122,
+        0.119,
+        0.7
+      ]
+    },
+    "Stage3_Full": {
+      "triangles": 112,
+      "vertices": 60,
+      "materials": [
+        "Impl_Chrome",
+        "Impl_Cast"
+      ],
+      "size_unity": [
+        0.11,
+        0.107,
+        0.7
+      ]
+    },
+    "Stage4_Full": {
+      "triangles": 112,
+      "vertices": 60,
+      "materials": [
+        "Impl_Chrome",
+        "Impl_Cast"
+      ],
+      "size_unity": [
+        0.098,
+        0.096,
+        0.7
+      ]
+    },
+    "Stage5_Full": {
+      "triangles": 112,
+      "vertices": 60,
+      "materials": [
+        "Impl_Chrome",
+        "Impl_Cast"
+      ],
+      "size_unity": [
+        0.086,
+        0.084,
+        0.7
+      ]
+    },
+    "Stage6_Full": {
+      "triangles": 112,
+      "vertices": 60,
+      "materials": [
+        "Impl_Chrome",
+        "Impl_Cast"
+      ],
+      "size_unity": [
+        0.074,
+        0.072,
+        0.7
+      ]
+    },
+    "Main_Light": {
+      "triangles": 640,
+      "vertices": 415,
+      "materials": [
+        "Impl_Green",
+        "Impl_Steel",
+        "Impl_Cast",
+        "Impl_Lamp",
+        "Impl_Amber",
+        "Impl_White",
+        "Impl_Rubber"
+      ],
+      "size_unity": [
+        2.36,
+        1.117,
+        6.263
+      ]
+    },
+    "Wheel_Light": {
+      "triangles": 276,
+      "vertices": 144,
+      "materials": [
+        "Impl_Rubber",
+        "Impl_Green",
+        "Impl_Steel"
+      ],
+      "size_unity": [
+        0.4,
+        0.93,
+        0.93
+      ]
+    },
+    "Body_Light": {
+      "triangles": 392,
+      "vertices": 250,
+      "materials": [
+        "Impl_Green",
+        "Impl_Cast",
+        "Impl_Steel"
+      ],
+      "size_unity": [
+        2.347,
+        1.04,
+        4.69
+      ]
+    },
+    "Gate_Light": {
+      "triangles": 72,
+      "vertices": 46,
+      "materials": [
+        "Impl_Green",
+        "Impl_Cast",
+        "Impl_Steel"
+      ],
+      "size_unity": [
+        2.3,
+        0.722,
+        0.07
+      ]
+    },
+    "Stage0_Light": {
+      "triangles": 52,
+      "vertices": 30,
+      "materials": [
+        "Impl_Cast",
+        "Impl_Steel"
+      ],
+      "size_unity": [
+        0.18,
+        0.127,
+        0.7
+      ]
+    },
+    "Stage1_Light": {
+      "triangles": 28,
+      "vertices": 16,
+      "materials": [
+        "Impl_Chrome"
+      ],
+      "size_unity": [
+        0.112,
+        0.115,
+        0.7
+      ]
+    },
+    "Stage2_Light": {
+      "triangles": 28,
+      "vertices": 16,
+      "materials": [
+        "Impl_Chrome"
+      ],
+      "size_unity": [
+        0.101,
+        0.103,
+        0.7
+      ]
+    },
+    "Stage3_Light": {
+      "triangles": 28,
+      "vertices": 16,
+      "materials": [
+        "Impl_Chrome"
+      ],
+      "size_unity": [
+        0.089,
+        0.092,
+        0.7
+      ]
+    },
+    "Stage4_Light": {
+      "triangles": 28,
+      "vertices": 16,
+      "materials": [
+        "Impl_Chrome"
+      ],
+      "size_unity": [
+        0.078,
+        0.08,
+        0.7
+      ]
+    },
+    "Stage5_Light": {
+      "triangles": 28,
+      "vertices": 16,
+      "materials": [
+        "Impl_Chrome"
+      ],
+      "size_unity": [
+        0.067,
+        0.068,
+        0.7
+      ]
+    },
+    "Stage6_Light": {
+      "triangles": 28,
+      "vertices": 16,
+      "materials": [
+        "Impl_Chrome"
+      ],
+      "size_unity": [
+        0.055,
+        0.057,
+        0.7
+      ]
+    }
+  }
+}
