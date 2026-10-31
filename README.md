@@ -35,12 +35,17 @@ Docs: [Roadmap](docs/ROADMAP.md) · [Development log](docs/DEVLOG.md) · [CLAUDE
 4. ✅ **Cab buttons + lights**: pressable console switches (road-light knob, work lights, beacon, hazards,
    4WD, diff lock, PTO), indicator stalk, headlights / side + tail / brake lights / indicators / work lights / beacons, DAY / DUSK / NIGHT
 
-### Phase 4: three versions ⏳ next
-Quest standalone (as now), **PC VR** (the laptop renders, streamed to the headset over Link: full-detail model, real shadows, 90 Hz)
-and a **PC desktop** version on the monitor.
+### Phase 4: three versions ✅ done
+**Quest standalone**, **PC VR** (the laptop renders, streamed to the headset over Link: full-detail model, real shadows, 90 Hz)
+and a **PC desktop** version on the monitor, all from one project; benchmarked and compared (see [below](#the-three-versions-compared)).
 
-### Phase 5: environment with Blender ⏳ planned
-Crops the mower cuts, the look of ploughed ground, a better farmyard, trees and field edges; each asset in a full and a light version.
+### Phase 5: environment with Blender ⏳ in progress
+A Transylvanian countryside look, every asset modelled by a Python script in Blender in a full (PC) and a light (Quest) version.
+0. ✅ **Pipeline**: Blender scripts → FBX → Unity, Poly Haven textures, baked shading; first asset (the barn) measured on the Quest
+1. ⏳ **Farmyard**: ✅ barn, ✅ machine shed with a marked bay per implement; next: farmhouse, silos, fuel tank, fences and gate,
+   speed bumps, steep practice ramps
+2. Implements remade · 3. Fields + crops the mower cuts, ploughed-ground look · 4. Landscape: sky, trees, a village on the horizon
+· 5. Tutorial places
 
 ### Phase 6: free roam + tutorial ⏳ planned
 A start menu with FREE ROAM and TUTORIAL; step-by-step lessons in the headset that show which control to use.
@@ -61,6 +66,29 @@ by script in Blender, phase 5), gravel tracks out to three fields on the hills, 
 | Field gate: gravel track, mud, field soil | Rolling hills |
 |---|---|
 | ![field gate](docs/images/field_gate.png) | ![hills](docs/images/hills.png) |
+
+### The farmyard (phase 5)
+The farm buildings are modelled in Blender by Python scripts (`tools/blender/`) and textured with free Poly Haven textures (CC0).
+Each comes in two versions: **Full** for the PC (every detail, normal maps) and **Light** for the Quest (fewer parts, one texture read).
+The game picks the one for the device it runs on.
+
+- **Barn**: whitewashed plinth, vertical weathered boards on a dark timber frame, a steep clay-tile roof, braced double doors facing the yard.
+  11.1k triangles on PC, 1.6k on the Quest.
+- **Machine shed**: open to the yard, with board walls, timber posts and a lean-to roof of rusty corrugated sheets. The implements wait
+  in it, one bay each, with yellow lines between the bays and a name board above each. 8.6k / 2.9k triangles.
+
+![tractor in front of the barn](docs/images/yard_barn.png)
+
+| Barn: PC and Quest versions | Machine shed and its bays |
+|---|---|
+| ![barn](docs/images/phase5_barn.png) | ![shed](docs/images/phase5_shed.png) |
+
+How an asset is made: the script builds the mesh on a grid (about 1 m on PC, 3 m on the Quest). Blender then bakes the shading
+(ambient occlusion) into the vertex colours, so the Quest gets soft shadows under the eaves and along the ground for free. Textures
+are mapped at their real-world size. One command rebuilds an asset:
+`blender -b --factory-startup -P tools/blender/build.py -- barn`.
+
+![Blender pipeline](docs/images/phase5_pipeline.png)
 
 ### Driving
 - 7.5 t physics body on four raycast wheels (suspension, tyre friction circle), 90 Hz physics, power limit on climbs (195 hp), parking brake that holds on slopes
@@ -269,7 +297,14 @@ Assets/Scripts/CabPanel.cs            cab panel with touch buttons
 Assets/Scripts/CommandCenter.cs       display on the right corner post (fuel, temperature, power, hand throttle)
 Assets/Scripts/CabSwitches.cs         pressable switches on the right-hand console
 Assets/Scripts/TractorLights.cs       lamps, work lights, beacons, indicators, brake lights; day / dusk / night (+ Assets/Shaders/Halo.shader)
-Assets/Scripts/Ground.cs              farm layout + ground map (grip, rolling resistance, draft, slip per surface)
+Assets/Scripts/Ground.cs              farm layout (incl. the machine shed bays) + ground map (grip, rolling resistance, draft, slip per surface)
+Assets/Scripts/QualityTier.cs         Quest / PC tier: tractor shadows, which version of each farm building is shown
+Assets/Shaders/EnvLit.shader          shader of the Blender buildings (texture × baked shading, normal map on PC)
+Assets/Models/Env/                    the Blender buildings (FBX with a Full and a Light version each)
+Assets/Textures/Env/                  Poly Haven textures (CC0, list in LICENSE.txt)
+tools/blender/                        Blender scripts: tvr.py (shared library), build.py, barn.py, shed.py
+tools/fetch_polyhaven.py              downloads the textures the scripts use
+Assets/Scripts/PerfBenchmark.cs       benchmark run (drive + standing at the barn), results in docs/benchmark/
 Assets/Models/Hands/                  hand models (XR Hands sample, Unity Package Distribution License)
 Assets/Scripts/Editor/PhysicsTest.cs  offline driving test         (menu: Tractor VR > Run Physics Test)
 Assets/Scripts/Editor/PlayModeTest.cs real scene in play mode, every button and switch (menu: Tractor VR > Run Play Mode Test)
@@ -329,6 +364,10 @@ Charts: `python tools/benchmark_charts.py`.
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/bench_timeline_dark.png">
   <img alt="Frame time and GPU time over the 60 s drive, one panel per version" src="docs/images/bench_timeline_light.png">
 </picture>
+
+**Phase 5 budget check.** Since phase 5 the benchmark also stands in the yard facing the barn: 10 s with the new buildings and 10 s
+without them. On the Quest the GPU needs 9.6 ms with the barn and 10.0 ms without it, because the barn hides hills that cost more to
+draw. About 4.3 ms of the 13.9 ms frame stays free for the rest of the environment.
 
 The same viewpoints at the two quality levels (PC VR and desktop use the PC level): real tractor shadows instead of a stand-in,
 full-detail meshes, soft shadows out to 80 m.

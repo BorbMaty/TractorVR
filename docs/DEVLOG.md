@@ -990,3 +990,10 @@ rests at front linkage 0.06 instead of 0.01 after being carried (still WORK, PTO
 Found on the way: some sign letters were missing in Unity (more in the Light variant). The final normal recalculation turned letters
 with font-fill triangles inside out; text faces now keep the font's winding (the mapping is two mirrorings = a rotation). And the knee
 braces first leaned the wrong way (an X at each post).
+
+**End of day 2026-10-31.** README: phases 4 ✅ / 5 in progress, a farmyard section (barn, machine shed, how a Blender asset is made)
+with new images (`yard_barn.png` = the desktop benchmark's barn still, `phase5_pipeline.png` = mesh grid / baked AO / textured in
+Blender, `phase5_barn.png`, `phase5_shed.png`, updated `farmyard.png`), the barn budget check under the version comparison, new files
+in the project layout. User question: "did the menu button get further away?" No code change moved it (the cab panel sits at the same
+rig-local spot since phase 2, 0.30 / −0.17 / 0.40 m from the eye point); the head position relative to the seat comes from the recenter
+and the saved seat offset (kept across APK installs). Suggested: RECENTER while sitting normally, then SEAT RESET; can move it 5 cm closer.
