@@ -16,7 +16,7 @@ sys.path.insert(0, str(HERE))
 
 import tvr  # noqa: E402
 
-ALL = ["barn", "shed", "farmhouse"]
+ALL = ["barn", "shed", "farmhouse", "silos", "fueltank", "muckpad", "balestack", "fences"]
 
 
 def main(names):
@@ -27,7 +27,7 @@ def main(names):
     for name in names:
         mod = importlib.import_module(name)
         importlib.reload(mod)
-        results[name] = tvr.build_asset(name.capitalize(), mod.describe, getattr(mod, "NOTES", ""))
+        results[name] = tvr.build_asset(getattr(mod, "NAME", name.capitalize()), mod.describe, getattr(mod, "NOTES", ""))
     return results
 
 

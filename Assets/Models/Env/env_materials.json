@@ -119,6 +119,76 @@
         0.12
       ],
       "smoothness": 0.85
+    },
+    {
+      "name": "Env_Concrete",
+      "tex": "white_rough_plaster",
+      "tint": [
+        0.62,
+        0.62,
+        0.6
+      ],
+      "smoothness": 0.08
+    },
+    {
+      "name": "Env_SiloSteel",
+      "tex": "corrugated_iron_02",
+      "tint": [
+        2.0,
+        2.05,
+        2.15
+      ],
+      "smoothness": 0.4
+    },
+    {
+      "name": "Env_Steel",
+      "tex": null,
+      "tint": [
+        0.62,
+        0.64,
+        0.66
+      ],
+      "smoothness": 0.45
+    },
+    {
+      "name": "Env_PaintRed",
+      "tex": null,
+      "tint": [
+        0.55,
+        0.1,
+        0.07
+      ],
+      "smoothness": 0.35
+    },
+    {
+      "name": "Env_Hay",
+      "tex": null,
+      "tint": [
+        0.8,
+        0.68,
+        0.38
+      ],
+      "smoothness": 0.05
+    },
+    {
+      "name": "Env_HayOld",
+      "tex": null,
+      "tint": [
+        0.6,
+        0.55,
+        0.4
+      ],
+      "smoothness": 0.05
+    },
+    {
+      "name": "Env_Muck",
+      "tex": null,
+      "tint": [
+        0.2,
+        0.15,
+        0.1
+      ],
+      "smoothness": 0.3
     }
   ]
 }

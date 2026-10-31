@@ -549,6 +549,14 @@ public static class ProjectSetup
         Vector2 hc = h.Centre;
         var house = PlaceEnv("Farmhouse", parent, new Vector3(hc.x, 0f, hc.y), 0f);
         Box(house, new Vector3(0f, 1.7f, 0f), new Vector3(h.x1 - h.x0, 3.4f, h.z1 - h.z0));
+
+        // Yard details (colliders from each asset's JSON). Small props cast no shadows on the Quest tier.
+        PlaceEnv("Silos", parent, new Vector3(WorldLayout.Silos.x, 0f, WorldLayout.Silos.y), 90f);   // hopper to the north (yard)
+        PlaceEnv("FuelTank", parent, new Vector3(WorldLayout.FuelTank.x, 0f, WorldLayout.FuelTank.y), 0f, prop: true);
+        Vector2 tp = WorldLayout.TipPad.Centre;
+        PlaceEnv("MuckPad", parent, new Vector3(tp.x, 0f, tp.y), 0f, prop: true);
+        PlaceEnv("BaleStack", parent, new Vector3(WorldLayout.BaleStack.x, 0f, WorldLayout.BaleStack.y), 0f, prop: true);
+        PlaceEnv("Fences", parent, Vector3.zero, 0f, prop: true);   // gate + fences, modelled in world coordinates
     }
 
     // ------------------------------------------------------------------ environment assets (phase 5, Blender)
@@ -560,6 +568,8 @@ public static class ProjectSetup
 
     [System.Serializable] class EnvMat { public string name, tex; public float[] tint; public float smoothness; }
     [System.Serializable] class EnvMatList { public EnvMat[] materials; }
+    [System.Serializable] class EnvCollider { public float[] centre, size; public float yaw; }
+    [System.Serializable] class EnvInfo { public EnvCollider[] colliders; }
 
     static System.Collections.Generic.Dictionary<string, Material> envMats;
 
@@ -615,7 +625,7 @@ public static class ProjectSetup
 
     /// <summary>Instance of an Env asset: both variants as children with a <see cref="TierVariant"/>, static, casting shadows
     /// (buildings are the one environment shadow the Quest tier keeps). QualityTier picks the variant at start.</summary>
-    static Transform PlaceEnv(string asset, Transform parent, Vector3 position, float yaw)
+    static Transform PlaceEnv(string asset, Transform parent, Vector3 position, float yaw, bool prop = false)
     {
         if (envMats == null) ImportEnvAssets();
         var fbx = AssetDatabase.LoadAssetAtPath<GameObject>($"{EnvDir}/{asset}.fbx");
@@ -629,9 +639,21 @@ public static class ProjectSetup
         {
             bool full = r.name.EndsWith("_Full");
             r.gameObject.AddComponent<TierVariant>().tier = full ? QualityTier.Tier.PC : QualityTier.Tier.Quest;
-            r.shadowCastingMode = ShadowCastingMode.On;
+            r.shadowCastingMode = full || !prop ? ShadowCastingMode.On : ShadowCastingMode.Off;
             r.gameObject.SetActive(full == (QualityTier.Current == QualityTier.Tier.PC));
         }
+        // Box colliders the asset script asked for (Builder.collider), each on a child turned by its yaw.
+        var info = JsonUtility.FromJson<EnvInfo>(File.ReadAllText($"{EnvDir}/{asset}.json"));
+        if (info.colliders != null)
+            for (int i = 0; i < info.colliders.Length; i++)
+            {
+                var c = info.colliders[i];
+                var ct = new GameObject($"Collider_{i}").transform;
+                ct.SetParent(go.transform, false);
+                ct.localPosition = new Vector3(c.centre[0], c.centre[1], c.centre[2]);
+                ct.localRotation = Quaternion.Euler(0f, c.yaw, 0f);
+                ct.gameObject.AddComponent<BoxCollider>().size = new Vector3(c.size[0], c.size[1], c.size[2]);
+            }
         foreach (var t in go.GetComponentsInChildren<Transform>(true)) t.gameObject.isStatic = true;
         return go.transform;
     }
@@ -2995,6 +3017,10 @@ public static class ProjectSetup
         // Farmhouse from the yard corner by the road (south gable + porch) and from the yard at the porch steps.
         Vector3 houseCam = new Vector3(18f, 2.4f, -4f), houseAt = new Vector3(35f, 3.5f, 12f);
         Vector3 porchCam = new Vector3(24f, 1.7f, 10f), porchAt = new Vector3(31.5f, 2.2f, 14f);
+        // Yard details: the gate from the road, silos + diesel tank from the yard, the tipping pad and the bale stack.
+        Vector3 gateCam = new Vector3(42f, 2.2f, -5f), gateAt = new Vector3(28f, 3f, 0.5f);
+        Vector3 silosCam = new Vector3(6f, 2.6f, -14f), silosAt = new Vector3(23f, 4f, -32f);
+        Vector3 padCam = new Vector3(-8f, 2.6f, -2f), padAt = new Vector3(-24f, 1.5f, 16f);
         foreach (var t in new[] { QualityTier.Tier.PC, QualityTier.Tier.Quest })
         {
             QualityTier.ApplyEnvironment(t);
@@ -3007,6 +3033,9 @@ public static class ProjectSetup
                 Shot($"shed_bay_{tier}.png", bayCam, Quaternion.LookRotation(bayAt - bayCam));
                 Shot($"house_{tier}.png", houseCam, Quaternion.LookRotation(houseAt - houseCam));
                 Shot($"house_porch_{tier}.png", porchCam, Quaternion.LookRotation(porchAt - porchCam));
+                Shot($"gate_{tier}.png", gateCam, Quaternion.LookRotation(gateAt - gateCam));
+                Shot($"silos_{tier}.png", silosCam, Quaternion.LookRotation(silosAt - silosCam));
+                Shot($"pad_{tier}.png", padCam, Quaternion.LookRotation(padAt - padCam));
             }
         }
         QualityTier.ApplyEnvironment(QualityTier.Current);

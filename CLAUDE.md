@@ -50,7 +50,7 @@ See `README.md` for controls, `docs/ROADMAP.md` for what's next and `docs/DEVLOG
 | `Assets/Scripts/Editor/BuildPC.cs` | Windows build → `Builds/PC/TractorVR.exe` (`-buildTarget StandaloneWindows64`) |
 | `Assets/Scripts/DesktopMode.cs` | PC desktop version in the same exe: VR if the OpenXR session is focused within 6 s, else XR off + monitor (`-desktop` / `-vr`, F9); mouse look / orbit, mouse fed into `VRHands` as the right hand (pick proxies on layer 30), on-screen menu from `CabPanel` entries |
 | `Assets/Scripts/QualityTier.cs` | Quest / PC tier at start: PC = model renderers cast shadows, `ShadowProxy` off; `CurrentBudget` for environment assets |
-| `tools/blender/` (`tvr.py`, `build.py`, one script per asset: `barn.py`, `shed.py`, `farmhouse.py`) | Phase 5 environment assets, modelled by script in Blender: Unity coordinates, Full (PC) + Light (Quest) variant, AO baked into the vertex colour → `Assets/Models/Env/<Asset>.fbx` + `.json`, `env_materials.json`. Run headless: `blender -b --factory-startup -P tools/blender/build.py -- barn` (or `all`) |
+| `tools/blender/` (`tvr.py`, `build.py`, one script per asset: `barn.py`, `shed.py`, `farmhouse.py`, `silos.py`, `fueltank.py`, `muckpad.py`, `balestack.py`, `fences.py`) | Phase 5 environment assets, modelled by script in Blender: Unity coordinates, Full (PC) + Light (Quest) variant, AO baked into the vertex colour → `Assets/Models/Env/<Asset>.fbx` + `.json`, `env_materials.json`. Run headless: `blender -b --factory-startup -P tools/blender/build.py -- barn` (or `all`) |
 | `tools/fetch_polyhaven.py` | Poly Haven (CC0) textures at 1k → `Assets/Textures/Env/` (+ `sizes.json`, `LICENSE.txt`); the list must match `tvr.MATERIALS` |
 | `Assets/Shaders/EnvLit.shader` + `Assets/Scripts/TierVariant.cs` | Env asset shader (albedo × tint × baked AO; normal map only with the global keyword `ENV_NORMALS` = PC tier). `TierVariant` marks the Full / Light child; `QualityTier.ApplyEnvironment` switches both |
 | `Assets/Scripts/PerfBenchmark.cs` | Version benchmark: fixed machine state, scripted 63 s drive, per-frame frame / CPU / GPU / XR runtime times → `persistentDataPath/Benchmark/` (summary, CSV, stills). Results in `docs/benchmark/` (Quest: `adb pull /sdcard/Android/data/com.sapientia.tractorvr/files/Benchmark`, with `MSYS_NO_PATHCONV=1` in Git Bash) |
@@ -208,6 +208,11 @@ $u = "C:\Program Files\Unity\Hub\Editor\6000.6.3f1\Editor\Unity.exe"
 - **Blender → Unity axes**: FBX export forward −Z, up Y, bake space transform → Unity (x, y, z) = Blender (−x, z, −y), scale 1. The asset
   scripts use Unity coordinates only (`tvr.U`). Placement in the scene: `ProjectSetup.PlaceEnv(asset, parent, position, yaw)`; the
   materials come from `env_materials.json` (don't edit `Generated/Env_*.mat`). Change an asset → run `build.py`, then the scene setup.
+- Env asset colliders: `Builder.collider(centre, size, yaw)` in the asset script → `<Asset>.json` → `PlaceEnv` adds BoxColliders (barn, shed,
+  house still have theirs in `ProjectSetup`). `fences.py` is modelled in **world coordinates** (placed at the origin); its gate x must match
+  `WorldLayout.GateX`. Small props: `PlaceEnv(..., prop: true)` (no Quest shadow).
+- `PhysicsTest` leaves implements where it detaches them: keep those spots out of later tests' paths (the front weight at (14, −20)
+  sat in the trailer's lane north of its bay and was pushed along for 90 m).
 - Blender text (`Builder.text`, sign lettering) keeps the font's winding: the normal recalculation turns some letters inside out (they
   vanished in Unity), so text faces are flagged and skipped.
 - Baking AO in Blender: bake each variant alone (the variants share the origin and would occlude each other), keep the grid fine enough

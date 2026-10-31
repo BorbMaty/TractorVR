@@ -17,6 +17,11 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: Env_Concrete
+    second: {fileID: 2100000, guid: ec76798bcdc6ce24cabe46be8eb5e908, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: Env_Corrugated
     second: {fileID: 2100000, guid: 33d352eafb158634c95dc611797391a9, type: 2}
   - first:
@@ -27,8 +32,28 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: Env_Hay
+    second: {fileID: 2100000, guid: e5c52cad86f3995498d7a3ce3adf973f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_HayOld
+    second: {fileID: 2100000, guid: ef0124100d287bc4e90784d8f8d74358, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_Muck
+    second: {fileID: 2100000, guid: d9bc9abdae5729b41acd07b4a1c7cded, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: Env_PaintGreen
     second: {fileID: 2100000, guid: ece21b7414d14144e82e413a3fafb06a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_PaintRed
+    second: {fileID: 2100000, guid: 62a65376c4503684195e0dc29d1ba4e2, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
@@ -59,6 +84,16 @@ ModelImporter:
       assembly: UnityEngine.CoreModule
       name: Env_RoofTiles
     second: {fileID: 2100000, guid: d6e665ddfafda164c9c914d4b81ee152, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_SiloSteel
+    second: {fileID: 2100000, guid: ddded0029c6d2eb48a2450c206ec73af, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_Steel
+    second: {fileID: 2100000, guid: d4a689db5a2c85245ab5936946160acd, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule

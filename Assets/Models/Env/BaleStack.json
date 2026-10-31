@@ -1,0 +1,73 @@
+{
+  "asset": "BaleStack",
+  "notes": "Round bale stack, 6/5/4 bales per row, two rows, \u00d8 1.5 m x 1.2 m. Colliders: one box per layer.",
+  "variants": {
+    "Full": {
+      "triangles": 4800,
+      "vertices": 2460,
+      "materials": [
+        "Env_HayOld",
+        "Env_Hay"
+      ],
+      "size_unity": [
+        9.0,
+        4.098,
+        2.44
+      ]
+    },
+    "Light": {
+      "triangles": 1920,
+      "vertices": 1020,
+      "materials": [
+        "Env_HayOld",
+        "Env_Hay"
+      ],
+      "size_unity": [
+        9.0,
+        4.098,
+        2.44
+      ]
+    }
+  },
+  "colliders": [
+    {
+      "centre": [
+        0,
+        0.75,
+        0
+      ],
+      "size": [
+        8.8,
+        1.299,
+        2.44
+      ],
+      "yaw": 0.0
+    },
+    {
+      "centre": [
+        0,
+        2.049,
+        0
+      ],
+      "size": [
+        7.3,
+        1.299,
+        2.44
+      ],
+      "yaw": 0.0
+    },
+    {
+      "centre": [
+        0,
+        3.348,
+        0
+      ],
+      "size": [
+        5.8,
+        1.5,
+        2.44
+      ],
+      "yaw": 0.0
+    }
+  ]
+}

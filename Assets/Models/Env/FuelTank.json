@@ -1,0 +1,52 @@
+{
+  "asset": "FuelTank",
+  "notes": "Diesel tank, \u00d8 1.3 m x 2.6 m on saddles, pump on top. Collider: one box (from the JSON).",
+  "variants": {
+    "Full": {
+      "triangles": 788,
+      "vertices": 435,
+      "materials": [
+        "Env_Concrete",
+        "Env_Steel",
+        "Env_PaintRed",
+        "Env_PaintWhite",
+        "Env_Glass"
+      ],
+      "size_unity": [
+        2.0,
+        2.85,
+        3.6
+      ]
+    },
+    "Light": {
+      "triangles": 208,
+      "vertices": 124,
+      "materials": [
+        "Env_Concrete",
+        "Env_Steel",
+        "Env_PaintRed",
+        "Env_Glass"
+      ],
+      "size_unity": [
+        2.0,
+        2.85,
+        3.6
+      ]
+    }
+  },
+  "colliders": [
+    {
+      "centre": [
+        0,
+        1.2,
+        0
+      ],
+      "size": [
+        1.5,
+        2.4,
+        3.2
+      ],
+      "yaw": 0.0
+    }
+  ]
+}

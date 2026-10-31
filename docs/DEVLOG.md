@@ -1016,3 +1016,40 @@ tractor can't drive onto the porch. Previews `house_pc / house_quest / house_por
 Found on the way: the attic window showed as a white patch: its frame stood in front of the glass. Frame now behind.
 
 PC exe rebuilt with the house; the user checked it in PC VR over Link: "got the house, love it".
+
+## 2026-11-01: Phase 5 step 1 — yard details
+Five more Blender assets, all placed from `WorldLayout` (Light variants of the small props cast no shadows):
+
+| Asset | Where | Full / Light triangles | Light materials | Colliders |
+|---|---|---|---|---|
+| `Silos` (`silos.py`) | east of the shed (25, −38), row along X, hopper to the north | 4 360 / 708 | 3 | 3 |
+| `FuelTank` (`fueltank.py`) | (22.5, −22), DIESEL facing the yard | 788 / 208 | 4 | 1 |
+| `MuckPad` (`muckpad.py`) | `WorldLayout.TipPad` x −24…−14, z 12…21, open to the south | 2 536 / 772 | 6 | 3 |
+| `BaleStack` (`balestack.py`) | north of the barn (−37, 16.5) | 4 800 / 1 920 | 2 | 3 |
+| `Fences` (`fences.py`) | world coordinates: gate at x 28 on the yard road, garden x 28–44 / z 4.2–25, rail fence x 28, z −3…−22 | 10 640 / 1 736 | 4 | 12 |
+
+- **Silos**: two galvanised corrugated bins (Ø 4.5 m, eaves 7.8 m, apex 9.65 m) on concrete footings, cone roofs, ladders with a
+  hoop cage on the yard side, a filling auger from a hopper in the yard to a spout head over both roofs. The corrugated texture is
+  dark (mean sRGB 89), so `Env_SiloSteel` has a tint of 2.0 to read as galvanised steel.
+- **Diesel tank**: red horizontal tank on two saddles over a concrete bund, pump with hose and nozzle, DIESEL lettering.
+- **Tipping pad**: concrete slab (3 cm above the yard) with 1.8 m walls on three sides, yellow guards at the wall ends, a muck heap
+  (height field) against the back wall, a TIPPING PAD board. The trailer reverses in from the south. The heap has no collider.
+- **Bale stack**: 30 round bales (6 / 5 / 4, two rows), static; the six loose bales stay the ones to push.
+- **Yard gate**: a Székely-style carved gate (székelykapu) where the yard road leaves for the main road: big opening 5.1 m wide,
+  4.5 m clear (tractor with beacons 3.3 m), braces in the corners, an "ISTEN HOZOTT" (welcome) board on both sides, a pigeon-hole
+  frieze and a small tiled roof, a pedestrian door on the north side; the big leaves stand open against the yard side.
+- **Fences**: a picket fence round the farmhouse garden with an opening in front of the porch steps (Light: one board panel per
+  section instead of pickets), a three-rail fence from the gate south along the east edge of the yard.
+
+Pipeline additions (`tvr.py`): `revolve` (solids of revolution with their own around / along UVs, half the segments in Light),
+`tube` (a round bar between two points), `heap` (height field), and `collider`: an asset script lists its BoxColliders, `build_asset`
+writes them to `<Asset>.json`, and `ProjectSetup.PlaceEnv` adds them (child `Collider_i`, turned by its yaw). The barn, shed and house
+keep their colliders in `ProjectSetup`. An asset script can set `NAME` (CamelCase FBX name). `PlaceEnv(..., prop: true)` = no shadow
+from the Light variant.
+
+**PhysicsTest**: the trailer test (L) ran into the front weight. Test R leaves the weight at (14, −20), the lane the trailer is pulled
+north in from its bay (x 13.5): the tractor scooped it up and pushed it ~90 m, until it jammed under the front at the start of the hills
+(20 → 4 km/h). It had pushed it yesterday too: those were the "speed dips" noted with the shed (the weight only jammed this time, after
+test I moved). Test R now uses (6, −20); the trailer holds 29.4 km/h on the straight and turns as before. Test I moved from (30, 0) to
+(14, −20) (the garden fence runs along z 4.2 east of the gate). The trailer test logs the tractor position now. Other results unchanged.
+`PlayModeTest` passes at both levels (8 / 16 environment variants active). PC exe rebuilt.

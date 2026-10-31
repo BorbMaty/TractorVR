@@ -324,7 +324,7 @@ public static class PhysicsTest
     static void RunImplementScenarios()
     {
         Section("I. Rear hitch: lower fully (5 s), raise fully (5 s)");
-        Place(new Vector3(30f, 0f, 0f), 0f);
+        Place(new Vector3(14f, 0f, -20f), 0f);   // open yard (the garden fence runs along z 4.2 east of the gate)
         extra = () => $"rear {hitch.RearPosition:0.00}  link ends y {hitch.rearMount.localPosition.y:0.00} z {hitch.rearMount.localPosition.z:0.00}  " +
                       $"lift arm {hitch.liftArms.localEulerAngles.x:0}° lower links {hitch.lowerLinks.localEulerAngles.x:0}°";
         input.scriptedHitch = -1f; Simulate(5f, 0f, 0f, 1f);
@@ -383,7 +383,7 @@ public static class PhysicsTest
 
         var weight = Find("FrontWeight");
         Section("R. Front weight 900 kg: axle loads without / with it, front linkage raised");
-        Place(new Vector3(14f, 0f, -20f), 0f);
+        Place(new Vector3(6f, 0f, -20f), 0f);   // west of the trailer bay's lane (x 13.5): test L drives north there
         Simulate(2f, 0f, 0f, 10f);
         float front0 = FrontAxleKN, rear0 = RearAxleKN;
         input.scriptedFront = true; input.scriptedHitch = -1f; Simulate(6f, 0f, 0f, 10f); input.scriptedHitch = 0f;
@@ -391,7 +391,7 @@ public static class PhysicsTest
         Simulate(0.5f, 0f, 0f, 10f);
         hitch.ToggleAttach();
         Simulate(1.5f, 0f, 0f, 10f);
-        Place(new Vector3(14f, 0f, -20f), 0f);   // back to where the axle loads without it were taken
+        Place(new Vector3(6f, 0f, -20f), 0f);    // back to where the axle loads without it were taken (the weight stays here)
         Simulate(1f, 0f, 0f, 10f);
         input.scriptedHitch = 1f; Simulate(5f, 0f, 0f, 10f); input.scriptedHitch = 0f;
         input.scriptedFront = false;
@@ -416,7 +416,8 @@ public static class PhysicsTest
         hitch.ToggleAttach();
         Simulate(2f, 0f, 0f, 10f);
         extra = () => $"trailer angle {Vector3.SignedAngle(ctrl.transform.forward, trailer.transform.forward, Vector3.up):0.0}°  " +
-                      $"coupling gap {Vector3.Distance(trailer.hitchPoint.position, hitch.drawbarMount.position) * 100f:0.0} cm  trailer {Vector3.Dot(trb.linearVelocity, trailer.transform.forward) * 3.6f:0.0} km/h";
+                      $"coupling gap {Vector3.Distance(trailer.hitchPoint.position, hitch.drawbarMount.position) * 100f:0.0} cm  trailer {Vector3.Dot(trb.linearVelocity, trailer.transform.forward) * 3.6f:0.0} km/h  " +
+                      $"at ({ctrl.transform.position.x:0}, {ctrl.transform.position.z:0})";
         Simulate(16f, 0.62f, 0f, 2f);
         Simulate(8f, 0.62f, 1f, 1f);
         Simulate(4f, 0.62f, 0f, 1f);

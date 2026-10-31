@@ -1,0 +1,82 @@
+{
+  "asset": "MuckPad",
+  "notes": "Tipping pad / muck heap, 10 x 9 m, walls 1.8 m on three sides, open to the south. Colliders: the three walls (from the JSON); the heap has none.",
+  "variants": {
+    "Full": {
+      "triangles": 2536,
+      "vertices": 1477,
+      "materials": [
+        "Env_Concrete",
+        "Env_Steel",
+        "Env_PaintYellow",
+        "Env_Muck",
+        "Env_BoardsDark",
+        "Env_Timber",
+        "Env_PaintWhite"
+      ],
+      "size_unity": [
+        10.06,
+        2.95,
+        9.06
+      ]
+    },
+    "Light": {
+      "triangles": 772,
+      "vertices": 453,
+      "materials": [
+        "Env_Concrete",
+        "Env_PaintYellow",
+        "Env_Muck",
+        "Env_BoardsDark",
+        "Env_Timber",
+        "Env_PaintWhite"
+      ],
+      "size_unity": [
+        10.04,
+        2.95,
+        9.0
+      ]
+    }
+  },
+  "colliders": [
+    {
+      "centre": [
+        -4.85,
+        0.9,
+        0
+      ],
+      "size": [
+        0.3,
+        1.8,
+        9.0
+      ],
+      "yaw": 0.0
+    },
+    {
+      "centre": [
+        4.85,
+        0.9,
+        0
+      ],
+      "size": [
+        0.3,
+        1.8,
+        9.0
+      ],
+      "yaw": 0.0
+    },
+    {
+      "centre": [
+        0,
+        0.9,
+        4.35
+      ],
+      "size": [
+        9.4,
+        1.8,
+        0.3
+      ],
+      "yaw": 0.0
+    }
+  ]
+}

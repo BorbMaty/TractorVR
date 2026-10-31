@@ -24,6 +24,14 @@ public static class WorldLayout
     public static readonly Area Shed = new Area { name = "Machine shed", x0 = -18f, z0 = -42f, x1 = 18f, z1 = -32f };
     /// <summary>Farmhouse east of the yard: gable end to the yard road (south), porch along the yard side (west).</summary>
     public static readonly Area Farmhouse = new Area { name = "Farmhouse", x0 = 31f, z0 = 6f, x1 = 40f, z1 = 21f };
+    /// <summary>Tipping pad / muck heap in the north-west of the yard: walls west, north and east, open to the south (the trailer reverses in).</summary>
+    public static readonly Area TipPad = new Area { name = "Tipping pad", x0 = -24f, z0 = 12f, x1 = -14f, z1 = 21f };
+    /// <summary>Yard details from tools/blender (each asset's origin): two grain silos east of the shed (in a row along X, their
+    /// filling hopper 7.4 m north of them), the diesel tank, the round-bale stack north of the barn.</summary>
+    public static readonly Vector2 Silos = new Vector2(25f, -38f), FuelTank = new Vector2(22.5f, -22f), BaleStack = new Vector2(-37f, 16.5f);
+    /// <summary>The Székely-style yard gate across the yard road (opening 5.1 m, 4.5 m clear), the garden and yard fences: all in
+    /// tools/blender/fences.py, in world coordinates (GATE_X there).</summary>
+    public const float GateX = 28f;
 
     /// <summary>Parking bay in the machine shed (open to the yard, +Z): where an implement's coupling point stands and which way it faces.
     /// Rear implements face the yard (yaw 0: the tractor reverses in), front ones the back wall (yaw 180: the tractor drives in nose first).</summary>

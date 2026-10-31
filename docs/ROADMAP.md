@@ -1,6 +1,11 @@
 # Roadmap
 
-## ▶ Where we left off (2026-11-01)
+## ▶ Where we left off (2026-11-01, later)
+**Yard details built** (phase 5 step 1, second item): silos, diesel tank, tipping pad + muck heap, bale stack, yard gate, fences
+(`docs/images/phase5_yard.png`). `PlayModeTest` passes at both levels, `PhysicsTest` too (the trailer test no longer runs into the front
+weight, see the DEVLOG). PC exe rebuilt. Next: the user's look in PC VR, then a **Quest benchmark** of the full yard (the Light variants of
+the yard now add up to ~38 materials / draw calls before static batching), then the yard surface, speed bumps and steep slopes.
+
 **Farmhouse built** (phase 5 step 1, first item complete: barn, shed, farmhouse). `PlayModeTest` passes at both levels.
 Still open with the user from 2026-10-31: the check of the new shed (and now the house) in PC VR over Link and on the desktop.
 `Builds/PC/TractorVR.exe` rebuilt with the farmhouse (2026-11-01, 00:13).
@@ -256,7 +261,11 @@ repeated things, no shadows on Quest except buildings, impostors for far trees, 
   Farmhouse ✅ 2026-11-01: `tools/blender/farmhouse.py`, 9 × 15 m east of the yard (`WorldLayout.Farmhouse`), gable to the yard road,
   porch (tornác) facing the yard, ochre plaster, green shutters, clay tiles; Full 6.5k / Light 1.7k triangles (`docs/images/phase5_house.png`)
   ✅ user, PC VR over Link 2026-11-01: "got the house, love it" (the shed was seen in the same session)
-- [ ] Yard details: grain silos, fuel tank, muck heap / tipping pad for the trailer, bale stack, wooden fences, yard gate
+- [x] Yard details: grain silos, fuel tank, muck heap / tipping pad for the trailer, bale stack, wooden fences, yard gate.
+  Built 2026-11-01 (`silos.py`, `fueltank.py`, `muckpad.py`, `balestack.py`, `fences.py`, `docs/images/phase5_yard.png`): two silos with a
+  filling auger east of the shed, a red diesel tank, a three-walled TIPPING PAD with a muck heap (north-west of the yard, open to the south),
+  a round-bale stack north of the barn, a Székely-style carved gate (székelykapu, "ISTEN HOZOTT") on the yard road at x 28, a picket fence
+  round the house garden, a rail fence south of the gate. User check in PC VR / Quest still to do
 - [ ] Better yard surface (concrete slabs with wear, dirt at the edges) from Poly Haven textures
 - [ ] Speed bumps (static colliders the wheel rays hit) where the suspension, the front axle cylinders (`Front_Small_Forcer_*`, still
   static) and a raised implement can be seen working

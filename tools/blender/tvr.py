@@ -43,6 +43,13 @@ MATERIALS = {
     "Env_PlasterBase":  dict(tex="white_rough_plaster",  rot=0,  tint=(0.48, 0.54, 0.60), smooth=0.08),
     "Env_PaintGreen":   dict(tex=None, rot=0, tint=(0.16, 0.34, 0.24), smooth=0.25),
     "Env_Glass":        dict(tex=None, rot=0, tint=(0.08, 0.10, 0.12), smooth=0.85),
+    "Env_Concrete":     dict(tex="white_rough_plaster",  rot=0,  tint=(0.62, 0.62, 0.60), smooth=0.08),
+    "Env_SiloSteel":    dict(tex="corrugated_iron_02",   rot=90, tint=(2.0, 2.05, 2.15), smooth=0.40),   # dark texture: galvanised = brighter
+    "Env_Steel":        dict(tex=None, rot=0, tint=(0.62, 0.64, 0.66), smooth=0.45),
+    "Env_PaintRed":     dict(tex=None, rot=0, tint=(0.55, 0.10, 0.07), smooth=0.35),
+    "Env_Hay":          dict(tex=None, rot=0, tint=(0.80, 0.68, 0.38), smooth=0.05),
+    "Env_HayOld":       dict(tex=None, rot=0, tint=(0.60, 0.55, 0.40), smooth=0.05),
+    "Env_Muck":         dict(tex=None, rot=0, tint=(0.20, 0.15, 0.10), smooth=0.30),
 }
 
 VARIANTS = {"Full": dict(cell=1.0, detail=True), "Light": dict(cell=3.0, detail=False)}
@@ -66,6 +73,8 @@ class Builder:
         self.uv = self.bm.loops.layers.uv.new("UVMap")
         self.grain = [self.bm.faces.layers.float.new(f"grain_{a}") for a in "xyz"]   # long axis of the box (Blender)
         self.keep = self.bm.faces.layers.int.new("keep_normals")   # text: winding from the font, not recalculated
+        self.own_uv = self.bm.faces.layers.int.new("own_uv")       # revolve: UVs set when built (around / along)
+        self.colliders = []       # boxes for Unity (centre, size, yaw), written to <Asset>.json by build_asset
 
     def _mat(self, name):
         if name not in MATERIALS:
@@ -258,6 +267,115 @@ class Builder:
         bpy.data.curves.remove(cu)
         self._weld(first)
 
+    def collider(self, centre, size, yaw=0.0):
+        """A BoxCollider for Unity (asset space, Unity coords). Nothing is drawn; ProjectSetup adds it from the JSON."""
+        if self.detail:   # recorded once (the Full pass)
+            self.colliders.append(dict(centre=[round(v, 3) for v in centre], size=[round(v, 3) for v in size],
+                                       yaw=round(yaw, 2)))
+
+    def revolve(self, centre, profile, mat, segs=16, pitch=0.0, yaw=0.0, roll=0.0, cell=None, detail=False):
+        """Solid of revolution around the local Y axis: `profile` = [(radius, y), ...] bottom to top (radius 0 = a point),
+        open ends closed with a fan. Turned by Unity Euler angles and moved to `centre` (cylinders lying down: pitch 90).
+        The Light variant gets half the segments. UVs: u around the circumference, v along the profile (metres / texture)."""
+        if detail and not self.detail:
+            return
+        cell = cell or self.cell
+        segs = segs if self.detail else max(6, segs // 2)
+        rot = _unity_rotation(pitch, yaw, roll)
+        c = Vector(centre)
+        info = MATERIALS[mat]
+        size = SIZES[info["tex"]] if info["tex"] else (1.0, 1.0)
+        cr, sr = math.cos(math.radians(info["rot"])), math.sin(math.radians(info["rot"]))
+        mi = self._mat(mat)
+        # Subdivide the profile so the baked AO has vertices along it.
+        pts = [profile[0]]
+        for (r0, y0), (r1, y1) in zip(profile, profile[1:]):
+            n = max(1, math.ceil(math.hypot(r1 - r0, y1 - y0) / cell - 0.01))
+            pts += [(r0 + (r1 - r0) * k / n, y0 + (y1 - y0) * k / n) for k in range(1, n + 1)]
+        arc = [0.0]
+        for (r0, y0), (r1, y1) in zip(pts, pts[1:]):
+            arc.append(arc[-1] + math.hypot(r1 - r0, y1 - y0))
+        first = len(self.bm.verts)
+
+        def V(r, y, a):
+            q = rot @ Vector((r * math.cos(a), y, r * math.sin(a)))
+            return self.bm.verts.new(U(*(c + q)))
+
+        rings = []
+        for r, y in pts:
+            rings.append([V(r, y, 0.0)] if r < 1e-6 else [V(r, y, 2 * math.pi * i / segs) for i in range(segs)])
+
+        def face(vs, uvs):
+            try:
+                f = self.bm.faces.new(vs)
+            except ValueError:
+                return
+            f.material_index = mi
+            f[self.own_uv] = 1
+            for loop, (u, v) in zip(f.loops, uvs):
+                u, v = u / size[0], v / size[1]
+                loop[self.uv].uv = (u * cr - v * sr, u * sr + v * cr)
+
+        for j in range(len(pts) - 1):
+            A, B = rings[j], rings[j + 1]
+            ra, rb = max(pts[j][0], 1e-3), max(pts[j + 1][0], 1e-3)
+            for i in range(segs):
+                i1 = (i + 1) % segs
+                ua0, ua1 = 2 * math.pi * ra * i / segs, 2 * math.pi * ra * (i + 1) / segs
+                ub0, ub1 = 2 * math.pi * rb * i / segs, 2 * math.pi * rb * (i + 1) / segs
+                if len(A) == 1:
+                    face((A[0], B[i1], B[i]), [((ub0 + ub1) * 0.5, arc[j]), (ub1, arc[j + 1]), (ub0, arc[j + 1])])
+                elif len(B) == 1:
+                    face((A[i], A[i1], B[0]), [(ua0, arc[j]), (ua1, arc[j]), ((ua0 + ua1) * 0.5, arc[j + 1])])
+                else:
+                    face((A[i], A[i1], B[i1], B[i]), [(ua0, arc[j]), (ua1, arc[j]), (ub1, arc[j + 1]), (ub0, arc[j + 1])])
+        for ring, (r, y) in ((rings[0], pts[0]), (rings[-1], pts[-1])):   # caps
+            if len(ring) > 1:
+                mid = V(0.0, y, 0.0)
+                for i in range(segs):
+                    a0, a1 = 2 * math.pi * i / segs, 2 * math.pi * (i + 1) / segs
+                    face((ring[i], ring[(i + 1) % segs], mid),
+                         [(r * math.cos(a0), r * math.sin(a0)), (r * math.cos(a1), r * math.sin(a1)), (0.0, 0.0)])
+        self._weld(first)
+
+    def tube(self, p0, p1, radius, mat, segs=10, detail=False):
+        """Round bar / pipe from p0 to p1 (Unity coords), closed ends."""
+        d = Vector(p1) - Vector(p0)
+        length = d.length
+        d.normalize()
+        pitch = math.degrees(math.acos(max(-1.0, min(1.0, d.y))))
+        yaw = math.degrees(math.atan2(d.x, d.z))
+        self.revolve(tuple(Vector(p0)), [(radius, 0.0), (radius, length)], mat, segs=segs, pitch=pitch, yaw=yaw,
+                     detail=detail)
+
+    def heap(self, centre, sx, sz, height, mat, seed=1, detail=False):
+        """A heap (muck, soil): a gridded height field over sx x sz, highest in the middle, edges just below `centre`'s
+        height (so they sink into the floor). Open underneath; normals up."""
+        if detail and not self.detail:
+            return
+        n = max(4, math.ceil(max(sx, sz) / (self.cell * 0.5)))
+        cx, cy, cz = centre
+        first = len(self.bm.verts)
+
+        def h(u, v):
+            d = min(1.0, math.hypot(u, v))
+            bump = (1.0 - d * d) ** 0.8
+            noise = (math.sin(u * 7.1 + seed) * math.cos(v * 5.3 + 2 * seed) + 0.5 * math.sin(u * 13.7 - v * 11.1 + seed)) * 0.07
+            return height * bump * (1.0 + noise) - 0.04
+
+        vs = [[self.bm.verts.new(U(cx + sx * 0.5 * u, cy + h(u, v), cz + sz * 0.5 * v))
+               for u in (2 * i / n - 1 for i in range(n + 1))] for v in (2 * j / n - 1 for j in range(n + 1))]
+        mi = self._mat(mat)
+        for j in range(n):
+            for i in range(n):
+                f = self.bm.faces.new((vs[j][i], vs[j][i + 1], vs[j + 1][i + 1], vs[j + 1][i]))
+                f.material_index = mi
+                f[self.keep] = 1
+                f.normal_update()
+                if f.normal.z < 0:      # Blender Z = Unity Y: face up
+                    f.normal_flip()
+        self._weld(first)
+
     def _weld(self, first):
         """Merge the vertices of the piece just added (from index `first`), never across pieces."""
         self.bm.verts.ensure_lookup_table()
@@ -270,7 +388,8 @@ class Builder:
         # the letters' front faces still face out, and the font fill confuses the recalculation (letters turned inside out).
         bmesh.ops.recalc_face_normals(self.bm, faces=[f for f in self.bm.faces if not f[self.keep]])
         for f in self.bm.faces:
-            self._uv(f)
+            if not f[self.own_uv]:
+                self._uv(f)
         me = bpy.data.meshes.new(name)
         self.bm.to_mesh(me)
         self.bm.free()
@@ -386,7 +505,7 @@ def stats(ob):
                 size_unity=[round(size.x, 3), round(size.z, 3), round(size.y, 3)])
 
 
-def export(asset, objects, notes=""):
+def export(asset, objects, notes="", colliders=()):
     """FBX with both variants + a JSON with their numbers (read by ProjectSetup's report and the DEVLOG)."""
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     for o in bpy.context.scene.objects:
@@ -399,6 +518,8 @@ def export(asset, objects, notes=""):
         colors_type="LINEAR", prioritize_active_color=True, add_leaf_bones=False, bake_anim=False,
         path_mode="STRIP", use_custom_props=False)
     info = {"asset": asset, "notes": notes, "variants": {o.name.split("_")[-1]: stats(o) for o in objects}}
+    if colliders:
+        info["colliders"] = list(colliders)
     (OUT_DIR / f"{asset}.json").write_text(json.dumps(info, indent=2) + "\n")
     mats = {k: dict(tex=v["tex"], tint=list(v["tint"]), smoothness=v["smooth"]) for k, v in MATERIALS.items()}
     (OUT_DIR / "env_materials.json").write_text(json.dumps(
@@ -411,15 +532,17 @@ def build_asset(asset, describe, notes="", ao_distance=2.5):
     """Run `describe(builder)` for each variant, bake AO, export. Returns the export info."""
     reset()
     objects = []
+    colliders = []
     for vname, v in VARIANTS.items():
         b = Builder(v["cell"], v["detail"])
         describe(b)
+        colliders += b.colliders
         ob = b.finish(f"{asset}_{vname}")
         mean = bake_ao(ob, distance=ao_distance, samples=64 if vname == "Full" else 32)
         print(f"{ob.name}: mean AO {mean:.2f}")
         objects.append(ob)
     # Side by side in the Blender scene for `look` (export uses the origin: both variants are moved back first).
-    info = export(asset, objects, notes)
+    info = export(asset, objects, notes, colliders)
     for k, o in enumerate(objects):
         o.location.x = -k * 30.0
     return info
