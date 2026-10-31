@@ -1146,3 +1146,5 @@ variants active). Note for the benchmark: `noenv` / `noyard` now also hide the i
 the shed, which only the yard view shows.
 
 Also: the yard concrete's stains repeated visibly every 4 m slab from above: `make_yard_concrete.py` halves their contrast.
+
+User's look at the remade implements (and the new yard parts): "looks good to me".

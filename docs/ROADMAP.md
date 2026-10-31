@@ -3,7 +3,7 @@
 ## ▶ Where we left off (2026-11-01, late night)
 **Phase 5 step 2 built**: the four implements remade in Blender (worn paint, hoses, bolts, lamps, warning stripes), ~150 primitive
 renderers replaced by ~20 meshes. `PhysicsTest` unchanged, `PlayModeTest` passes at both levels; PC exe and APK rebuilt.
-Next: the user's look (implements close up, step 1's bumps / ramps), then step 3 (fields and crops).
+User's look 2026-11-01: "looks good to me" ✅. Next: step 3 (fields and crops).
 
 ## ▶ Earlier the same night (2026-11-01)
 **Phase 5 step 1 (farmyard) built**: yard surface (Poly Haven concrete), speed bumps on the west track with a **moving front axle**
@@ -297,7 +297,7 @@ repeated things, no shadows on Quest except buildings, impostors for far trees, 
   Built 2026-11-01 (`plough.py`, `mower.py`, `trailer.py`, `frontweight.py`, `docs/images/phase5_implements.png`): one mesh per moving
   part in its pivot's space (plough frame + depth wheel, mower frame + disc, trailer frame / wheel / body / tailgate / 7 ram stages),
   worn paint from Poly Haven `green_metal_rust` (`tools/make_impl_paint.py`), hoses, bolts, lamps, warning stripes, number plate.
-  Points, pivots, colliders, masses unchanged: `PhysicsTest` identical. User's look still to do
+  Points, pivots, colliders, masses unchanged: `PhysicsTest` identical. ✅ user, 2026-11-01: "looks good to me"
 
 ### Step 3: fields + crops (moved here from phase 3 step 3 and phase 2)
 - [ ] Standing crop on the crop field, cut by the mower (a grass / alfalfa meadow: the mower is a grass mower), swath behind it
