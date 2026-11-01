@@ -283,17 +283,18 @@ public static class ProjectSetup
         RenderSettings.ambientSkyColor = new Color(0.62f, 0.72f, 0.85f);
         RenderSettings.ambientEquatorColor = new Color(0.55f, 0.58f, 0.55f);
         RenderSettings.ambientGroundColor = new Color(0.3f, 0.28f, 0.22f);
-        var skyShader = Shader.Find("Skybox/Procedural");
-        if (skyShader != null)
-        {
-            var sky = SaveMat(new Material(skyShader), "Sky");
-            sky.SetFloat("_AtmosphereThickness", 0.9f);
-            RenderSettings.skybox = sky;
-        }
+        var skies = BuildSkies(sun);
 
         BuildGround();
         var tractor = BuildTractor(log);
         BuildImplements(tractor.GetComponent<Hitch>(), log);
+        if (skies.Count == 3)
+        {
+            var lt = tractor.GetComponent<TractorLights>();
+            lt.skyDusk = skies["dusk"].mat; lt.skyNight = skies["night"].mat;
+            lt.duskSunRot = skies["dusk"].sunRot; lt.nightSunRot = skies["night"].sunRot;
+            lt.duskFog = skies["dusk"].fog; lt.nightFog = skies["night"].fog;
+        }
         BuildRig(tractor, log);
 
         EditorSceneManager.SaveScene(scene, ScenePath);
@@ -452,6 +453,16 @@ public static class ProjectSetup
         };
         trees.Build();
         Debug.Log($"Trees: {trees.Count} placed");
+
+        // Grass tufts on the pastures near the camera: the meadow's clumps, smaller and darker (GrassTufts).
+        var tuftMat = new Material(AssetDatabase.LoadAssetAtPath<Material>($"{GenDir}/Veg_Meadow.mat"));
+        tuftMat.SetColor("_BaseColor", new Color(0.07f, 0.13f, 0.04f));
+        tuftMat.SetColor("_TipColor", new Color(0.26f, 0.36f, 0.12f));
+        tuftMat.enableInstancing = true;
+        var tufts = new GameObject("GrassTufts").AddComponent<GrassTufts>();
+        tufts.material = SaveMat(tuftMat, "Veg_Tufts");
+        tufts.mesh = AssetDatabase.LoadAssetAtPath<Mesh>($"{GenDir}/Veg_GrassClump.asset");
+        tufts.meshLight = AssetDatabase.LoadAssetAtPath<Mesh>($"{GenDir}/Veg_GrassClumpLight.asset");
     }
 
     /// <summary>Tapered blades, 0.35–0.6 m, each in segments bending outward; two-sided (the shader culls nothing).</summary>
@@ -746,9 +757,113 @@ public static class ProjectSetup
             rb.sleepThreshold = 0.05f;
         }
 
+        // Roadside (phase 5 step 4): power lines with generated wires, delineator posts, signs.
+        var road = new GameObject("Roadside").transform;
+        road.SetParent(parent, false);
+        var wireMesh = new System.Collections.Generic.List<(Vector3 a, Vector3 b)>();
+        foreach (var run in WorldLayout.PowerLines())
+        {
+            var tops = new System.Collections.Generic.List<Vector3[]>();
+            for (int i = 0; i < run.Length; i++)
+            {
+                Vector2 prev = run[Mathf.Max(0, i - 1)], next = run[Mathf.Min(run.Length - 1, i + 1)];
+                Vector2 d = (next - prev).normalized;
+                float yaw = Mathf.Atan2(d.x, d.y) * Mathf.Rad2Deg;   // local Z along the line: the crossarm stands across it
+                var at = new Vector3(run[i].x, TerrainGenerator.SurfaceHeight(run[i].x, run[i].y), run[i].y);
+                var pole = PlacePart("Roadside", "Pole", road, at, yaw);
+                AddBox(pole, new Vector3(0f, 2f, 0f), new Vector3(0.4f, 4f, 0.4f));
+                tops.Add(PoleWirePoints.Select(w => pole.TransformPoint(w)).ToArray());
+            }
+            for (int i = 0; i + 1 < tops.Count; i++)
+                for (int k = 0; k < PoleWirePoints.Length; k++) wireMesh.Add((tops[i][k], tops[i + 1][k]));
+        }
+        var wires = new GameObject("Wires");
+        wires.transform.SetParent(road, false);
+        wires.isStatic = true;
+        wires.AddComponent<MeshFilter>().sharedMesh = SaveMesh(WireMesh(wireMesh), "Env_Wires");
+        var wr = wires.AddComponent<MeshRenderer>();
+        wr.sharedMaterial = envMats["Env_RubberBlack"];
+        wr.shadowCastingMode = ShadowCastingMode.Off;
+        foreach (var post in WorldLayout.RoadPosts())
+        {
+            var t = PlacePart("Roadside", "Post", road, new Vector3(post.x, TerrainGenerator.SurfaceHeight(post.x, post.y), post.y), post.x < 80f ? 90f : -90f);
+            AddBox(t, new Vector3(0f, 0.5f, 0f), new Vector3(0.12f, 1f, 0.12f));
+        }
+        foreach (var (part, at) in WorldLayout.RoadSigns)
+        {
+            var t = PlacePart("Roadside", part, road, new Vector3(at.x, TerrainGenerator.SurfaceHeight(at.x, at.y), at.y), at.z);
+            AddBox(t, new Vector3(0f, 1.2f, 0f), new Vector3(0.12f, 2.4f, 0.12f));
+        }
+
         // The village on the horizon (phase 5 step 4).
         var v = WorldLayout.Village;
         PlaceEnv("Village", parent, new Vector3(v.x, TerrainGenerator.VillageLevel - 0.3f, v.y), v.z, prop: true);
+    }
+
+    /// <summary>Insulator tops of the concrete pole in its own space (tools/blender/roadside.py WIRE_POINTS).</summary>
+    static readonly Vector3[] PoleWirePoints = { new Vector3(-0.95f, 8.47f, 0f), new Vector3(0.95f, 8.47f, 0f), new Vector3(0f, 9.27f, 0f) };
+
+    /// <summary>Overhead wires: each span a sagging (parabola, 0.5 m at mid-span per 50 m) three-sided tube, 1.2 cm radius; vertex
+    /// colours white (EnvLit reads its AO from them).</summary>
+    static Mesh WireMesh(System.Collections.Generic.List<(Vector3 a, Vector3 b)> spans)
+    {
+        var v = new System.Collections.Generic.List<Vector3>();
+        var t = new System.Collections.Generic.List<int>();
+        const int seg = 14, sides = 3;
+        const float r = 0.012f;
+        foreach (var (a, b) in spans)
+        {
+            float len = Vector3.Distance(a, b), sag = 0.5f * len / 50f;
+            Vector3 dir = (b - a).normalized;
+            Vector3 side = Vector3.Cross(dir, Vector3.up).normalized, up = Vector3.Cross(side, dir);
+            int first = v.Count;
+            for (int i = 0; i <= seg; i++)
+            {
+                float u = i / (float)seg;
+                Vector3 c = Vector3.Lerp(a, b, u) - Vector3.up * (4f * sag * u * (1f - u));
+                for (int k = 0; k < sides; k++)
+                {
+                    float ang = k * Mathf.PI * 2f / sides;
+                    v.Add(c + (side * Mathf.Cos(ang) + up * Mathf.Sin(ang)) * r);
+                }
+            }
+            for (int i = 0; i < seg; i++)
+                for (int k = 0; k < sides; k++)
+                {
+                    int a0 = first + i * sides + k, a1 = first + i * sides + (k + 1) % sides;
+                    int b0 = a0 + sides, b1 = a1 + sides;
+                    t.AddRange(new[] { a0, b0, a1, a1, b0, b1 });
+                }
+        }
+        var m = new Mesh { name = "Wires", indexFormat = IndexFormat.UInt32 };
+        m.SetVertices(v);
+        m.SetTriangles(t, 0);
+        m.SetColors(Enumerable.Repeat(Color.white, v.Count).ToList());
+        m.RecalculateNormals();
+        m.RecalculateBounds();
+        return m;
+    }
+
+    /// <summary>One part of a multi-part Env asset (objects &lt;Asset&gt;_&lt;Part&gt;_Full / _Light): PlaceEnv, then the other parts removed.</summary>
+    static Transform PlacePart(string asset, string part, Transform parent, Vector3 position, float yaw)
+    {
+        var t = PlaceEnv(asset, parent, position, yaw, prop: true);
+        t.name = $"{asset}_{part}";
+        for (int i = t.childCount - 1; i >= 0; i--)
+        {
+            var c = t.GetChild(i);
+            if (!c.name.StartsWith($"{asset}_{part}_")) Object.DestroyImmediate(c.gameObject);
+        }
+        return t;
+    }
+
+    static void AddBox(Transform t, Vector3 centre, Vector3 size)
+    {
+        var c = new GameObject("Collider").AddComponent<BoxCollider>();
+        c.transform.SetParent(t, false);
+        c.center = centre;
+        c.size = size;
+        c.gameObject.isStatic = true;
     }
 
     // ------------------------------------------------------------------ environment assets (phase 5, Blender)
@@ -849,6 +964,66 @@ public static class ProjectSetup
         foreach (var t in go.GetComponentsInChildren<Transform>(true)) t.gameObject.isStatic = true;
         return go.transform;
     }
+
+    // ------------------------------------------------------------------ skies (Poly Haven HDRIs, tools/fetch_sky.py)
+    [System.Serializable] class SkyInfo { public string id, file; public float sun_u, sun_v, sun_elevation, exposure; public float[] horizon; }
+    [System.Serializable] class SkyList { public SkyInfo day, dusk, night; }
+
+    /// <summary>The three skies as cubemap skybox materials. Each sun light keeps the scene's azimuth at the picture's elevation,
+    /// and each skybox is turned (`_Rotation`) so its sun / moon lies exactly there. Fog colour = the picture's horizon.
+    /// Falls back to the procedural sky without the files.</summary>
+    static System.Collections.Generic.Dictionary<string, (Material mat, Quaternion sunRot, Color fog)> BuildSkies(Light sun)
+    {
+        var result = new System.Collections.Generic.Dictionary<string, (Material, Quaternion, Color)>();
+        const string dir = "Assets/Textures/Sky";
+        if (!File.Exists($"{dir}/sky.json"))
+        {
+            var proc = SaveMat(new Material(Shader.Find("Skybox/Procedural")), "Sky");
+            proc.SetFloat("_AtmosphereThickness", 0.9f);
+            RenderSettings.skybox = proc;
+            return result;
+        }
+        var list = JsonUtility.FromJson<SkyList>(File.ReadAllText($"{dir}/sky.json"));
+        var shader = Shader.Find("Skybox/Cubemap");
+        foreach (var (role, info, azimuth) in new[] { ("day", list.day, -35f), ("dusk", list.dusk, -35f), ("night", list.night, 150f) })
+        {
+            string path = $"{dir}/{info.file}";
+            var ti = (TextureImporter)AssetImporter.GetAtPath(path);
+            ti.textureShape = TextureImporterShape.TextureCube;
+            ti.generateCubemap = TextureImporterGenerateCubemap.AutoCubemap;
+            ti.maxTextureSize = 2048;
+            ti.mipmapEnabled = false;
+            ti.textureCompression = TextureImporterCompression.CompressedHQ;
+            var android = ti.GetPlatformTextureSettings("Android");
+            android.overridden = true; android.maxTextureSize = 1024;   // Quest: 1024 per face is plenty for a sky
+            android.format = TextureImporterFormat.ASTC_HDR_6x6;
+            ti.SetPlatformTextureSettings(android);
+            ti.SaveAndReimport();
+            var cube = AssetDatabase.LoadAssetAtPath<Cubemap>(path);
+            var sunRot = Quaternion.Euler(info.sun_elevation, azimuth, 0f);
+            // Where the sun is in the picture (latlong: u 0.5 = +X, angle atan2(z, x) = (0.5 - u) * 360) and where the light
+            // says it is (opposite the light's direction); the skybox rotation turns one onto the other.
+            Vector3 toSun = -(sunRot * Vector3.forward);
+            float worldAngle = Mathf.Atan2(toSun.z, toSun.x) * Mathf.Rad2Deg;
+            float imageAngle = (0.5f - info.sun_u) * 360f;
+            var m = new Material(shader);
+            m.SetTexture("_Tex", cube);
+            m.SetFloat("_Exposure", info.exposure);
+            m.SetFloat("_Rotation", Mathf.Repeat(imageAngle - worldAngle + SkyRotationOffset, 360f));
+            var fog = new Color(info.horizon[0], info.horizon[1], info.horizon[2]);
+            float max = Mathf.Max(fog.r, Mathf.Max(fog.g, fog.b));
+            if (max > 0.9f) fog *= 0.9f / max;   // the haze is a colour, not a light: keep it below white
+            result[role] = (SaveMat(m, "Sky_" + role), sunRot, fog);
+        }
+        RenderSettings.skybox = result["day"].Item1;
+        sun.transform.rotation = result["day"].Item2;
+        RenderSettings.fogColor = result["day"].Item3;
+        return result;
+    }
+
+    /// <summary>Correction (degrees) between the latlong convention assumed above and Unity's cubemap import; checked with the
+    /// sky_sun preview (the picture's sun must sit where the light comes from).</summary>
+    const float SkyRotationOffset = 225f;
 
     // ------------------------------------------------------------------ tractor
     static GameObject BuildTractor(StringBuilder log)
@@ -3035,6 +3210,7 @@ public static class ProjectSetup
         Directory.CreateDirectory("Logs/Previews");
         var vegetation = Object.FindAnyObjectByType<Vegetation>();
         var treesR = Object.FindAnyObjectByType<Trees>();
+        var tuftsR = Object.FindAnyObjectByType<GrassTufts>();
         var horizonRing = Object.FindAnyObjectByType<Horizon>();
         // TVR_SHOTS=trees,practice renders only the shots whose names contain one of the words (plus the warm-up).
         var only = System.Environment.GetEnvironmentVariable("TVR_SHOTS")?.Split(',');
@@ -3046,6 +3222,7 @@ public static class ProjectSetup
             cam.targetTexture = rt;
             if (vegetation) vegetation.Submit(cam, cam);   // instanced grass / wheat for this render only
             if (treesR) treesR.Submit(cam, cam);
+            if (tuftsR) tuftsR.Submit(cam, cam);
             if (horizonRing) horizonRing.Follow(cam);
             cam.Render();
             RenderTexture.active = rt;
@@ -3149,6 +3326,24 @@ public static class ProjectSetup
             Shot("trees_country.png", At(-260f, 300f, 8f), Quaternion.LookRotation(new Vector3(-0.7f, -0.08f, 0.7f)));
             Shot("trees_south.png", At(-100f, -330f, 8f), Quaternion.LookRotation(new Vector3(0.3f, -0.08f, -0.95f)));
             Shot("trees_track.png", At(-90f, -60f, 2.8f), Quaternion.LookRotation(At(-150f, -64f, 2f) - At(-90f, -60f, 2.8f)));
+            // Skies: looking towards the sun / moon of each (it must sit in the picture where the light comes from).
+            var ltSky = tractor.GetComponent<TractorLights>();
+            var sunL = RenderSettings.sun;
+            var daySky = RenderSettings.skybox; var dayRot = sunL.transform.rotation; var dayFogC = RenderSettings.fogColor;
+            foreach (var (name, mat, rot, fogC) in new[] { ("day", daySky, dayRot, dayFogC), ("dusk", ltSky.skyDusk, ltSky.duskSunRot, ltSky.duskFog),
+                                                         ("night", ltSky.skyNight, ltSky.nightSunRot, ltSky.nightFog) })
+            {
+                if (mat == null) continue;
+                RenderSettings.skybox = mat; sunL.transform.rotation = rot; RenderSettings.fogColor = fogC;
+                Vector3 toSun = -(rot * Vector3.forward);
+                var look = Quaternion.LookRotation(new Vector3(toSun.x, 0f, toSun.z)) * Quaternion.Euler(-12f, 0f, 0f);
+                Shot($"sky_{name}.png", At(0f, 60f, 3f), look);
+                Shot($"sky_{name}.png", At(0f, 60f, 3f), look);   // the first render of a new variant can come out black
+            }
+            RenderSettings.skybox = daySky; sunL.transform.rotation = dayRot; RenderSettings.fogColor = dayFogC;
+            Shot("roadside_junction.png", At(66f, 2f, 2.6f), Quaternion.LookRotation(At(80f, 12f, 3f) - At(66f, 2f, 2.6f)));
+            Shot("roadside_road.png", At(82f, 60f, 2.6f), Quaternion.LookRotation(At(80f, 200f, 4f) - At(82f, 60f, 2.6f)));
+            Shot("roadside_tufts.png", At(-60f, 60f, 1.6f), Quaternion.LookRotation(At(-80f, 80f, 0f) - At(-60f, 60f, 1.6f)));
             Shot("village.png", At(0f, 60f, 3f), Quaternion.LookRotation(At(-430f, 560f, 15f) - At(0f, 60f, 3f)));
             Shot("village_near.png", At(-330f, 420f, 25f), Quaternion.LookRotation(At(-430f, 560f, 10f) - At(-330f, 420f, 25f)));
             Shot("practice_sign.png", At(32f, -3f, 2.6f), Quaternion.LookRotation(At(36f, -10.5f, 2.2f) - At(32f, -3f, 2.6f)));

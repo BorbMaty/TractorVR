@@ -1,0 +1,149 @@
+{
+  "asset": "Roadside",
+  "notes": "Roadside: concrete power pole (wires generated in Unity), delineator post, REGHIN direction sign, 50 limit, warning triangle.",
+  "variants": {
+    "Pole_Full": {
+      "triangles": 452,
+      "vertices": 240,
+      "materials": [
+        "Env_Concrete",
+        "Env_Steel",
+        "Env_PaintWhite"
+      ],
+      "size_unity": [
+        2.3,
+        9.69,
+        0.297
+      ]
+    },
+    "Post_Full": {
+      "triangles": 44,
+      "vertices": 31,
+      "materials": [
+        "Env_PaintWhite",
+        "Env_RubberBlack",
+        "Impl_Amber"
+      ],
+      "size_unity": [
+        0.125,
+        1.2,
+        0.13
+      ]
+    },
+    "SignReghin_Full": {
+      "triangles": 788,
+      "vertices": 417,
+      "materials": [
+        "Env_Steel",
+        "Env_PaintWhite",
+        "Env_SignBlue"
+      ],
+      "size_unity": [
+        1.9,
+        3.4,
+        0.145
+      ]
+    },
+    "Sign50_Full": {
+      "triangles": 444,
+      "vertices": 230,
+      "materials": [
+        "Env_Steel",
+        "Env_PaintRed",
+        "Env_PaintWhite",
+        "Env_RubberBlack"
+      ],
+      "size_unity": [
+        0.66,
+        3.03,
+        0.135
+      ]
+    },
+    "SignWarn_Full": {
+      "triangles": 224,
+      "vertices": 126,
+      "materials": [
+        "Env_Steel",
+        "Env_PaintRed",
+        "Env_PaintWhite",
+        "Env_RubberBlack"
+      ],
+      "size_unity": [
+        0.8,
+        3.1,
+        0.13
+      ]
+    },
+    "Pole_Light": {
+      "triangles": 288,
+      "vertices": 154,
+      "materials": [
+        "Env_Concrete",
+        "Env_Steel",
+        "Env_PaintWhite"
+      ],
+      "size_unity": [
+        2.3,
+        9.69,
+        0.406
+      ]
+    },
+    "Post_Light": {
+      "triangles": 24,
+      "vertices": 16,
+      "materials": [
+        "Env_PaintWhite",
+        "Env_RubberBlack"
+      ],
+      "size_unity": [
+        0.125,
+        1.2,
+        0.125
+      ]
+    },
+    "SignReghin_Light": {
+      "triangles": 596,
+      "vertices": 320,
+      "materials": [
+        "Env_Steel",
+        "Env_PaintWhite",
+        "Env_SignBlue"
+      ],
+      "size_unity": [
+        1.9,
+        3.4,
+        0.14
+      ]
+    },
+    "Sign50_Light": {
+      "triangles": 252,
+      "vertices": 134,
+      "materials": [
+        "Env_Steel",
+        "Env_PaintRed",
+        "Env_PaintWhite",
+        "Env_RubberBlack"
+      ],
+      "size_unity": [
+        0.66,
+        3.03,
+        0.13
+      ]
+    },
+    "SignWarn_Light": {
+      "triangles": 140,
+      "vertices": 84,
+      "materials": [
+        "Env_Steel",
+        "Env_PaintRed",
+        "Env_PaintWhite",
+        "Env_RubberBlack"
+      ],
+      "size_unity": [
+        0.8,
+        3.1,
+        0.125
+      ]
+    }
+  }
+}

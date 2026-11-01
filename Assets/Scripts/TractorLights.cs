@@ -66,6 +66,13 @@ public class TractorLights : MonoBehaviour
     bool indicatorArmed;
     float blinkTime;
 
+    // Skies (Poly Haven HDRIs, tools/fetch_sky.py; set by setup): the day one is the scene's skybox. Each sky's sun / moon
+    // direction and horizon (fog) colour were measured in its picture, so the light and the haze match it.
+    public Material skyDusk, skyNight;
+    public Quaternion duskSunRot = Quaternion.Euler(6f, -35f, 0f), nightSunRot = Quaternion.Euler(40f, 150f, 0f);
+    public Color duskFog = new Color(0.62f, 0.5f, 0.45f), nightFog = new Color(0.02f, 0.025f, 0.04f);
+    Material skyDay;
+
     // Day settings, captured at start (the scene is built for day).
     Light sun;
     Quaternion daySunRot;
@@ -90,6 +97,7 @@ public class TractorLights : MonoBehaviour
             daySunIntensity = sun.intensity;
         }
         dayFog = RenderSettings.fogColor;
+        skyDay = RenderSettings.skybox;
         daySky = RenderSettings.ambientSkyColor;
         dayEquator = RenderSettings.ambientEquatorColor;
         dayGround = RenderSettings.ambientGroundColor;
@@ -251,7 +259,7 @@ public class TractorLights : MonoBehaviour
         Color tint = sky == Sky.Day ? Color.white : sky == Sky.Dusk ? new Color(1f, 0.78f, 0.68f) : new Color(0.55f, 0.65f, 1f);
         if (sun)
         {
-            sun.transform.rotation = sky == Sky.Day ? daySunRot : sky == Sky.Dusk ? Quaternion.Euler(6f, -35f, 0f) : Quaternion.Euler(40f, 150f, 0f);
+            sun.transform.rotation = sky == Sky.Day ? daySunRot : sky == Sky.Dusk ? duskSunRot : nightSunRot;
             sun.color = sky == Sky.Day ? daySunColor : sky == Sky.Dusk ? new Color(1f, 0.55f, 0.3f) : new Color(0.6f, 0.7f, 1f);
             sun.intensity = sky == Sky.Day ? daySunIntensity : sky == Sky.Dusk ? 0.6f : 0.06f;
         }
@@ -261,7 +269,7 @@ public class TractorLights : MonoBehaviour
         var probe = dayProbe;
         for (int c = 0; c < 9; c++) { probe[0, c] *= tint.r * ambient; probe[1, c] *= tint.g * ambient; probe[2, c] *= tint.b * ambient; }
         RenderSettings.ambientProbe = probe;
-        RenderSettings.fogColor = sky == Sky.Day ? dayFog : sky == Sky.Dusk ? new Color(0.62f, 0.5f, 0.45f) : new Color(0.02f, 0.025f, 0.04f);
+        RenderSettings.fogColor = sky == Sky.Day ? dayFog : sky == Sky.Dusk ? duskFog : nightFog;
         RenderSettings.reflectionIntensity = dayReflection * (sky == Sky.Day ? 1f : sky == Sky.Dusk ? 0.45f : 0.08f);
         var glassBlock = new MaterialPropertyBlock();
         foreach (var (r, index, color) in glass)
@@ -270,7 +278,9 @@ public class TractorLights : MonoBehaviour
             glassBlock.SetColor(ColorId, new Color(color.r * ambient, color.g * ambient, color.b * ambient, color.a));
             r.SetPropertyBlock(glassBlock, index);
         }
-        if (RenderSettings.skybox && RenderSettings.skybox.HasProperty("_Exposure"))
+        var own = sky == Sky.Day ? skyDay : sky == Sky.Dusk ? skyDusk : skyNight;
+        if (own != null && skyDusk != null) RenderSettings.skybox = own;   // each sky has its own picture and exposure
+        else if (RenderSettings.skybox && RenderSettings.skybox.HasProperty("_Exposure"))   // one procedural sky, dimmed
             RenderSettings.skybox.SetFloat("_Exposure", dayExposure * (sky == Sky.Day ? 1f : sky == Sky.Dusk ? 0.8f : 0.03f));
     }
 }

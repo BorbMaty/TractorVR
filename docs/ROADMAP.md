@@ -334,8 +334,11 @@ repeated things, no shadows on Quest except buildings, impostors for far trees, 
   west track, Lombardy poplars along the main road, willows (and a few poplars) along a new stream in the valley east of the road,
   walnut + pear in the farmhouse garden. `trees.py` + `Trees.cs` (instanced, near / far meshes, trunk colliders), 1036 trees.
   Far trees are low-poly meshes instead of billboards (no alpha test on the Quest). Stream: channel in `Height` + water ribbon
-- [x] Sky (Poly Haven HDRI) → dropped 2026-11-01: the procedural sky stays, `TractorLights` animates it for dusk / night (an HDRI
-  would need one per time of day). Roadside poles / signs and grass tufts near the camera → moved to "Future ideas"
+- [x] Sky (Poly Haven HDRIs), roadside (poles, signs), grass tufts near the camera: first moved to "Future ideas", then built the
+  same evening at the user's request (2026-11-01): three pure-sky HDRIs (`tools/fetch_sky.py`: day kloofendal_38d_partly_cloudy, dusk
+  kloppenheim_06, night kloppenheim_02; sun position, horizon colour and exposure measured in the pictures; the sun light and the fog
+  follow them), a concrete power line with wires along the main road and a feeder to the farmhouse, delineator posts, three road signs
+  (`roadside.py`), grass tufts on the pastures near the camera (`GrassTufts.cs`). Headset look still to do
 - [x] Village silhouette with a church spire on the horizon: `village.py`, ~700 m north-west on a plateau, a Reformed church with a
   spire and four corner turrets, ~30 houses and barns
 
@@ -354,8 +357,6 @@ repeated things, no shadows on Quest except buildings, impostors for far trees, 
   every step at both quality levels. In the headset: still to do
 
 ## Future ideas / reference (not scheduled)
-- Roadside details (poles, signs), grass tufts near the camera (from phase 5 step 4, 2026-11-01).
-- Sky from Poly Haven HDRIs (one per time of day).
 - Tutorial: voice-over / sounds per step, a score for the slalom and the reversing bay.
 - **Working mirrors**: the model has three parts with the `mirror` material. One small render-texture camera per mirror (mono, from the reflected
   eye position), ~256², short draw distance, no shadows, updated every other frame, shown on the mirror glass; a MIRRORS on/off panel button.

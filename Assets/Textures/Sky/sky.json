@@ -1,0 +1,41 @@
+{
+  "day": {
+    "id": "kloofendal_38d_partly_cloudy_puresky",
+    "file": "kloofendal_38d_partly_cloudy_puresky_2k.hdr",
+    "sun_u": 0.5994,
+    "sun_v": 0.2881,
+    "sun_elevation": 38.14,
+    "horizon": [
+      0.3879,
+      0.4174,
+      0.4405
+    ],
+    "exposure": 0.9797
+  },
+  "dusk": {
+    "id": "kloppenheim_06_puresky",
+    "file": "kloppenheim_06_puresky_2k.hdr",
+    "sun_u": 0.5993,
+    "sun_v": 0.4475,
+    "sun_elevation": 9.44,
+    "horizon": [
+      0.6796,
+      0.5708,
+      0.504
+    ],
+    "exposure": 0.6434
+  },
+  "night": {
+    "id": "kloppenheim_02_puresky",
+    "file": "kloppenheim_02_puresky_2k.hdr",
+    "sun_u": 0.5985,
+    "sun_v": 0.4042,
+    "sun_elevation": 17.24,
+    "horizon": [
+      0.0341,
+      0.0404,
+      0.0481
+    ],
+    "exposure": 0.0981
+  }
+}

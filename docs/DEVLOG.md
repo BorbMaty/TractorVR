@@ -1312,3 +1312,46 @@ see-through.** The lettering was wider than the 2.6 m board, so the ends of the 
 posts with a white border and the letters on its faces (`Builder.text` comes out ~1.5x the asked cap height: 0.22 m asked).
 The village houses had only two roof slabs, open at the gable ends: now walls + a solid gable (`Builder.gable`) under every roof,
 the church nave too (turned along Z for that). Preview `practice_sign`.
+
+## 2026-11-01 (night): sky, roadside, grass tufts (the rest of phase 5 step 4)
+The user asked for the two "Future ideas" lines to be done now, before the tutorial fixes and a real start menu.
+
+### Skies from Poly Haven
+- `tools/fetch_sky.py` downloads three **pure-sky** HDRIs (sky only, no ground in the picture: it would clash with the terrain) at
+  2k and **measures each picture** from the 1k file (a small RGBE decoder in numpy): where the sun / moon is (centroid of the
+  brightest 0.02 % of the upper half), the horizon colour (0-6 degrees up), and an exposure from the median sky brightness
+  (sun excluded) → `Assets/Textures/Sky/sky.json` (+ LICENSE.txt, CC0).
+- Picked: DAY `kloofendal_38d_partly_cloudy` (sun 38 degrees up: the scene was lit at 35 on purpose, so the slopes show light and
+  shade; first tries `farm_field` was pale and hazy, `kloppenheim_05` had the sun at 75 degrees), DUSK `kloppenheim_06` (sun 9.4),
+  NIGHT `kloppenheim_02` (moon 17).
+- `ProjectSetup.BuildSkies`: cubemaps (Quest: 1024 per face, ASTC HDR), one `Skybox/Cubemap` material per sky; each sun light keeps
+  the scene's azimuth at the picture's elevation, and the skybox `_Rotation` puts the picture's sun exactly there. The latlong
+  convention was found by measurement, not guessed: the dusk sky rendered every 15 degrees around, brightest direction found by
+  script (first 225 degrees off, then 90 → `SkyRotationOffset` 225; the night moon, at another azimuth, landed right too).
+  Fog colour = the picture's horizon (scaled below white), so the haze and the far hills blend into the sky.
+  Day exposure: the median rule blew the day sky out to white (bright clouds), target lowered to 0.2.
+- `TractorLights`: DAY / DUSK / NIGHT now swap the skybox material and use the measured sun directions and fog colours (the old
+  procedural sky + exposure dimming stays as the fallback without the files).
+
+### Roadside
+- `roadside.py` (parts): a precast concrete power pole (9 m, steel crossarm, three insulators), a white delineator post, a blue
+  REGHIN 6 km direction sign, a 50 limit, a warning triangle. `WorldLayout.PowerLines / RoadPosts / RoadSigns`.
+- Power line along the main road's west side every 50 m (broken over the practice pad) and a feeder along the yard road to the
+  farmhouse; the **wires are generated** (`ProjectSetup.WireMesh`: sagging three-sided tubes between the insulators of neighbouring
+  poles, crossarms turned across the line). `PlacePart` places one part of a multi-part Env asset; box colliders on poles, posts, signs.
+
+### Grass tufts
+- `GrassTufts.cs`: 3 m cells around the camera, a few tufts per pasture cell at hashed positions (the same spot always has the same
+  tufts, nothing stored), rebuilt every 2 m of camera movement, one instanced draw; the meadow's clump mesh and shader, smaller and
+  darker, sinking into the ground at the edge of the range (Quest 14 m / 2 per cell, PC 30 m / 4 per cell).
+
+`PhysicsTest` unchanged (cm-level noise), `PlayModeTest` passes at both levels. Previews `sky_day / sky_dusk / sky_night`,
+`roadside_junction / roadside_road / roadside_tufts`.
+
+| Day sky | Dusk sky (the sun where the light comes from) |
+|---|---|
+| ![day](images/phase5_sky_day.png) | ![dusk](images/phase5_sky_dusk.png) |
+
+| Power line, sign, posts | Grass tufts |
+|---|---|
+| ![roadside](images/phase5_roadside.png) | ![tufts](images/phase5_tufts.png) |

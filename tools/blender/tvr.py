@@ -58,6 +58,7 @@ MATERIALS = {
     "Env_HayStack":     dict(tex=None, rot=0, tint=(0.52, 0.48, 0.28), smooth=0.05),
     "Env_HayGrey":      dict(tex=None, rot=0, tint=(0.42, 0.40, 0.33), smooth=0.05),
     # Trees (phase 5 step 4): plain colours, the crowns' light and depth come from the smooth blobs and the baked AO.
+    "Env_SignBlue":     dict(tex=None, rot=0, tint=(0.05, 0.22, 0.55), smooth=0.40),
     "Env_ConeOrange":   dict(tex=None, rot=0, tint=(0.95, 0.30, 0.04), smooth=0.35),
     "Env_PlasterVillage": dict(tex=None, rot=0, tint=(0.86, 0.84, 0.78), smooth=0.05),
     "Env_RoofVillage":  dict(tex=None, rot=0, tint=(0.55, 0.24, 0.16), smooth=0.10),

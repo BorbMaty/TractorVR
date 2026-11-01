@@ -167,6 +167,11 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: Env_SignBlue
+    second: {fileID: 2100000, guid: 82dcb426776b8b24792ecd66fe295a12, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: Env_SilageSheet
     second: {fileID: 2100000, guid: 82971acc6516e9b448258e8e4a9161ed, type: 2}
   - first:
