@@ -2,8 +2,8 @@
 
 Unity **6000.6.3f1** · URP · OpenXR (Meta Quest feature) · Input System · XR Hands
 
-A VR tractor simulator for the Quest 2: drive a John Deere 6195M from the cab, plough, mow and haul on a hilly farm,
-by day or at night, with real-feeling physics (wheel slip, 4WD, diff lock), a working cab with pressable switches and hand tracking. University project (Sapientia Hungarian University of Transylvania, IRUM).
+A VR tractor simulator for the Quest 2: drive a John Deere 6195M from the cab, plough, mow and haul on a farm near Reghin
+(Szászrégen), between the hills of the Mezőség and the Görgényi mountains, by day or at night, with real-feeling physics (wheel slip, 4WD, diff lock), a working cab with pressable switches and hand tracking. University project (Sapientia Hungarian University of Transylvania, IRUM).
 
 ![on the farm track](docs/images/hero.png)
 
@@ -40,12 +40,14 @@ Docs: [Roadmap](docs/ROADMAP.md) · [Development log](docs/DEVLOG.md) · [CLAUDE
 and a **PC desktop** version on the monitor, all from one project; benchmarked and compared (see [below](#the-three-versions-compared)).
 
 ### Phase 5: environment with Blender ⏳ in progress
-A Transylvanian countryside look, every asset modelled by a Python script in Blender in a full (PC) and a light (Quest) version.
+The land around Reghin, every asset modelled by a Python script in Blender in a full (PC) and a light (Quest) version.
 0. ✅ **Pipeline**: Blender scripts → FBX → Unity, Poly Haven textures, baked shading; first asset (the barn) measured on the Quest
-1. ⏳ **Farmyard**: ✅ barn, ✅ machine shed with a marked bay per implement; next: farmhouse, silos, fuel tank, fences and gate,
-   speed bumps, steep practice ramps
-2. Implements remade · 3. Fields + crops the mower cuts, ploughed-ground look · 4. Landscape: sky, trees, a village on the horizon
-· 5. Tutorial places
+1. ✅ **Farmyard**: barn, machine shed with a bay per implement, farmhouse with a porch, Székely gate and fences, silos, diesel tank,
+   tipping pad, bale stack, worn concrete yard, speed bumps (the front axle now moves), silage clamp and an earth ramp to practise on
+2. ✅ **Implements remade**: plough, mower, front weight and tipping trailer in Blender, worn paint, hoses, lamps
+3. ✅ **Fields**: a meadow of standing grass the mower really cuts (stubble, swaths), a wheat field, furrows where you plough;
+   Mezőség hills with strip parcels, haystacks, pole gates, a wayside cross, the Görgényi mountains on the horizon
+4. ⏳ **Landscape** (next): trees (walnut, wild pear, acacia, willows along a stream), the village with its church tower · 5. Tutorial places
 
 ### Phase 6: free roam + tutorial ⏳ planned
 A start menu with FREE ROAM and TUTORIAL; step-by-step lessons in the headset that show which control to use.
@@ -55,15 +57,16 @@ Future ideas: working mirrors, original model textures. See the [Roadmap](docs/R
 ## What's in it
 
 ### The world
-2 × 2 km of rolling farmland built at start-up: a farmyard with a Transylvanian-style barn and an open machine shed (both modelled
-by script in Blender, phase 5), gravel tracks out to three fields on the hills, an asphalt road, mud at the field gates and in the hollows. Every surface has its own tyre grip and rolling resistance
-(asphalt 0.015 … mud 0.15), so mud and ploughed ground make the engine work.
+2 × 2 km of countryside near Reghin built at start-up: a farmyard (phase 5, modelled by script in Blender), gravel tracks out to a
+meadow, a wheat field and two soil fields, an asphalt road, mud at the field gates and in the hollows. Around them the Mezőség:
+rolling hills cut into narrow strip parcels with grass balks, haystacks, and the Görgényi and Kelemen mountains on the horizon.
+Every surface has its own tyre grip and rolling resistance (asphalt 0.015 … mud 0.15), so mud and ploughed ground make the engine work.
 
 | Farmyard | The main road |
 |---|---|
 | ![farmyard](docs/images/farmyard.png) | ![road](docs/images/road.png) |
 
-| Field gate: gravel track, mud, field soil | Rolling hills |
+| Pole gate at the meadow, mud, standing grass | From the farm: Mezőség hills, Kelemen and Görgényi |
 |---|---|
 | ![field gate](docs/images/field_gate.png) | ![hills](docs/images/hills.png) |
 
@@ -89,6 +92,32 @@ are mapped at their real-world size. One command rebuilds an asset:
 `blender -b --factory-startup -P tools/blender/build.py -- barn`.
 
 ![Blender pipeline](docs/images/phase5_pipeline.png)
+
+More of the farm: the **farmhouse** with its porch (tornác) facing the yard; a carved **Székely gate** ("Isten hozott") on the yard
+road with a picket fence round the garden; two grain **silos** with a filling auger, a red **diesel tank**, a walled **tipping pad** with
+a muck heap, a **bale stack**. The yard is worn Poly Haven concrete.
+
+| Farmhouse | Gate, silos, tipping pad |
+|---|---|
+| ![farmhouse](docs/images/phase5_house.png) | ![yard](docs/images/phase5_yard.png) |
+
+To practise on: two **speed bumps** on the west track (watch the front axle and its suspension cylinders work), a **silage clamp** with
+18° ramps behind the barn and an **earth ramp** with a 15° and a 22° side on the pasture.
+
+![bumps and slopes](docs/images/phase5_slopes.png)
+
+### Fields and the land around Reghin (phase 5)
+The **meadow** north of the yard is standing grass: the mower cuts it to stubble and lays a swath down the middle of each pass. East of
+the main road is a **wheat field**. The plough leaves dark furrows along its passes. All of this is painted on the GPU into a field map
+as the implements work, so the grass costs no CPU; on the Quest it adds 0.6 ms.
+
+![fields](docs/images/phase5_fields.png)
+
+Outside the farm the land becomes Mezőség: higher hills with the hummocks of old landslides, cut into long strip parcels (stubble,
+ploughland, green crops, hay meadow) with grass balks between them; **boglya** haystacks round their poles, a swing-pole **gate** at each
+field, a roofed **wayside cross** at the crossroads, and the Görgényi mountains to the north-east.
+
+![around Reghin](docs/images/phase5_reghin.png)
 
 ### Driving
 - 7.5 t physics body on four raycast wheels (suspension, tyre friction circle), 90 Hz physics, power limit on climbs (195 hp), parking brake that holds on slopes
@@ -121,9 +150,12 @@ Back up or drive up to an implement and press attach.
 - **Front weight** (900 kg) for the front linkage: about 12 kN more on the steering axle.
 - **Tipping trailer**: rear-hinged body on a seven-stage telescopic ram, tailgate that swings open, 3 t of soil that pours out into a heap
   (remote lever 3, panel TIP buttons). The trailer's mass and centre of mass follow the load.
-- Implement models built in code: lugged tyres, twisted mouldboards, disc coulters, mower hood and knives, trailer stakes, mudguards, lamps.
+- Implement models made in Blender (phase 5): worn paint, polished mouldboards, disc coulters, hoses, bolts, warning stripes, lamps,
+  lugged tyres; each moving part (discs, wheels, tipping body, ram stages, tailgate) is its own mesh on its pivot.
 
-| Plough: 30 kN draft, depth control, furrows | Front disc mower on the PTO |
+![implements](docs/images/phase5_implements.png)
+
+| Plough on the west field: 30 kN draft, depth control, furrows | Front disc mower on the PTO |
 |---|---|
 | ![ploughing](docs/images/ploughing.png) | ![mower](docs/images/mower.png) |
 
@@ -286,9 +318,12 @@ The panel's MENU tab is always visible at the right front of the cab.
 ```
 Assets/Scripts/TractorInput.cs        input bindings (Quest + keyboard/gamepad fallback)
 Assets/Scripts/TractorController.cs   driving physics (Rigidbody + raycast suspension, tyre forces, Ackermann, wheel animation)
-Assets/Scripts/TerrainGenerator.cs    rolling hills, generated at startup
+Assets/Scripts/TerrainGenerator.cs    rolling hills, generated at startup (Mezőség relief outside the farm and fields)
+Assets/Scripts/FieldMap.cs            what the implements have done to the fields (ploughed, cut, swath), a GPU texture
+Assets/Scripts/Vegetation.cs          standing grass and wheat, instanced near the camera (+ Assets/Shaders/Vegetation.shader)
+Assets/Scripts/Horizon.cs             Görgényi / Kelemen mountains and hills on the horizon (+ Assets/Shaders/Horizon.shader)
 Assets/Scripts/Hitch.cs               rear hitch + front linkage + drawbar, PTO, attach / detach
-Assets/Scripts/Implement.cs           coupling, depth, draft, PTO parts, work trails
+Assets/Scripts/Implement.cs           coupling, depth, draft, PTO parts, paints the worked ground into the field map
 Assets/Scripts/Tipper.cs              tipping trailer body, ram, tailgate, load and heaps
 Assets/Scripts/SimpleWheels.cs        trailer wheels
 Assets/Scripts/VRHands.cs             hands from controllers or hand tracking (grab point, grabbing, poke tip)
@@ -302,9 +337,10 @@ Assets/Scripts/QualityTier.cs         Quest / PC tier: tractor shadows, which ve
 Assets/Shaders/EnvLit.shader          shader of the Blender buildings (texture × baked shading, normal map on PC)
 Assets/Models/Env/                    the Blender buildings (FBX with a Full and a Light version each)
 Assets/Textures/Env/                  Poly Haven textures (CC0, list in LICENSE.txt)
-tools/blender/                        Blender scripts: tvr.py (shared library), build.py, barn.py, shed.py
+tools/blender/                        Blender scripts: tvr.py (shared library), build.py, one per asset (barn, shed, farmhouse, silos,
+                                      fences, ..., plough, mower, trailer, haystack, polegate, wayside)
 tools/fetch_polyhaven.py              downloads the textures the scripts use
-Assets/Scripts/PerfBenchmark.cs       benchmark run (drive + standing at the barn), results in docs/benchmark/
+Assets/Scripts/PerfBenchmark.cs       benchmark run (drive; barn, yard and meadow views with / without the phase 5 assets), docs/benchmark/
 Assets/Models/Hands/                  hand models (XR Hands sample, Unity Package Distribution License)
 Assets/Scripts/Editor/PhysicsTest.cs  offline driving test         (menu: Tractor VR > Run Physics Test)
 Assets/Scripts/Editor/PlayModeTest.cs real scene in play mode, every button and switch (menu: Tractor VR > Run Play Mode Test)
@@ -342,6 +378,10 @@ The laptop renders at the **PC** quality level (full model, real shadows, soft 4
    or run `Builds/PC/TractorVR.exe` (built with *Tractor VR → Build PC (Windows)*). The PC window shows the mirror view.
 
 ## The three versions compared
+Phase 5 so far on the Quest (run of 2026-11-01, GPU per frame, budget 13.9 ms): drive 10.3 ms; facing the barn 9.4 ms with the farm
+buildings, 9.4 without; across the yard 9.9 / 9.7 ms; in the meadow 10.8 ms with the standing grass and wheat, 10.2 without. Every
+frame at 72 fps; 3.1 ms left for the rest of phase 5. The table below is the phase 4 comparison.
+
 Same scripted 60 s drive in each version (cab panel / menu **BENCHMARK**, F8, or `TractorVR.exe -benchmark`), results in `docs/benchmark/`.
 
 | | Quest standalone | PC VR (Link, USB 2) | PC desktop |

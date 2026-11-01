@@ -1225,3 +1225,8 @@ Blender assets placed from `WorldLayout`:
 New materials `Env_HayStack`, `Env_HayGrey`, `Env_Rope`. The meadow grass is a little less bright (it stood out against the terrain).
 Previews `country_gate / country_haystacks / country_cross`. `PhysicsTest` and `PlayModeTest` (both levels) pass.
 
+**End of day 2026-11-01.** README updated: intro (a farm near Reghin), phase 5 status (steps 1–3 ✅), new sections for the farm's
+other buildings, the practice bumps and slopes, the fields and the land around Reghin, the implements made in Blender, the Quest
+numbers of phase 5 so far; 39 pictures re-rendered from today's scene (the ploughing shot moved to the west field, with furrows,
+since the north field is a meadow now) and new sheets `phase5_fields.png`, `phase5_reghin.png`. Next session: ROADMAP "Next session".
+

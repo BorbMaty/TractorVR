@@ -1,29 +1,31 @@
 # Roadmap
 
-## ▶ Where we left off (2026-11-01, late night)
-**Phase 5 step 2 built**: the four implements remade in Blender (worn paint, hoses, bolts, lamps, warning stripes), ~150 primitive
-renderers replaced by ~20 meshes. `PhysicsTest` unchanged, `PlayModeTest` passes at both levels; PC exe and APK rebuilt.
-User's look 2026-11-01: "looks good to me" ✅. Next: step 3 (fields and crops).
+## ▶ Where we left off (2026-11-01, end of day)
+**Phase 5 steps 1–3 are built** in one day (details in the DEVLOG, pictures in the README):
+- **Step 1, farmyard** ✅: farmhouse (user: "love it"), Székely gate + fences (top fixed twice after the user's screenshot), silos,
+  diesel tank, tipping pad, bale stack, worn concrete yard, speed bumps + a moving front axle, silage clamp (18°), earth ramp (15° / 22°);
+  the tractor's colliders made round / higher (they stuck on steep ramps).
+- **Step 2, implements remade** ✅ in Blender (user: "looks good to me").
+- **Step 3, fields** ✅: FieldMap (furrows, stubble, swaths painted on the GPU), a meadow of standing grass the mower cuts, a wheat field;
+  then, at the user's request, **the land around Reghin**: Mezőség hills with strip parcels and balks outside the farm and fields,
+  the Görgényi / Kelemen mountains on the horizon, haystacks (boglya), pole gates, a wayside cross.
+- Quest (run 02-47, before the Reghin landscape): every frame at 72 fps, worst case 10.8 ms of 13.9 (meadow with grass), 3.1 ms left.
+- `PhysicsTest` (new: W bumps, X clamp / ramp, FieldMap checks; plough runs on the west field) and `PlayModeTest` (both levels) pass.
+  PC exe and Quest APK are current.
 
-## ▶ Earlier the same night (2026-11-01)
-**Phase 5 step 1 (farmyard) built**: yard surface (Poly Haven concrete), speed bumps on the west track with a **moving front axle**
-(axle + cylinder rods follow the front springs), a silage clamp (18°) and an earth ramp (15° / 22°) to practise on, round wheel
-colliders + higher front collider (the old boxes stuck on steep ramps). `PhysicsTest` (new W, X, X2, X3) and `PlayModeTest` (both
-levels) pass. PC exe and Quest APK rebuilt. Next: the user's look (bumps from the cab, the ramps, the 22° descent for comfort), then
-step 2 (implements remade in Blender).
-
-## ▶ Where we left off (2026-11-01, later)
-**Yard details built** (phase 5 step 1, second item): silos, diesel tank, tipping pad + muck heap, bale stack, yard gate, fences
-(`docs/images/phase5_yard.png`). `PlayModeTest` passes at both levels, `PhysicsTest` too (the trailer test no longer runs into the front
-weight, see the DEVLOG). PC exe and Quest APK rebuilt (gate top fixed after the user's first look: cross beams + braces). Benchmark has a second yard view (`yard` / `noyard`). **Quest benchmark of the full yard done** (2026-11-01): yard 10.1 ms GPU with the assets = 10.1 without, 3.8 ms of the
-13.9 ms budget left. Gate top fixed twice after the user's PC look (desktop screenshot). Next: the yard surface, speed bumps and steep slopes.
-
-**Farmhouse built** (phase 5 step 1, first item complete: barn, shed, farmhouse). `PlayModeTest` passes at both levels.
-Still open with the user from 2026-10-31: the check of the new shed (and now the house) in PC VR over Link and on the desktop.
-`Builds/PC/TractorVR.exe` rebuilt with the farmhouse (2026-11-01, 00:13).
-User check in PC VR over Link: house ✅ ("love it"), shed seen. Desktop check of the shed bays with the mouse still open.
-Next: yard details (silos, fuel tank, muck heap / tipping pad, bale stack, fences, yard gate). The house's Light variant has 9 materials
-(= 9 draw calls, the barn 5): fine at 1.7k triangles, but worth a Quest benchmark once the yard details are in.
+### ▶ Next session (2026-11-02): start here
+1. **User's look in the headset** at what was built after the last check (nothing of it is headset-checked yet):
+   - the land around Reghin: hills, strip parcels, mountains on the horizon (also at DUSK / NIGHT: their haze follows the fog colour),
+     haystacks, the pole gate at the meadow, the wayside cross at the main road;
+   - mow a few passes in the meadow and look back (stubble, swaths); plough a strip on the west field (furrows);
+   - drive the steeper countryside (up to 22.8° south of the south-east field) and the earth ramp's 22° side from the cab: comfort.
+2. **One Quest benchmark** (cab panel BENCHMARK): the last run was before the hills, strip parcels and horizon; confirm they cost
+   nothing (expected: the horizon is one mesh, the parcels no texture reads) and that the drive still holds 72 fps.
+3. Still open from step 1: the **desktop check** of coupling from the shed bays with the mouse.
+4. Then **phase 5 step 4, landscape**, first task: **trees for this landscape**. Blender scripts for a walnut, a wild pear, a black
+   locust (acacia) and a willow / poplar, Full + Light, plus flat billboard impostors for the far ones; placed as solitary trees on the
+   balks of the strip parcels, acacia strips along the tracks and ravines, willows and poplars along a new stream in the valley. Keep
+   the Quest under ~1.5 ms for all trees (instanced like the grass, impostors beyond ~120 m), and benchmark before the village.
 
 ## ▶ Where we left off (2026-10-31)
 **Phase 5 started**: plan agreed with the user (see phase 5 below): Transylvanian look, Poly Haven + Blender scripts, implements

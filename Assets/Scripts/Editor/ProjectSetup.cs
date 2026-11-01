@@ -3233,12 +3233,23 @@ public static class ProjectSetup
         }
         foreach (var r in tractorRenderers) r.forceMeshLod = -1;
 
-        // Ploughing in the north field: plough at working depth.
-        Pose(40f, 220f, 0f);
+        // Ploughing on the west field (soil; the north field is a meadow now): plough at working depth, the strip it has
+        // ploughed behind it and four earlier passes beside it (FieldMap, cleared again after the shot).
+        Pose(-400f, -20f, 0f);
         hitch.PreviewAttach(Imp("Plough"));
         hitch.PreviewPose(0.17f, 1f);
         Couple(Imp("Plough"), hitch.rearMount);
+        if (FieldMap.Ready)
+        {
+            Vector3 wp = Imp("Plough").workPoint.position;
+            for (int k = 0; k < 5; k++)
+            {
+                float x = wp.x - k * 1.05f;
+                FieldMap.Paint(new Vector3(x, 0f, -60f), new Vector3(x, 0f, k == 0 ? wp.z : -18f), 1.05f, new Color(0f, 0f, 1f, 0f), furrows: true);
+            }
+        }
         Look("ploughing.png", new Vector3(7f, 2.6f, -6f), new Vector3(0.3f, 0.8f, -1.8f), 60f);
+        FieldMap.Clear();
 
         // Plough raised for transport, front weight on the front linkage to keep weight on the steering axle.
         Pose(48f, 0f, 90f);

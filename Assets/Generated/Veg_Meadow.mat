@@ -25,8 +25,8 @@ Material:
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _FadeEnd: 18
-    - _FadeWidth: 3
+    - _FadeEnd: 70
+    - _FadeWidth: 10.5
     - _StubbleHeight: 0.18
     - _Wind: 0.05
     m_Colors:
