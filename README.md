@@ -266,6 +266,14 @@ It has everything in one place, including the functions of the switches and leve
 
 ![cab panel](docs/images/guide_panel.png)
 
+The Quest 2 controllers (the start menu's CONTROLS page shows these pictures too):
+
+![controllers, labelled](docs/images/guide_controllers.png)
+
+Keyboard and mouse (PC desktop version):
+
+![keyboard and mouse](docs/images/guide_keyboard.png)
+
 | Button | What it does |
 |---|---|
 | VIEW | Cab view ↔ third-person view |

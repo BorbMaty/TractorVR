@@ -4,21 +4,30 @@ Input:  Logs/Guide/<name>.png + <name>.json (from CabGuide.Run in Unity: title, 
 Output: docs/images/<name>.png
 
     python tools/annotate_guide.py            (all guide_* renders that have labels)
+    python tools/annotate_guide.py --game     (the same with bigger lettering → Assets/Textures/Guide/, read on the start
+                                               menu's board in VR, phase 6)
 """
 import glob
 import json
 import math
 import os
+import sys
 import textwrap
 
 from PIL import Image, ImageDraw, ImageFont
 
-MARGIN = 470          # px of label column on each side
-BOX_W = 420
-PAD = 12
-GAP = 14              # between boxes
-TITLE = ImageFont.truetype("arialbd.ttf", 27)
-BODY = ImageFont.truetype("arial.ttf", 22)
+GAME = "--game" in sys.argv
+OUT = "Assets/Textures/Guide" if GAME else "docs/images"
+SCALE = 1.45 if GAME else 1.0   # lettering and boxes
+
+MARGIN = int(470 * SCALE)    # px of label column on each side
+BOX_W = int(420 * SCALE)
+PAD = int(12 * SCALE)
+GAP = int(14 * SCALE) if not GAME else 8   # between boxes
+TITLE = ImageFont.truetype("arialbd.ttf", int(27 * SCALE))
+BODY = ImageFont.truetype("arial.ttf", int(22 * SCALE))
+LINE = int(27 * SCALE)
+HEAD = int(32 * SCALE)
 INK = (30, 34, 30)
 ACCENT = (54, 124, 43)        # John Deere green
 BOX_FILL = (250, 250, 246)
@@ -26,9 +35,9 @@ BG = (236, 238, 232)
 
 
 def box_height(label):
-    lines = textwrap.wrap(label["text"], 36)
+    lines = textwrap.wrap(label["text"], 34 if GAME else 36)
     label["lines"] = lines
-    return PAD * 2 + 32 + 27 * len(lines)
+    return PAD * 2 + HEAD + LINE * len(lines)
 
 
 def layout(labels, height):
@@ -64,8 +73,9 @@ def annotate(name):
     shot = Image.open(f"Logs/Guide/{name}.png").convert("RGB")
     labels = [l for l in json.load(open(f"Logs/Guide/{name}.json", encoding="utf-8"))["labels"] if l["visible"]]
     if not labels:   # nothing to point at (the cab panel: its buttons are labelled)
-        shot.save(f"docs/images/{name}.png", optimize=True)
-        print(f"docs/images/{name}.png: as rendered")
+        os.makedirs(OUT, exist_ok=True)
+        shot.save(f"{OUT}/{name}.png", optimize=True)
+        print(f"{OUT}/{name}.png: as rendered")
         return True
     w, h = shot.size
     canvas = Image.new("RGB", (w + 2 * MARGIN, h), BG)
@@ -82,12 +92,12 @@ def annotate(name):
             draw.rounded_rectangle([x0, y0, x0 + BOX_W, y0 + l["h"]], radius=10, fill=BOX_FILL, outline=ACCENT, width=3)
             draw.text((x0 + PAD, y0 + PAD - 2), l["title"], font=TITLE, fill=ACCENT)
             for i, line in enumerate(l["lines"]):
-                draw.text((x0 + PAD, y0 + PAD + 34 + 27 * i), line, font=BODY, fill=INK)
+                draw.text((x0 + PAD, y0 + PAD + HEAD + 2 + LINE * i), line, font=BODY, fill=INK)
             start = (x0 + BOX_W, y0 + l["h"] / 2) if side == "L" else (x0, y0 + l["h"] / 2)
             arrow(draw, start, (MARGIN + l["x"], l["y"]))
-    os.makedirs("docs/images", exist_ok=True)
-    canvas.save(f"docs/images/{name}.png", optimize=True)
-    print(f"docs/images/{name}.png: {len(labels)} labels")
+    os.makedirs(OUT, exist_ok=True)
+    canvas.save(f"{OUT}/{name}.png", optimize=True)
+    print(f"{OUT}/{name}.png: {len(labels)} labels")
     return True
 
 

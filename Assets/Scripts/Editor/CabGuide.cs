@@ -15,6 +15,9 @@ using UnityEngine;
 public static class CabGuide
 {
     const int Width = 1600, Height = 1250;
+    // Controller shot: models tipped back by CtlPitch (faces towards the camera), CtlGap either side of the centre, camera at CtlCam.
+    const float CtlPitch = -30f, CtlGap = 0.075f;
+    static readonly Vector3 CtlCam = new Vector3(0f, 0.40f, -0.07f);
 
     [MenuItem("Tractor VR/Render Cab Guide")]
     public static void Run()
@@ -124,6 +127,51 @@ public static class CabGuide
         panel.PreviewOpen();
         Shot("guide_panel", seat.position, panel.transform.position + new Vector3(0f, 0.01f, 0f), 70f);
         panel.gameObject.SetActive(false);
+
+        // 5) The Quest 2 controllers (phase 6, the start menu's CONTROLS page): both models side by side high above the farm,
+        // seen from in front and above, on a plain background, with a label on every button.
+        var ctlL = Resources.FindObjectsOfTypeAll<ControllerVisual>().Select(c => c.transform).FirstOrDefault(t => t.name == "Left Controller");
+        var ctlR = Resources.FindObjectsOfTypeAll<ControllerVisual>().Select(c => c.transform).FirstOrDefault(t => t.name == "Right Controller");
+        if (ctlL && ctlR)
+        {
+            var basePos = new Vector3(0f, 300f, 0f);
+            var pose = Quaternion.Euler(CtlPitch, 0f, 0f);
+            foreach (var (t, x) in new[] { (ctlL, -CtlGap), (ctlR, CtlGap) })
+            {
+                t.gameObject.SetActive(true);
+                t.SetParent(null, true);
+                t.SetPositionAndRotation(basePos + new Vector3(x, 0f, 0f), pose);
+                foreach (var r in t.GetComponentsInChildren<Renderer>(true)) { r.enabled = true; r.gameObject.layer = 31; }
+            }
+            Transform Bone(Transform root, string n) => root.GetComponentsInChildren<Transform>(true).First(b => b.name == n);
+            // The grip bone sits inside the ring, and from above the handle is hidden: point at the ring's inner side (towards the
+            // other hand), where the grip button is, under the ring.
+            Vector3 Handle(Transform root, float side)
+            {
+                var b = root.GetComponentsInChildren<Renderer>(true).Select(r => r.bounds).Aggregate((a, c) => { a.Encapsulate(c); return a; });
+                return new Vector3(b.center.x + side * b.extents.x * 0.9f, b.center.y, b.center.z + b.extents.z * 0.1f);
+            }
+            Debug.Log("[Guide] controller bones: " + string.Join(", ", ctlR.GetComponentsInChildren<Transform>(true).Select(b => b.name)));
+            fill.transform.position = basePos + new Vector3(0f, 0.4f, -0.4f);
+            fill.range = 3f; fill.intensity = 1.5f;
+            var clear = cam.clearFlags; var bg = cam.backgroundColor; int mask = cam.cullingMask;
+            cam.cullingMask = 1 << 31;   // only the controllers: no terrain or horizon behind them
+            cam.clearFlags = CameraClearFlags.SolidColor;
+            cam.backgroundColor = new Color(0.82f, 0.84f, 0.8f);
+            Label("Left stick", "Steer. Push up / down: rear hitch. Click: attach / detach", Bone(ctlL, "b_thumbstick").position);
+            Label("X", "Comfort vignette: off / low / high", Bone(ctlL, "b_button_x").position);
+            Label("Y", "Gearbox: automatic / manual", Bone(ctlL, "b_button_y").position);
+            Label("Menu button", "The cab panel (all functions as buttons) open / closed", Bone(ctlL, "b_button_oculus").position);
+            Label("Left trigger", "(index finger, underneath) Hold + left stick up / down: front linkage", Bone(ctlL, "b_trigger_front").position);
+            Label("Left grip", "(middle finger, side) Grab the wheel, a lever, the stalk, a door", Bone(ctlL, "b_button_x").position + new Vector3(0.036f, -0.01f, -0.012f));
+            Label("Right stick", "Forward: drive. Back: brake, then reverse. Flick right / left: shift up / down. Click: PTO", Bone(ctlR, "b_thumbstick").position);
+            Label("A", "Cab view / outside view", Bone(ctlR, "b_button_a").position);
+            Label("B", "Recenter the view", Bone(ctlR, "b_button_b").position);
+            Label("Right trigger", "(index finger, underneath) Horn", Bone(ctlR, "b_trigger_front").position);
+            Label("Right grip", "(middle finger, side) Grab the wheel, the speed lever, the remote levers", Bone(ctlR, "b_button_a").position + new Vector3(-0.036f, -0.01f, -0.012f));
+            Shot("guide_controllers", basePos + CtlCam, basePos + new Vector3(0f, -0.03f, -0.045f), 31f);
+            cam.clearFlags = clear; cam.backgroundColor = bg; cam.cullingMask = mask;
+        }
 
         Object.DestroyImmediate(fill.gameObject);
         Debug.Log("[Guide] done: Logs/Guide/");

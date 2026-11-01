@@ -246,6 +246,14 @@ public class Tutorial : MonoBehaviour
         rig.SnapFollow();
     }
 
+    /// <summary>Free roam from the menu: the scene reset and the tractor in the yard.</summary>
+    public void FreshStart()
+    {
+        Stop();
+        ResetScene();
+        Spawn();
+    }
+
     /// <summary>The tractor back at its start in the yard.</summary>
     void Spawn()
     {

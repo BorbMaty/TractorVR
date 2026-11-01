@@ -148,15 +148,16 @@ public static class PlayModeTest
             if (menu == null || !StartMenu.IsOpen) { Debug.LogError("[PlayModeTest] the start menu is not open at launch"); return; }
             var b = menu.board;
             log.AppendLine($"{t:0.0}s start menu: \"{b.Title}\", buttons {string.Join(" / ", Enumerable.Range(0, b.ButtonCount).Select(i => b.ButtonAt(i).label))}");
-            b.Press(2);                                    // CONTROLS
-            for (int i = 0; i < 4; i++) b.Press(i);        // the four pages
-            b.Press(4);                                    // BACK
+            b.Press(2);                                    // CONTROLS (main page before playing: FREE ROAM, TUTORIAL, CONTROLS, QUIT)
+            for (int i = 0; i < 6; i++) b.Press(i);        // the six picture pages
+            log.AppendLine($"{t:0.0}s controls: last page \"{b.Title}\" with a picture: {b.Picture != null}");
+            b.Press(6);                                    // BACK
             log.AppendLine($"{t:0.0}s controls pages opened, back on \"{b.Title}\"");
         });
         Once("freeRoam", 1.2, t, () =>
         {
             var b = StartMenu.Instance.board;
-            b.Press(1);                                    // FREE ROAM
+            b.Press(0);                                    // FREE ROAM
             log.AppendLine($"{t:0.0}s FREE ROAM: menu open {StartMenu.IsOpen}, rig in menu {Object.FindAnyObjectByType<VRCameraRig>().InMenu}");
         });
         // Then every lesson from the menu's lesson list: its set-up (teleport, implements) and each step (SKIP / NEXT LESSON every frame).
@@ -164,7 +165,7 @@ public static class PlayModeTest
         {
             var menu = StartMenu.Instance;
             menu.ShowLessons();
-            log.AppendLine($"{t:0.0}s lessons in the menu: {menu.board.ButtonCount - 1}");
+            log.AppendLine($"{t:0.0}s lessons in the menu: {menu.board.ButtonCount - 2}");
             menu.board.Press(0);
             log.AppendLine($"{t:0.0}s lesson 1 started: \"{Tutorial.Instance.board.Title}\", menu open {StartMenu.IsOpen}");
         });

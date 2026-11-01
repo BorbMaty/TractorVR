@@ -1386,3 +1386,28 @@ happens and rate it with up to five stars; a separate start screen; the tutorial
 | Start screen | Lesson list with stars | The tutorial board, low left |
 |---|---|---|
 | ![menu](images/phase6_menu_main.png) | ![lessons](images/phase6_menu_lessons.png) | ![board](images/phase6_tutorial_board.png) |
+
+## 2026-11-01 (late night): FREE ROAM always in the menu, CONTROLS as pictures with arrows
+User: "I miss the free roam from the menu" (after the first drive the main page only offered CONTINUE), and the CONTROLS pages
+should be pictures with arrows and text, not plain text.
+
+- **Main page**: before playing FREE ROAM / TUTORIAL / CONTROLS / QUIT; once playing CONTINUE (back to where you were) /
+  FREE ROAM (a fresh start: `Tutorial.FreshStart` = implements back in the shed, the tractor in the yard) / TUTORIAL / CONTROLS /
+  QUIT. The lesson list has a FREE ROAM button too.
+- **CONTROLS = six annotated pictures**: the Quest controllers, the cab from the seat, the speed lever and remote levers, the switch
+  panel, the cab panel, keyboard and mouse. `TouchBoard` got a picture slot (between title and text; on the desktop
+  `GUI.DrawTexture`); picture pages make the menu board 1 m wide, the page buttons in four columns.
+- **Controller picture** (`CabGuide`, `guide_controllers`): both Quest 2 models high above the farm on their own layer (camera
+  culling only that layer, plain background), tipped back 30 degrees and seen from above so every face button shows; a label on
+  each stick, button, trigger and grip. It took six renders to get the view: from in front the ring hid the buttons, a look point
+  behind the camera turned the picture upside down, the first tilt went the wrong way; the grip bone sits inside the ring, so the
+  grip arrows point at the ring's inner side (3.6 cm from X / A).
+- **Keyboard picture** (`tools/keyboard_guide.py`): a keyboard with the used keys coloured by group (driving, hitch and implements,
+  lights and sky, tractor and view), a legend with every key, the mouse buttons below.
+- **In-game versions**: `tools/annotate_guide.py --game` draws the same labels 1.45x larger into `Assets/Textures/Guide/` (read on
+  a board in VR; imported at 2048 px, ASTC 4x4 on the Quest for sharp letters). The README pictures stay in `docs/images/`.
+- `PlayModeTest`: opens all six CONTROLS pages (checks they have a picture), then FREE ROAM. Passes at both levels.
+
+| Main page | CONTROLS: the controllers |
+|---|---|
+| ![main](images/phase6_menu_main.png) | ![controls](images/phase6_menu_controls.png) |

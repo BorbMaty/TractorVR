@@ -3050,6 +3050,7 @@ public static class ProjectSetup
         Material Flat(string name, Color c) { var m = new Material(unlit); m.SetColor("_BaseColor", c); return SaveMat(m, name); }
         var back = Flat("Board_Back", new Color(0.03f, 0.05f, 0.035f));
         var starOn = Flat("Board_StarOn", new Color(1f, 0.78f, 0.12f));
+        var picMat = Flat("Board_Picture", Color.white);
         var starOff = Flat("Board_StarOff", new Color(0.42f, 0.42f, 0.38f));
         TouchBoard Board(string name, Transform parent, Vector3 pos, Quaternion rot)
         {
@@ -3060,7 +3061,7 @@ public static class ProjectSetup
             var b = go.AddComponent<TouchBoard>();
             b.hands = hands;
             b.buttonMat = panel.buttonMat; b.buttonHotMat = panel.buttonHotMat; b.panelMat = back; b.textMat = panel.textMat;
-            b.starOnMat = starOn; b.starOffMat = starOff;
+            b.starOnMat = starOn; b.starOffMat = starOff; b.pictureMat = picMat;
             var src = go.AddComponent<AudioSource>();
             src.playOnAwake = false; src.spatialBlend = 0.3f; src.volume = 0.6f;
             src.clip = panel.click.clip;
@@ -3100,6 +3101,25 @@ public static class ProjectSetup
         menu.tutorial = t;
         menu.board = mb;
         menu.eye = eye;
+        // CONTROLS pictures (tools/annotate_guide.py --game, tools/keyboard_guide.py): sharp text, no compression artefacts on the letters.
+        var guides = new System.Collections.Generic.List<Texture2D>();
+        foreach (var path in Directory.GetFiles("Assets/Textures/Guide", "*.png").Select(f => f.Replace('\\', '/')))
+        {
+            var ti = (TextureImporter)AssetImporter.GetAtPath(path);
+            ti.textureType = TextureImporterType.Default;
+            ti.sRGBTexture = true;
+            ti.mipmapEnabled = true;
+            ti.wrapMode = TextureWrapMode.Clamp;
+            ti.anisoLevel = 4;
+            ti.maxTextureSize = 2048;
+            ti.npotScale = TextureImporterNPOTScale.None;
+            var android = ti.GetPlatformTextureSettings("Android");
+            android.overridden = true; android.maxTextureSize = 2048; android.format = TextureImporterFormat.ASTC_4x4;
+            ti.SetPlatformTextureSettings(android);
+            ti.SaveAndReimport();
+            guides.Add(AssetDatabase.LoadAssetAtPath<Texture2D>(path));
+        }
+        menu.guides = guides.ToArray();
     }
 
     // Cab panel at the right front, within reach, facing the driver (built by CabPanel at runtime from these materials).
@@ -3440,7 +3460,7 @@ public static class ProjectSetup
             Vector3 lookAt = tractor.position + tractor.rotation * new Vector3(0f, 2f, 1f) - eyeAt; lookAt.y = 0f;
             var eyeRot = Quaternion.LookRotation(lookAt);
             startMenu.board.transform.SetPositionAndRotation(eyeAt + eyeRot * new Vector3(0f, -0.14f, 0.6f), eyeRot * Quaternion.Euler(12f, 0f, 0f));
-            foreach (var page in new[] { "main", "lessons", "controls:controllers" })
+            foreach (var page in new[] { "main", "lessons", "controls:controllers", "controls:switches" })
             {
                 startMenu.Preview(page);
                 Shot($"menu_{page.Replace("controls:", "controls_")}.png", eyeAt, eyeRot * Quaternion.Euler(10f, 0f, 0f));

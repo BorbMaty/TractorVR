@@ -45,7 +45,8 @@ See `README.md` for controls, `docs/ROADMAP.md` for what's next and `docs/DEVLOG
 | `Assets/Scripts/ControllerVisual.cs` | Animates the bones of the official Quest 2 controller models (stick, buttons, trigger, grip; hidden when untracked) |
 | `Assets/Models/MetaControllers/` | Quest 2 Touch FBX + texture copied from the Meta XR Core SDK (Oculus SDK License, see README there) |
 | `Assets/Scripts/Editor/ProjectSetup.cs` | **Generates everything**: player/XR/URP settings, model import, materials, scene, preview renders |
-| `Assets/Scripts/Editor/CabGuide.cs` + `tools/annotate_guide.py` | README cab guide: renders seat views + control positions (`Logs/Guide/*.json`), then Python (Pillow) draws text boxes + arrows → `docs/images/guide_*.png`. Re-run both when controls change |
+| `Assets/Scripts/Editor/CabGuide.cs` + `tools/annotate_guide.py` | Cab guide: renders seat views + the Quest controllers (own layer, plain background) + control positions (`Logs/Guide/*.json`), then Python (Pillow) draws text boxes + arrows → `docs/images/guide_*.png` (README); `--game` = 1.45x lettering → `Assets/Textures/Guide/` (start menu CONTROLS pages). Re-run all three when controls change |
+| `tools/keyboard_guide.py` | Keyboard and mouse picture (keys coloured by group + legend) → `docs/images/` and `Assets/Textures/Guide/` |
 | `Assets/Scripts/Editor/BuildQuest.cs` | APK build → `Builds/TractorVR.apk` |
 | `Assets/Scripts/Editor/BuildPC.cs` | Windows build → `Builds/PC/TractorVR.exe` (`-buildTarget StandaloneWindows64`) |
 | `Assets/Scripts/DesktopMode.cs` | PC desktop version in the same exe: VR if the OpenXR session is focused within 6 s, else XR off + monitor (`-desktop` / `-vr`, F9); mouse look / orbit, mouse fed into `VRHands` as the right hand (pick proxies on layer 30), on-screen menu from `CabPanel` entries |

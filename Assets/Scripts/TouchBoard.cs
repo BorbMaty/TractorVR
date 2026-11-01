@@ -16,7 +16,7 @@ public class TouchBoard : MonoBehaviour
     public static readonly List<TouchBoard> All = new List<TouchBoard>();
 
     public VRHands hands;
-    public Material buttonMat, buttonHotMat, panelMat, textMat, starOnMat, starOffMat;
+    public Material buttonMat, buttonHotMat, panelMat, textMat, starOnMat, starOffMat, pictureMat;
     public AudioSource click;
     public float width = 0.36f, titleSize = 0.0135f, bodySize = 0.0105f, buttonSize = 0.0105f, buttonHeight = 0.036f;
     public int maxColumns = 2;
@@ -25,6 +25,8 @@ public class TouchBoard : MonoBehaviour
     public string Title { get; private set; } = "";
     public string Body { get; private set; } = "";
     public int Stars { get; private set; } = -1;
+    /// <summary>Optional picture between the title and the text (the CONTROLS pages: annotated cab / controller / keyboard).</summary>
+    public Texture Picture { get; private set; }
     public bool Visible { get; private set; }
     readonly List<Button> buttons = new List<Button>();
     public int ButtonCount => buttons.Count;
@@ -34,7 +36,8 @@ public class TouchBoard : MonoBehaviour
 
     Transform board, buttonRoot, starRow;
     TextMesh titleText, bodyText;
-    MeshRenderer back;
+    MeshRenderer back, picture;
+    MaterialPropertyBlock pictureBlock;
     Font font;
     readonly List<(Transform t, MeshRenderer face, TextMesh label, bool inside)> made = new List<(Transform, MeshRenderer, TextMesh, bool)>();
     bool dirty = true;
@@ -44,9 +47,9 @@ public class TouchBoard : MonoBehaviour
     void OnEnable() { if (!All.Contains(this)) All.Add(this); }
     void OnDisable() => All.Remove(this);
 
-    public void Set(string title, string body, IEnumerable<Button> list, int stars = -1)
+    public void Set(string title, string body, IEnumerable<Button> list, int stars = -1, Texture picture = null)
     {
-        Title = title; Body = body; Stars = stars;
+        Title = title; Body = body; Stars = stars; Picture = picture;
         buttons.Clear();
         buttons.AddRange(list);
         Visible = true;
@@ -78,6 +81,8 @@ public class TouchBoard : MonoBehaviour
         buttonRoot.SetParent(board, false);
         starRow = new GameObject("Stars").transform;
         starRow.SetParent(board, false);
+        picture = Quad("Picture", board, pictureMat);
+        pictureBlock = new MaterialPropertyBlock();
     }
 
     /// <summary>Updates the board (also callable outside play mode for editor renders). Returns false while hidden.</summary>
@@ -127,18 +132,28 @@ public class TouchBoard : MonoBehaviour
         made.Clear();
         for (int i = starRow.childCount - 1; i >= 0; i--) Kill(starRow.GetChild(i).gameObject);
         int n = buttons.Count;
-        int cols = n > 4 ? Mathf.Min(2, maxColumns) : Mathf.Clamp(n, 1, maxColumns);
+        int cols = n <= 4 ? Mathf.Clamp(n, 1, maxColumns) : Mathf.Min(maxColumns, (n + 1) / 2);
         int rows = (n + cols - 1) / cols;
         float titleH = LineHeight(titleText) + 0.006f;
         float starH = Stars >= 0 ? titleSize * 2.6f : 0f;
-        float textH = titleH + starH + lines * LineHeight(bodyText) + 0.004f;
+        float picW = width - 2f * Margin;
+        float picH = Picture != null && pictureMat != null ? picW * Picture.height / Picture.width + 0.008f : 0f;
+        float textH = titleH + starH + picH + lines * LineHeight(bodyText) + 0.004f;
         float h = Gap + textH + Gap + rows * (buttonHeight + Gap) + Gap;
         back.transform.localScale = new Vector3(width, h, 1f);
         back.transform.localPosition = new Vector3(0f, 0f, 0.003f);
         float top = h * 0.5f - Gap;
         titleText.transform.localPosition = new Vector3(-width * 0.5f + Margin, top, -0.001f);
         if (Stars >= 0) MakeStars(starRow, new Vector3(-width * 0.5f + Margin + titleSize, top - titleH - starH * 0.45f, -0.001f), titleSize * 1.1f, Stars);
-        bodyText.transform.localPosition = new Vector3(-width * 0.5f + Margin, top - titleH - starH, -0.001f);
+        picture.gameObject.SetActive(picH > 0f);
+        if (picH > 0f)
+        {
+            picture.transform.localScale = new Vector3(picW, picH - 0.008f, 1f);
+            picture.transform.localPosition = new Vector3(0f, top - titleH - starH - (picH - 0.008f) * 0.5f, -0.001f);
+            pictureBlock.SetTexture("_BaseMap", Picture);
+            picture.SetPropertyBlock(pictureBlock);
+        }
+        bodyText.transform.localPosition = new Vector3(-width * 0.5f + Margin, top - titleH - starH - picH, -0.001f);
         float bw = (width - (cols + 1) * Gap) / cols;
         float y0 = top - textH - Gap - buttonHeight * 0.5f;
         for (int i = 0; i < n; i++)
@@ -297,7 +312,8 @@ public class TouchBoard : MonoBehaviour
     public Rect DrawGUI(float u, GUIStyle labelStyle, GUIStyle buttonStyle, GUIStyle boxStyle)
     {
         float gap = u * 0.2f;
-        float tw = screenCentered ? Mathf.Min(Screen.width * 0.6f, u * 36f) : Mathf.Min(Screen.width * 0.42f, u * 30f);
+        float tw = screenCentered ? Mathf.Min(Screen.width * (Picture != null ? 0.8f : 0.6f), u * (Picture != null ? 52f : 36f))
+                                  : Mathf.Min(Screen.width * 0.42f, u * 30f);
         float inner = tw - u;
         var titleStyle = new GUIStyle(labelStyle) { fontStyle = FontStyle.Bold, normal = { textColor = new Color(1f, 0.85f, 0.3f) } };
         if (screenCentered) titleStyle.fontSize = Mathf.RoundToInt(labelStyle.fontSize * 1.5f);
@@ -307,11 +323,12 @@ public class TouchBoard : MonoBehaviour
         float titleH = titleStyle.CalcHeight(new GUIContent(Title), inner);
         float starH = Stars >= 0 ? u * 1.2f : 0f;
         float bodyH = labelStyle.CalcHeight(new GUIContent(Body), inner);
+        float picH = Picture != null ? inner * Picture.height / Picture.width + u * 0.3f : 0f;
         int nb = buttons.Count;
         string Label(int i) => buttons[i].stars >= 0 ? buttons[i].label + "   " + StarText(buttons[i].stars) : buttons[i].label;
         float widest = 0f;
         for (int i = 0; i < nb; i++) widest = Mathf.Max(widest, btn.CalcSize(new GUIContent(Label(i))).x + u * 0.4f);
-        int cols = nb <= 1 ? 1 : nb > 4 ? Mathf.Min(2, maxColumns) : Mathf.Min(nb, maxColumns);
+        int cols = nb <= 1 ? 1 : nb <= 4 ? Mathf.Min(nb, maxColumns) : Mathf.Min(maxColumns, (nb + 1) / 2);
         while (cols > 1 && widest > (inner - (cols - 1) * gap) / cols) cols--;
         float bw = (inner - (cols - 1) * gap) / cols;
         int rows = (nb + cols - 1) / cols;
@@ -320,7 +337,7 @@ public class TouchBoard : MonoBehaviour
             rowH[i / cols] = Mathf.Max(rowH[i / cols], Mathf.Max(u * 1.1f, btn.CalcHeight(new GUIContent(Label(i)), bw) + u * 0.2f));
         float buttonsH = 0f;
         for (int r = 0; r < rows; r++) buttonsH += rowH[r] + gap;
-        float h = u * 0.3f + titleH + starH + u * 0.3f + bodyH + u * 0.4f + buttonsH + u * 0.3f;
+        float h = u * 0.3f + titleH + starH + picH + u * 0.3f + bodyH + u * 0.4f + buttonsH + u * 0.3f;
         Rect box = screenCentered ? new Rect((Screen.width - tw) * 0.5f, Mathf.Max(u, (Screen.height - h) * 0.5f), tw, h)
                                   : new Rect(u * 0.5f, u, tw, h);
         GUI.Box(box, GUIContent.none, boxStyle);
@@ -333,6 +350,11 @@ public class TouchBoard : MonoBehaviour
             var big = new GUIStyle(starStyle) { fontSize = Mathf.RoundToInt(labelStyle.fontSize * 1.6f), alignment = TextAnchor.MiddleLeft };
             GUI.Label(new Rect(box.x + u * 0.5f, y, inner, starH), StarText(Stars), big);
             y += starH;
+        }
+        if (picH > 0f)
+        {
+            GUI.DrawTexture(new Rect(box.x + u * 0.5f, y + u * 0.15f, inner, picH - u * 0.3f), Picture, ScaleMode.ScaleToFit);
+            y += picH;
         }
         y += u * 0.3f;
         GUI.Label(new Rect(box.x + u * 0.5f, y, inner, bodyH), Body, labelStyle);
