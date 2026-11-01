@@ -1,0 +1,21 @@
+Tractor VR benchmark  2026-11-01 02:28
+Version        QuestStandalone  (quality level Quest)
+Device         Oculus Quest 2 / Adreno (TM) 650 (Vulkan) / ARM64 FP ASIMD AES
+Display        72 Hz, frame budget 13.9 ms, render target 1440×1584 per eye
+Rendering      render scale 1.0, MSAA 4×, shadows 1024 px / 40 m, mesh LOD threshold 1.5, foveation MEDIUM
+Drive          3 s settle, 30 s cab view straight out of the yard, 30 s third person with a gentle left turn; env / noenv: 10 s each parked facing the barn, with / without the environment assets
+
+Phase   frames   fps    frame ms avg / p95 / p99 / max   over budget   CPU ms avg / p95   GPU ms avg / p95   XR app GPU ms   XR compositor GPU ms   dropped
+cab       2132   71.1     14.1 /  13.9 /  14.0 /   69.6        0.9 %   14.1 / 15.1        10.9 / 12.0        10.9            1.4                    32
+third     2155   71.8     13.9 /  13.9 /  13.9 /   14.0        0.0 %   13.9 / 14.3        10.5 / 10.7        10.5            1.3                    32
+all       4287   71.5     14.0 /  13.9 /  14.0 /   69.6        0.4 %   14.0 / 14.5        10.7 / 11.5        10.7            1.4                    32
+env        718   71.8     13.9 /  13.9 /  13.9 /   14.0        0.0 %   13.9 / 14.5        9.3 / 9.5          9.3             1.4                    1
+noenv      718   71.8     13.9 /  13.9 /  13.9 /   13.9        0.0 %   13.9 / 14.3        9.6 / 10.0         9.6             1.4                    0
+yard       718   71.8     13.9 /  13.9 /  13.9 /   14.0        0.0 %   13.9 / 14.3        9.9 / 10.0         9.9             1.3                    1
+noyard     718   71.8     13.9 /  13.9 /  13.9 /   14.0        0.0 %   13.9 / 14.3        9.7 / 9.7          9.7             1.3                    1
+meadow     645   64.5     15.5 /  27.8 /  27.8 /   27.8       11.3 %   15.5 / 17.4        13.5 / 14.5        13.5            1.3                    80
+nomeadow     718   71.8     13.9 /  13.9 /  13.9 /   14.0        0.0 %   13.9 / 14.3        10.1 / 10.3        10.1            1.3                    1
+
+over budget = frames longer than 110 % of the 13.9 ms budget. CPU / GPU = Unity FrameTimingManager (-1 / n/a where the platform doesn't report it).
+XR values come from the runtime (XR_META_performance_metrics); dropped = frames the compositor dropped during the run.
+all = the drive (cab + third), comparable with runs before phase 5; env / noenv = standing in the yard facing the barn with / without the phase 5 assets; yard / noyard = the same, looking east across the yard (shed, silos, tank, house, gate); meadow / nomeadow = in the meadow with / without the standing grass and wheat.

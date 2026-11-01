@@ -22,7 +22,7 @@ public class QualityTier : MonoBehaviour
         public float grassDistance;       // standing grass / crop clumps are drawn up to this far (m), then sink into the ground
     }
 
-    public static readonly Budget QuestBudget = new Budget { detailDistance = 120f, vegetationDensity = 0.5f, terrainShadows = false, grassDistance = 22f };
+    public static readonly Budget QuestBudget = new Budget { detailDistance = 120f, vegetationDensity = 0.5f, terrainShadows = false, grassDistance = 18f };   // 22 m with full clumps cost 3.4 ms GPU (2026-11-01)
     public static readonly Budget PCBudget = new Budget { detailDistance = 400f, vegetationDensity = 1f, terrainShadows = true, grassDistance = 70f };
 
     public static Tier Current => QualitySettings.names[QualitySettings.GetQualityLevel()] == "PC" ? Tier.PC : Tier.Quest;

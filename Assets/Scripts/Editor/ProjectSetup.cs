@@ -406,36 +406,40 @@ public static class ProjectSetup
         var veg = new GameObject("Vegetation").AddComponent<Vegetation>();
         veg.kinds = new[]
         {
-            new Vegetation.Kind { field = "North meadow", mesh = SaveMesh(GrassClump(), "Veg_GrassClump"), material = grassMat, perSquareMetre = 2.2f },
-            new Vegetation.Kind { field = "North wheat field", mesh = SaveMesh(WheatClump(), "Veg_WheatClump"), material = wheatMat, perSquareMetre = 2.5f, distanceScale = 1.2f },
+            // Quest: lighter clumps (5 blades × 2 segments, 4 stalks with one ear quad): the full ones cost 3.4 ms GPU at 22 m.
+            new Vegetation.Kind { field = "North meadow", mesh = SaveMesh(GrassClump(9, 3), "Veg_GrassClump"), meshLight = SaveMesh(GrassClump(5, 2), "Veg_GrassClumpLight"),
+                                  material = grassMat, perSquareMetre = 2.2f },
+            new Vegetation.Kind { field = "North wheat field", mesh = SaveMesh(WheatClump(7, true), "Veg_WheatClump"), meshLight = SaveMesh(WheatClump(4, false), "Veg_WheatClumpLight"),
+                                  material = wheatMat, perSquareMetre = 2.5f, distanceScale = 1.2f },
         };
         veg.Build();
     }
 
-    /// <summary>Nine tapered blades, 0.35–0.6 m, each three segments bending outward; two-sided (the shader culls nothing).</summary>
-    static Mesh GrassClump()
+    /// <summary>Tapered blades, 0.35–0.6 m, each in segments bending outward; two-sided (the shader culls nothing).</summary>
+    static Mesh GrassClump(int blades, int segments)
     {
         var v = new System.Collections.Generic.List<Vector3>();
         var c = new System.Collections.Generic.List<Color>();
         var t = new System.Collections.Generic.List<int>();
         var rnd = new System.Random(5);
         float R() => (float)rnd.NextDouble();
-        for (int b = 0; b < 9; b++)
+        float widen = Mathf.Sqrt(9f / blades);   // fewer blades: wider ones, so the clump covers about as much
+        for (int b = 0; b < blades; b++)
         {
-            float a = R() * Mathf.PI * 2f, r = R() * 0.22f, h = 0.35f + R() * 0.25f, w = 0.025f + R() * 0.015f;
+            float a = R() * Mathf.PI * 2f, r = R() * 0.22f, h = 0.35f + R() * 0.25f, w = (0.025f + R() * 0.015f) * widen;
             float lean = 0.12f + R() * 0.15f, tint = R();
             Vector3 root = new Vector3(Mathf.Cos(a) * r, 0f, Mathf.Sin(a) * r), outward = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
             Vector3 side = Vector3.Cross(outward, Vector3.up).normalized;
             int first = v.Count;
-            for (int k = 0; k <= 3; k++)
+            for (int k = 0; k <= segments; k++)
             {
-                float f = k / 3f;
+                float f = k / (float)segments;
                 Vector3 p = root + Vector3.up * (h * f) + outward * (lean * f * f * h);
                 float half = w * (1f - f * 0.85f);
                 v.Add(p - side * half); v.Add(p + side * half);
                 c.Add(new Color(f, tint, 0f)); c.Add(new Color(f, tint, 0f));
             }
-            for (int k = 0; k < 3; k++)
+            for (int k = 0; k < segments; k++)
             {
                 int i = first + k * 2;
                 t.AddRange(new[] { i, i + 2, i + 1, i + 1, i + 2, i + 3 });
@@ -447,8 +451,8 @@ public static class ProjectSetup
         return m;
     }
 
-    /// <summary>Seven wheat stalks (0.8–0.95 m) with an ear each (two crossed quads) and two leaves.</summary>
-    static Mesh WheatClump()
+    /// <summary>Wheat stalks (0.8–0.95 m) with an ear each (two crossed quads, or one in the light clump) and two leaves (full only).</summary>
+    static Mesh WheatClump(int stalks, bool full)
     {
         var v = new System.Collections.Generic.List<Vector3>();
         var c = new System.Collections.Generic.List<Color>();
@@ -462,7 +466,7 @@ public static class ProjectSetup
             c.Add(ca); c.Add(ca); c.Add(cb); c.Add(cb);
             t.AddRange(new[] { i, i + 2, i + 1, i + 1, i + 2, i + 3 });
         }
-        for (int s = 0; s < 7; s++)
+        for (int s = 0; s < stalks; s++)
         {
             float a = R() * Mathf.PI * 2f, r = R() * 0.16f, h = 0.8f + R() * 0.15f, tint = R();
             Vector3 root = new Vector3(Mathf.Cos(a) * r, 0f, Mathf.Sin(a) * r);
@@ -472,10 +476,10 @@ public static class ProjectSetup
             Quad(root - side * 0.005f, root + side * 0.005f, top - side * 0.003f, top + side * 0.003f, new Color(0f, tint, 0f), new Color(0.9f, tint, 0f));
             // Ear: two crossed quads from the top of the stalk, 11 cm long.
             Vector3 earTop = top + Vector3.up * 0.11f + lean * 0.3f;
-            foreach (var sd in new[] { side, Quaternion.Euler(0f, 90f, 0f) * side })
+            foreach (var sd in full ? new[] { side, Quaternion.Euler(0f, 90f, 0f) * side } : new[] { side })
                 Quad(top - sd * 0.012f, top + sd * 0.012f, earTop - sd * 0.006f, earTop + sd * 0.006f, new Color(1f, tint, 1f), new Color(1f, tint, 1f));
             // A leaf hanging out from a third of the way up.
-            if (s < 2)
+            if (full && s < 2)
             {
                 Vector3 l0 = root + Vector3.up * h * 0.35f, dir = (side + Vector3.up * 0.3f).normalized;
                 Vector3 l1 = l0 + dir * 0.22f + Vector3.down * 0.06f;

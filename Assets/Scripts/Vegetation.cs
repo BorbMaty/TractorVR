@@ -15,7 +15,8 @@ public class Vegetation : MonoBehaviour
     public class Kind
     {
         public string field;              // WorldLayout.Fields name
-        public Mesh mesh;                 // one clump, origin at its root
+        public Mesh mesh;                 // one clump, origin at its root (PC tier)
+        public Mesh meshLight;            // fewer blades / segments (Quest tier)
         public Material material;         // TractorVR/Vegetation (instancing on)
         public float perSquareMetre = 2f; // clumps per m² on the PC tier (Quest: × vegetationDensity, bigger clumps)
         public float distanceScale = 1f;  // × the tier's grass distance
@@ -94,6 +95,7 @@ public class Vegetation : MonoBehaviour
             float r = reach * k.distanceScale;
             k.material.SetFloat("_FadeEnd", r);
             k.material.SetFloat("_FadeWidth", Mathf.Max(3f, r * 0.15f));
+            var mesh = QualityTier.Current == QualityTier.Tier.Quest && k.meshLight ? k.meshLight : k.mesh;
             var rp = new RenderParams(k.material) { shadowCastingMode = ShadowCastingMode.Off, receiveShadows = false, camera = only };
             float r2 = (r + TileSize) * (r + TileSize);
             foreach (var t in k.tiles)
@@ -102,7 +104,7 @@ public class Vegetation : MonoBehaviour
                 if (d.x * d.x + d.z * d.z > r2) continue;
                 var wide = t.bounds; wide.Expand(4f);   // VR: the culling camera's frustum is narrower than the two eyes together
                 if (!GeometryUtility.TestPlanesAABB(planes, wide)) continue;
-                Graphics.RenderMeshInstanced(rp, k.mesh, 0, t.matrices);
+                Graphics.RenderMeshInstanced(rp, mesh, 0, t.matrices);
                 DrawnInstances += t.matrices.Length;
             }
         }
