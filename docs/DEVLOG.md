@@ -1420,3 +1420,28 @@ OpenXR runtime listed 36 extensions, none of them `XR_EXT_hand_tracking`, and Un
 supported by runtime: XR_EXT_hand_tracking". Meta exposes hand tracking over Link only with *Developer Runtime Features* (Meta Horizon
 Link app → Settings → Beta). The user switched it on; after a restart of TractorVR.exe the runtime offers `XR_EXT_hand_tracking`
 (version 4) and `XR_EXT_hand_tracking_data_source`, and no requested extension is missing. No code change.
+
+## 2026-11-01 (end of the day): documentation
+User: "Documenting time: 1. update the README, 2. a separate physics section with graphs and formulas (explained), 3. anything
+that's needed."
+
+- **docs/PHYSICS.md** (new): the vehicle model section by section, every formula with its symbols explained and the values the code
+  uses: rigid body on raycast wheels at 90 Hz; mass and centre of mass with implements; suspension (spring-damper, damping from the
+  damping ratio, bump stop, the moving front axle); the comfort-limited speed command and anti wind-up; the drive force (feed-forward,
+  tracking, slope, rolling resistance, plough draft) and the power limit F <= P / max(v, 2 m/s); the friction circle with lateral
+  priority; traction (open / locked differentials, rigid 4WD, shortfall); slip from the exponential traction curve; the ground table;
+  Ackermann steering and the comfort lock; engine torque curve, the 20 geometric gear steps and AUTO's rules, fuel and coolant;
+  implements (four-bar linkage solved by bisection, top link, draft formula, PTO, trailer joint, tipping centre of mass); the parking
+  brake; and a validation table from `PhysicsTest` (12 results against what was expected).
+- **tools/physics_charts.py** (new): 10 graphs in light and dark (the README benchmark charts' themes, the documented palette's slots
+  1-4 in fixed order, direct labels or a legend, one y-axis per panel): torque / power, gears with a measured AUTO run, slip curves,
+  friction circle, suspension step response, comfort steering lock, and four measured runs (full throttle, hill climb, draft, traction).
+  The palette validator script needs Node.js, which isn't installed here: the colours are the reference palette's validated values.
+  First renders had overlapping labels (slip curves, suspension, friction circle), fixed and checked by eye.
+- **README**: intro (free roam + tutorial, three versions), phases 5 and 6 marked built, a new first section on the start screen,
+  tutorial and controls (pictures of the menu, the lessons with stars, the low-left lesson board, the CONTROLS pages), the landscape
+  section with the trees, village, skies, power lines and tufts, a physics summary with a graph and a link to PHYSICS.md, the cab
+  panel's MAIN MENU / BENCHMARK rows, the controls table, the project layout (new scripts and tools), hand tracking over Link,
+  the first headset frame-rate numbers with the trees, and a credits / licences section. 41 README pictures re-rendered from
+  today's scene (real skies, trees, tufts).
+- **ROADMAP**: a new "where we left off" with the next session's list. **CLAUDE.md**: PHYSICS.md and its chart script.

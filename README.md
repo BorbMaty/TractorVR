@@ -3,11 +3,15 @@
 Unity **6000.6.3f1** · URP · OpenXR (Meta Quest feature) · Input System · XR Hands
 
 A VR tractor simulator for the Quest 2: drive a John Deere 6195M from the cab, plough, mow and haul on a farm near Reghin
-(Szászrégen), between the hills of the Mezőség and the Görgényi mountains, by day or at night, with real-feeling physics (wheel slip, 4WD, diff lock), a working cab with pressable switches and hand tracking. University project (Sapientia Hungarian University of Transylvania, IRUM).
+(Szászrégen), between the hills of the Mezőség and the Görgényi mountains, by day, at dusk or at night, with real-feeling physics
+(wheel slip, 4WD, diff lock), a working cab with pressable switches and hand tracking. Start in **free roam** or learn it all in
+the **tutorial**: nine lessons, each rated with up to five stars. Runs on the Quest 2, in PC VR over Link and on a PC monitor.
+University project (Sapientia Hungarian University of Transylvania, IRUM).
 
 ![on the farm track](docs/images/hero.png)
 
-Docs: [Roadmap](docs/ROADMAP.md) · [Development log](docs/DEVLOG.md) · [CLAUDE.md](CLAUDE.md) (project guide)
+Docs: [Physics](docs/PHYSICS.md) (the vehicle model, formulas and graphs) · [Roadmap](docs/ROADMAP.md) ·
+[Development log](docs/DEVLOG.md) · [CLAUDE.md](CLAUDE.md) (project guide)
 
 ## Phases
 
@@ -39,7 +43,7 @@ Docs: [Roadmap](docs/ROADMAP.md) · [Development log](docs/DEVLOG.md) · [CLAUDE
 **Quest standalone**, **PC VR** (the laptop renders, streamed to the headset over Link: full-detail model, real shadows, 90 Hz)
 and a **PC desktop** version on the monitor, all from one project; benchmarked and compared (see [below](#the-three-versions-compared)).
 
-### Phase 5: environment with Blender ⏳ in progress
+### Phase 5: environment with Blender ✅ built (headset look at the newest parts still to do)
 The land around Reghin, every asset modelled by a Python script in Blender in a full (PC) and a light (Quest) version.
 0. ✅ **Pipeline**: Blender scripts → FBX → Unity, Poly Haven textures, baked shading; first asset (the barn) measured on the Quest
 1. ✅ **Farmyard**: barn, machine shed with a bay per implement, farmhouse with a porch, Székely gate and fences, silos, diesel tank,
@@ -47,14 +51,38 @@ The land around Reghin, every asset modelled by a Python script in Blender in a 
 2. ✅ **Implements remade**: plough, mower, front weight and tipping trailer in Blender, worn paint, hoses, lamps
 3. ✅ **Fields**: a meadow of standing grass the mower really cuts (stubble, swaths), a wheat field, furrows where you plough;
    Mezőség hills with strip parcels, haystacks, pole gates, a wayside cross, the Görgényi mountains on the horizon
-4. ⏳ **Landscape** (next): trees (walnut, wild pear, acacia, willows along a stream), the village with its church tower · 5. Tutorial places
+4. ✅ **Landscape**: about 1000 trees (walnut, wild pear, black locust, poplars, willows along a new stream), a village with its
+   church on the horizon, real skies for day / dusk / night (Poly Haven), power lines, road signs, grass tufts
+5. ✅ **Practice area**: a concrete pad with a cone slalom, a reversing bay for the trailer and a coupling spot
 
-### Phase 6: free roam + tutorial ⏳ planned
-A start menu with FREE ROAM and TUTORIAL; step-by-step lessons in the headset that show which control to use.
+### Phase 6: free roam + tutorial ✅ built (headset play-through still to do)
+A start screen (FREE ROAM / TUTORIAL / CONTROLS / QUIT), nine self-checking lessons that take the tractor to where they happen,
+glows on the control to use, a 1-5 star rating per lesson, and CONTROLS pages with annotated pictures.
 
 Future ideas: working mirrors, original model textures. See the [Roadmap](docs/ROADMAP.md).
 
 ## What's in it
+
+### Start screen, tutorial and controls (phase 6)
+The game starts in the farmyard: you stand beside the tractor with a board at arm's length (on a PC monitor it is drawn on the
+screen). **FREE ROAM** puts you in the cab, **TUTORIAL** lists nine lessons, **CONTROLS** explains every control with annotated
+pictures, **QUIT** ends the game. The cab panel's **MAIN MENU** brings you back; then CONTINUE returns to where you were.
+
+| Start screen | Lessons with their best rating |
+|---|---|
+| ![start screen](docs/images/phase6_menu_main.png) | ![lessons](docs/images/phase6_menu_lessons.png) |
+
+**The lessons**: driving and the cab · gearbox and hand throttle · slalom at the practice area · coupling the plough · ploughing ·
+mowing · trailer, reversing into a bay and tipping · traction (4WD, diff lock, the 22° earth ramp) · lights and road driving at dusk.
+Each lesson first puts the scene in order (implements back in their shed bays, the tractor next to what the lesson is about; the
+ploughing lesson starts in the field with the plough coupled). Every step checks itself from the tractor's real state and moves
+on; a pulsing yellow glow sits on the control to use (lever, wheel, switch, panel button) and over the place to drive to. The
+instructions are on a small board low on your left in the cab, below the window line. At the end: 1-5 stars from your time against
+the lesson's par time, skipped steps and mistakes (knocked cones), the best one kept.
+
+| A lesson step (board low left) | CONTROLS: annotated pictures |
+|---|---|
+| ![tutorial board](docs/images/phase6_tutorial_board.png) | ![controls](docs/images/phase6_menu_controls.png) |
 
 ### The world
 2 × 2 km of countryside near Reghin built at start-up: a farmyard (phase 5, modelled by script in Blender), gravel tracks out to a
@@ -119,27 +147,32 @@ field, a roofed **wayside cross** at the crossroads, and the Görgényi mountain
 
 ![around Reghin](docs/images/phase5_reghin.png)
 
-### Trees, the stream, the village (phase 5 step 4)
+### Trees, the stream, the village, the sky (phase 5 step 4)
 Walnut and wild pear trees stand alone on the balks, black locust grows on the steep slopes, Lombardy poplars line the main road and
-willows follow a stream in the valley east of it. About 1000 trees, modelled in Blender and drawn instanced (a near and a far model).
-A village with a Reformed church (a spire with four corner turrets) stands on a hill 700 m to the north-west.
+willows follow a stream in the valley east of it: about 1000 trees, modelled in Blender and drawn instanced (a near and a far model).
+A village with a Reformed church (a spire with four corner turrets) stands on a hill 700 m to the north-west. Concrete power poles
+carry their wires along the main road and to the farmhouse; white posts and road signs line the road; grass tufts grow round you on
+the pastures. The sky is a real photograph for each time of day (Poly Haven), and the sun, the haze and the shadows come from where
+the sun is in the picture.
 
-| Trees and the stream | Practice area |
+| Trees and the stream | Practice area: slalom, reversing bay, coupling spot |
 |---|---|
 | ![trees](docs/images/phase5_trees.png) | ![practice area](docs/images/phase5_practice.png) |
 
-### Start menu and tutorial (phase 6)
-At start a board at the cab's left front offers **FREE ROAM** or the **TUTORIAL**: nine lessons, from driving off to ploughing,
-mowing, reversing a trailer into a bay and driving on the road at dusk. Each step checks itself, a yellow glow marks the control to
-use or the place to drive to, and SKIP / REPEAT / LESSONS are always there. The panel's TUTORIAL button brings the lessons back;
-on the desktop the same board is drawn on the screen. The **practice area** east of the yard has a cone slalom, a reversing bay and
-a coupling spot.
-
-| Start menu | A lesson step |
+| Dusk sky | Power line, sign, grass tufts |
 |---|---|
-| ![menu](docs/images/phase6_menu.png) | ![step](docs/images/phase6_tutorial.png) |
+| ![dusk](docs/images/phase5_sky_dusk.png) | ![roadside](docs/images/phase5_roadside.png) |
 
 ### Driving
+The tractor is a 7.5 t rigid body on four raycast wheels, simulated at 90 Hz. **[docs/PHYSICS.md](docs/PHYSICS.md)** explains the
+whole model with its formulas and graphs: suspension, the speed command and comfort limits, drive force and engine power, the tyres'
+friction circle, 4WD and differentials, slip, the ground, steering, engine and gearbox, implements, and how it was tested.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/physics_gears_dark.png">
+  <img alt="Engine speed against road speed in the 20 gears, with a measured full-throttle run in AUTO" src="docs/images/physics_gears_light.png">
+</picture>
+
 - 7.5 t physics body on four raycast wheels (suspension, tyre friction circle), 90 Hz physics, power limit on climbs (195 hp), parking brake that holds on slopes
 - Gearbox like the 6195M's AutoQuad Plus 20/20 (A1–E4, automatic or manual, skip-shifts), engine RPM and load, top speed 50 km/h
 - Engine torque curve (880 Nm peak at 1500–1600 rpm, 34 % torque rise): the power available depends on the engine speed
@@ -200,7 +233,7 @@ Back up or drive up to an implement and press attach.
 - **Indicator stalk** on the steering column: grab it and push it up / down
 - Doors (rear-hinged, as on the real cab): swing them open by hand, or with the panel's DOORS button
 - CommandCenter display on the right corner post: engine speed, hand throttle, fuel, coolant temperature, fuel use, power, linkage positions, PTO
-- Cab panel with 31 touch buttons, everything in one place (view, comfort, gearbox, hitch, PTO, attach, seat, units, reset, doors,
+- Cab panel with 33 touch buttons, everything in one place (main menu, view, comfort, gearbox, hitch, PTO, attach, seat, units, reset, doors,
   hand throttle, tipping, 4WD, diff lock, brakes, lights, work lights, beacon, hazards, indicators, sky)
 - Generated plastic grain, seat fabric and floor mat textures, baked ambient occlusion
 
@@ -235,7 +268,8 @@ Driver's view at night, headlights on:
 ### Lights and time of day
 - Headlights, side and tail lights, brake lights, indicators and hazards (ticking, self-cancelling), front and rear work lights,
   two rotating amber beacons
-- **DAY / DUSK / NIGHT**: sun, sky, ambient light and fog change; at night the headlights and work lights light up the ground
+- **DAY / DUSK / NIGHT**: a real sky photograph for each (Poly Haven), with the sun light, ambient light and haze to match;
+  at night the headlights and work lights light up the ground
 
 | Night, from the front | Night, from behind (indicator, work lights) |
 |---|---|
@@ -266,16 +300,18 @@ It has everything in one place, including the functions of the switches and leve
 
 ![cab panel](docs/images/guide_panel.png)
 
-The Quest 2 controllers (the start menu's CONTROLS page shows these pictures too):
+### The Quest 2 controllers
+The start screen's CONTROLS pages show these pictures too.
 
 ![controllers, labelled](docs/images/guide_controllers.png)
 
-Keyboard and mouse (PC desktop version):
+### Keyboard and mouse (PC desktop version)
 
 ![keyboard and mouse](docs/images/guide_keyboard.png)
 
 | Button | What it does |
 |---|---|
+| MAIN MENU | Back to the start screen (free roam, tutorial, controls) |
 | VIEW | Cab view ↔ third-person view |
 | RECENTER | Puts the view back in the driver's seat |
 | COMFORT | Comfort vignette: off / low / high |
@@ -303,6 +339,7 @@ Keyboard and mouse (PC desktop version):
 | HAZARDS | Hazard lights on / off |
 | < INDICATOR / INDICATOR > | Left / right indicator (press again to cancel) |
 | SKY | Time of day: day / dusk / night |
+| BENCHMARK | The performance benchmark (a scripted 60 s drive, results in a file) |
 
 ## Controls
 With **hand tracking** (controllers put down): make a fist (or pinch) on the wheel rim, a lever knob, the stalk or a door to grab;
@@ -326,7 +363,8 @@ The panel's MENU tab is always visible at the right front of the cab.
 | Panel TIP UP / TIP DOWN | I / K | Raise / lower the coupled tipping trailer's body |
 | **Grip** on a door | — | Swing the door open / closed (it stays where you let go); panel DOORS opens / closes both |
 | **Menu** button (left) | M | Cab panel at the right front: touch the buttons with a controller tip or a fingertip |
-| Touch the board at the left front | mouse (top-left box) | Start menu (FREE ROAM / TUTORIAL) and lesson steps: NEXT / SKIP STEP / REPEAT LESSON / LESSONS; panel TUTORIAL reopens it |
+| Touch the start screen board | mouse | FREE ROAM / CONTINUE / TUTORIAL / CONTROLS / QUIT; panel MAIN MENU brings it back |
+| Touch the lesson board (low left in the cab) | mouse (top-left box) | NEXT / SKIP STEP / REPEAT LESSON / MENU |
 | CommandCenter / panel THROTTLE − / + | [ / ] | Hand throttle (engine speed, idle = off) |
 | Right stick flick → / ← | X / Z | Shift up / down (switches the gearbox to manual) |
 | **Y** (left) | T | Gearbox: automatic ↔ manual (saved) |
@@ -362,13 +400,23 @@ Assets/Scripts/CommandCenter.cs       display on the right corner post (fuel, te
 Assets/Scripts/CabSwitches.cs         pressable switches on the right-hand console
 Assets/Scripts/TractorLights.cs       lamps, work lights, beacons, indicators, brake lights; day / dusk / night (+ Assets/Shaders/Halo.shader)
 Assets/Scripts/Ground.cs              farm layout (incl. the machine shed bays) + ground map (grip, rolling resistance, draft, slip per surface)
+Assets/Scripts/StartMenu.cs           start screen: free roam, tutorial (lessons with stars), controls pages, quit
+Assets/Scripts/Tutorial.cs            the nine lessons: set-ups, self-checking steps, glows, star rating
+Assets/Scripts/TouchBoard.cs          touch board used by both (text measured to fit, stars, pictures; drawn on screen on the desktop)
+Assets/Scripts/Trees.cs               trees (instanced near / far models) and where they stand (TreeLayout)
+Assets/Scripts/GrassTufts.cs          grass tufts round the camera on the pastures
 Assets/Scripts/QualityTier.cs         Quest / PC tier: tractor shadows, which version of each farm building is shown
 Assets/Shaders/EnvLit.shader          shader of the Blender buildings (texture × baked shading, normal map on PC)
 Assets/Models/Env/                    the Blender buildings (FBX with a Full and a Light version each)
 Assets/Textures/Env/                  Poly Haven textures (CC0, list in LICENSE.txt)
 tools/blender/                        Blender scripts: tvr.py (shared library), build.py, one per asset (barn, shed, farmhouse, silos,
-                                      fences, ..., plough, mower, trailer, haystack, polegate, wayside)
+                                      fences, ..., plough, mower, trailer, haystack, polegate, wayside, trees, village,
+                                      practice, cone, roadside)
 tools/fetch_polyhaven.py              downloads the textures the scripts use
+tools/fetch_sky.py                    downloads the three skies and measures the sun, horizon colour and exposure in each
+Assets/Scripts/Editor/CabGuide.cs     renders the cab guide and the controller picture (+ tools/annotate_guide.py, --game for the menu)
+tools/keyboard_guide.py               the keyboard and mouse picture
+tools/physics_charts.py               the graphs of docs/PHYSICS.md (model curves + PhysicsTest runs)
 Assets/Scripts/PerfBenchmark.cs       benchmark run (drive; barn, yard and meadow views with / without the phase 5 assets), docs/benchmark/
 Assets/Models/Hands/                  hand models (XR Hands sample, Unity Package Distribution License)
 Assets/Scripts/Editor/PhysicsTest.cs  offline driving test         (menu: Tractor VR > Run Physics Test)
@@ -403,11 +451,15 @@ Testing in the editor without a headset: press Play and drive with the keyboard.
 The laptop renders at the **PC** quality level (full model, real shadows, soft 4096 shadow map, render scale 1.2) and streams to the headset.
 1. Meta Horizon Link app on the PC (set as the active OpenXR runtime: Settings → General). In its Graphics preferences, choose 90 Hz.
 2. Connect the Quest with a USB 3 cable (Link) or over 5 GHz Wi-Fi (Air Link), and start Link from the headset's Quick Settings.
-3. Either press Play in the Unity editor (it plays at PC quality; *Tractor VR → Quality: Quest* previews the Quest look),
+3. For **hand tracking over Link**: Meta Horizon Link app → Settings → Beta → **Developer Runtime Features** on (otherwise the PC
+   runtime doesn't offer hand tracking; the game's `Player.log` then says "Requested feature extensions not supported").
+4. Either press Play in the Unity editor (it plays at PC quality; *Tractor VR → Quality: Quest* previews the Quest look),
    or run `Builds/PC/TractorVR.exe` (built with *Tractor VR → Build PC (Windows)*). The PC window shows the mirror view.
 
 ## The three versions compared
-Phase 5 so far on the Quest (run of 2026-11-01, GPU per frame, budget 13.9 ms): drive 10.3 ms; facing the barn 9.4 ms with the farm
+First headset session with the trees and the tutorial (2026-11-01, 5 min of play, VrApi log): 69 fps on average, 72 fps 70 % of
+the time, GPU mostly 9-11 ms; a new benchmark run with the trees, skies and tufts is next. Before the trees (run of 2026-11-01, GPU
+per frame, budget 13.9 ms): drive 10.3 ms; facing the barn 9.4 ms with the farm
 buildings, 9.4 without; across the yard 9.9 / 9.7 ms; in the meadow 10.8 ms with the standing grass and wheat, 10.2 without. Every
 frame at 72 fps; 3.1 ms left for the rest of phase 5. The table below is the phase 4 comparison.
 
@@ -469,3 +521,11 @@ The same `Builds/PC/TractorVR.exe`: if no headset is in use through Link within 
   In the cab view the view pitches and rolls with the tractor on slopes. If it ever ends up on its side, it resets to the start after 3 s.
 - Turning is deliberately limited for comfort (max 25°/s yaw, 2.5 m/s² lateral). At speed the tractor turns wide, so slow down for tight turns.
 - If you feel motion sick: set the vignette to high (X), prefer the cab view, keep sessions short.
+
+## Credits and licences
+- **Tractor model**: John Deere 6195M, TurboSquid (licensed; the reason this repository is private).
+- **Textures and skies**: [Poly Haven](https://polyhaven.com), CC0 (lists in `Assets/Textures/Env/LICENSE.txt` and `Assets/Textures/Sky/LICENSE.txt`).
+- **Quest 2 controller models**: Meta XR Core SDK (Oculus SDK License, `Assets/Models/MetaControllers/README.md`).
+- **Hand models**: Unity XR Hands sample (Unity Package Distribution License).
+- Everything else (farm, implements, trees, village, sounds, cab textures, code) is made by this project: modelled by script in Blender,
+  generated in Unity, or synthesised.

@@ -1,5 +1,21 @@
 # Roadmap
 
+## ▶ Where we left off (2026-11-01, end of the day): a complete game, documented
+- **Phase 5** (environment) and **phase 6** (start screen + tutorial) are built: trees, stream, village, Poly Haven skies, power
+  lines and signs, grass tufts; the practice area; the start screen (free roam / tutorial / controls with annotated pictures / quit),
+  nine lessons with set-ups (teleports), glows and 1-5 stars. Hand tracking works in PC VR too (Link: Developer Runtime Features).
+- **Documentation**: README brought up to date (new pictures, phases 5-6, credits); new **docs/PHYSICS.md**: the vehicle model with
+  its formulas, the numbers, 10 graphs (model curves + PhysicsTest runs) and a validation table.
+- Tests: `PlayModeTest` (both quality levels; start menu, controls pages, all lessons) and `PhysicsTest` pass. Quest APK and PC exe current.
+
+### ▶ Next session: start here
+1. **Quest benchmark** (cab panel BENCHMARK) with the trees, skies and tufts: the first session with the trees averaged 69 fps
+   (72 fps 70 % of the time). If the trees cost too much: shorten their near distance on the Quest (120 m → ~80 m).
+2. **Tutorial tuning** after real runs: par times for the stars, the step checks (coupling distance, reversing bay, earth ramp).
+3. **Readability** of the CONTROLS pictures in the headset (bigger lettering or zoomed crops if needed).
+4. Still open from before: the desktop check of coupling from the shed bays with the mouse.
+
+
 ## ▶ Where we left off (2026-11-01, late evening): the game is playable
 Goal of the evening (user): a working game. Built: **phase 5 step 4** (trees, a stream, a village on the horizon), **step 5**
 (practice area), **phase 6** (start menu FREE ROAM / TUTORIAL, 9 lessons with self-checking steps and glows). `PlayModeTest` (both
