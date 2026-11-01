@@ -56,6 +56,8 @@ public class TractorHud : MonoBehaviour
 
     void Update()
     {
+        // The start menu has the player standing beside the tractor: no driving readout over its board.
+        if (StartMenu.IsOpen) { text.text = ""; return; }
         float kmh = tractor.SpeedKmh;
         string dir = drivetrain.Direction == Drivetrain.Dir.Forward ? "F" : drivetrain.Direction == Drivetrain.Dir.Reverse ? "R" : "N";
         string speed = CabPanel.Mph ? $"{Mathf.Abs(kmh) * 0.6214f:0} mph" : $"{Mathf.Abs(kmh):0} km/h";

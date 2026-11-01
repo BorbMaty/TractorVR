@@ -1411,3 +1411,6 @@ should be pictures with arrows and text, not plain text.
 | Main page | CONTROLS: the controllers |
 |---|---|
 | ![main](images/phase6_menu_main.png) | ![controls](images/phase6_menu_controls.png) |
+
+**Fix (user): the km/h readout overlapped the start menu board** (it is fixed to the view, and the menu board is in front of
+the eye): `TractorHud` shows nothing while `StartMenu.IsOpen`.
