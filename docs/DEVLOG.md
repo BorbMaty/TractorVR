@@ -1168,3 +1168,26 @@ with no mud and < 8 m of climb (found at (−400, −50)): 4WD 12.1 % slip, 2WD 
 soil before: 16.2 / 17.6 / 16.7 %). New: after ploughing and mowing it reads the FieldMap back from the GPU (ploughed 1.00, furrows
 173°; cut 1.00, swath 1.00). Surface test O got the meadow (grass) and the west field (soil). Previews `field_mown` / `field_ploughed`
 paint a few passes first. `PlayModeTest` passes at both levels.
+
+## 2026-11-01: Phase 5 step 3, part 2 — standing grass and wheat
+`Vegetation` + `TractorVR/Vegetation`: grass clumps on the meadow and wheat clumps on the wheat field, placed once in 8 m tiles (only on
+the field's own ground type, so not on tracks, gates or mud), drawn each frame for the tiles near the camera and in view with
+`Graphics.RenderMeshInstanced`. The shader is opaque, two-sided, lit per vertex, without textures; per clump it reads the FieldMap at
+its root: cut → stubble (18 % of its height), swath → lying hay (laid flat, dry colour), ploughed → gone. Towards the draw distance the
+clumps sink into the ground (no popping). Clump meshes are made in `ProjectSetup` (`GrassClump`, `WheatClump`; vertex colour = height
+along the blade, tint, ear). Beyond the clumps the wheat field's ground is straw gold (control texture A = standing crop). The
+benchmark got a **meadow / nomeadow** phase (in the meadow facing the wheat, vegetation on / off).
+
+Quest runs:
+
+| Run | Clumps | meadow / nomeadow GPU | |
+|---|---|---|---|
+| 02-28 | full (9 blades × 3 segments), 22 m | 13.5 / 10.1 ms | 64.5 fps, 80 dropped: too expensive (+3.4 ms) |
+| 02-39 | light, 18 m | 18.2 / 19.5 ms | invalid: see below |
+| 02-47 | light (5 blades × 2 segments; wheat 4 stalks, one ear quad), 18 m | **10.8 / 10.2 ms** | 71.7 fps: **+0.6 ms** |
+
+Run 02-39 was slow at the meadow spot with or without the grass (no throttling: 35.5 °C, steady clocks). The benchmark teleported the
+tractor to each spot at the yard's height, and the meadow lies 0.89 m higher: the tractor started 0.7 m inside the hill and the
+physics pushing it out decided the frame time (by luck not in run 02-28). The teleport now puts it on the ground there. Run 02-47:
+drive 10.3 ms (cab 11.0, it ends in the meadow), yard 9.9 / 9.7, barn 9.4 / 9.4; worst case 10.8 ms of 13.9, **3.1 ms left**.
+PC keeps the full clumps, 70 m (desktop run: +0.7 ms).

@@ -300,13 +300,15 @@ repeated things, no shadows on Quest except buildings, impostors for far trees, 
   Points, pivots, colliders, masses unchanged: `PhysicsTest` identical. ✅ user, 2026-11-01: "looks good to me"
 
 ### Step 3: fields + crops (moved here from phase 3 step 3 and phase 2)
-- [ ] Standing crop on the crop field, cut by the mower (a grass / alfalfa meadow: the mower is a grass mower), swath behind it.
+- [x] Standing crop on the crop field, cut by the mower (a grass / alfalfa meadow: the mower is a grass mower), swath behind it.
   2026-11-01: the north field is now a meadow (west of the main road) and a wheat field (east of it); the mower paints the cut strip
-  (pale stubble) and a swath down its middle into the `FieldMap`. Standing grass to cut: next (part 2)
+  and a swath into the `FieldMap`; standing grass (`Vegetation`, instanced clumps) turns to stubble / lying hay there. Quest: lighter
+  clumps, 18 m: **+0.6 ms GPU** (meadow 10.8 vs 10.2 ms, 72 fps)
 - [x] Ploughed ground look (furrows in the ploughing direction, darker soil) where the plough has been. Built 2026-11-01: `FieldMap`
   (GPU texture over the fields, 0.5 m per texel: cut / swath / ploughed / furrow direction) painted by the implements, drawn by
   `GroundLit` (furrows 0.35 m apart across the plough's heading, faded in the distance). Replaces the trail ribbons
-- [ ] Field with crop rows (phase 2 environment item): maize or wheat next to the meadow, for the look
+- [x] Field with crop rows (phase 2 environment item): maize or wheat next to the meadow, for the look. Built 2026-11-01: wheat
+  (instanced stalks with ears near the camera, golden ground beyond)
 - [ ] Field edges: headlands, gates, ditches, hedges
 
 ### Step 4: landscape
