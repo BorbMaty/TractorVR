@@ -1191,3 +1191,25 @@ tractor to each spot at the yard's height, and the meadow lies 0.89 m higher: th
 physics pushing it out decided the frame time (by luck not in run 02-28). The teleport now puts it on the ground there. Run 02-47:
 drive 10.3 ms (cab 11.0, it ends in the meadow), yard 9.9 / 9.7, barn 9.4 / 9.4; worst case 10.8 ms of 13.9, **3.1 ms left**.
 PC keeps the full clumps, 70 m (desktop run: +0.7 ms).
+
+## 2026-11-01: Phase 5 step 3, part 3a — the land around Reghin: Mezőség hills, Görgényi mountains
+User: "can you make the place to look like the land around Reghin? or mezőség?" Reghin (Szászrégen) lies where the Mezőség
+(Transylvanian Plain: rolling, mostly treeless hills, slopes cut into narrow strip parcels with grass balks, old landslide hummocks)
+meets the Maros valley, with the Görgényi (Gurghiu) mountains to the north-east and the Kelemen (Călimani) to the north. So the farm
+is "near Reghin" and gets both. Instead of hedges (not a Transylvanian thing), the field edges get balks, haystacks and gates (part 3b).
+
+- **Terrain** (`TerrainGenerator.Height` + `Countryside`): the farm (within 170 m of the yard) and the fields (+ 30 m) keep exactly the
+  old gentle hills, so driving there and the tests are unchanged. Outside, blended in over ~120 m: hills of up to +28 / −12 m on a
+  450 m wavelength and landslide hummocks (±1.2 m, 14–30 m). Steepest slope now 22.8° at (400, −460) (was 10.6°): `PhysicsTest` F
+  climbs it at ~18 km/h on full power and parks on 4.3° without creep. Surface test O's pasture spot is now on a 5° slope.
+- **Strip parcels** (`GroundLit`, terrain vertex colour R = countryside): the hillsides are cut into long strips 12–30 m wide in
+  230 m blocks, each block its own direction, with 1.4 m grass balks between strips and along the blocks: dry pasture, stubble, ploughland,
+  a green crop or hay meadow per strip. Visual only (physics: grass), no extra texture reads.
+- **Horizon** (`Horizon.cs`, `TractorVR/Horizon`): two silhouette rings that travel with the camera like a skybox, inside the far
+  clip plane, hazed towards the fog colour by their own shader (so dusk and night follow; the scene fog would hide them at 1.3 km):
+  the Görgényi ridge in the north-east and the Kelemen to the north (about twice their real 2–3° above the horizon: at true size
+  the nearby hills hid them), Mezőség hills all round in front, which also hide the end of the 2 km terrain. First try: the vertex
+  colours were written as sRGB but used as linear, so they came out washed out (`Color.linear` now).
+
+Previews `landscape_ne`, `landscape_w`, `hills`. `PlayModeTest` passes at both levels.
+

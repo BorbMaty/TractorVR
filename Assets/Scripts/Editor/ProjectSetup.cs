@@ -360,6 +360,10 @@ public static class ProjectSetup
         }
 
         BuildVegetation();
+        // The far horizon around Reghin: Görgényi / Gurghiu mountains to the north-east, Kelemen / Călimani to the north, Mezőség hills.
+        var horizon = new GameObject("Horizon").AddComponent<Horizon>();
+        horizon.material = SaveMat(new Material(Shader.Find("TractorVR/Horizon")), "Horizon");
+        horizon.Build();
 
         // Round hay bales (Ø 1.5 m × 1.2 m, 350 kg) on the flat start area: things to push around.
         var baleMat = SaveMat(new Material(LitShader) { color = new Color(0.82f, 0.7f, 0.38f) }, "HayBale");
@@ -2934,12 +2938,14 @@ public static class ProjectSetup
         cam.farClipPlane = 1500f;
         Directory.CreateDirectory("Logs/Previews");
         var vegetation = Object.FindAnyObjectByType<Vegetation>();
+        var horizonRing = Object.FindAnyObjectByType<Horizon>();
         void Shot(string file, Vector3 pos, Quaternion rot)
         {
             cam.transform.SetPositionAndRotation(pos, rot);
             var rt = new RenderTexture(1280, 1000, 24);
             cam.targetTexture = rt;
             if (vegetation) vegetation.Submit(cam, cam);   // instanced grass / wheat for this render only
+            if (horizonRing) horizonRing.Follow(cam);
             cam.Render();
             RenderTexture.active = rt;
             var tex = new Texture2D(rt.width, rt.height, TextureFormat.RGB24, false);
@@ -3028,6 +3034,8 @@ public static class ProjectSetup
             }
             Shot("field_mown.png", At(-2f, 120f, 2.8f), Quaternion.LookRotation(At(-14f, 150f, 0f) - At(-2f, 120f, 2.8f)));
             Shot("field_meadow.png", At(-20f, 160f, 2.6f), Quaternion.LookRotation(At(-10f, 145f, 0.3f) - At(-20f, 160f, 2.6f)));
+            Shot("landscape_ne.png", At(150f, 430f, 6f), Quaternion.LookRotation(new Vector3(0.75f, -0.05f, 0.66f)));
+            Shot("landscape_w.png", At(-200f, 180f, 6f), Quaternion.LookRotation(new Vector3(-0.8f, -0.06f, -0.6f)));
             Shot("field_wheat.png", At(77f, 200f, 2.6f), Quaternion.LookRotation(At(95f, 215f, 0.5f) - At(77f, 200f, 2.6f)));
             Shot("field_ploughed.png", At(-228f, -58f, 2.8f), Quaternion.LookRotation(At(-246f, -30f, 0f) - At(-228f, -58f, 2.8f)));
             FieldMap.Clear();

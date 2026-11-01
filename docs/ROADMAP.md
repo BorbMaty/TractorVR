@@ -309,7 +309,9 @@ repeated things, no shadows on Quest except buildings, impostors for far trees, 
   `GroundLit` (furrows 0.35 m apart across the plough's heading, faded in the distance). Replaces the trail ribbons
 - [x] Field with crop rows (phase 2 environment item): maize or wheat next to the meadow, for the look. Built 2026-11-01: wheat
   (instanced stalks with ears near the camera, golden ground beyond)
-- [ ] Field edges: headlands, gates, ditches, hedges
+- [ ] Field edges: headlands, gates, ditches, hedges. Changed 2026-11-01 (user: make it look like the land around Reghin / the
+  Mezőség): Mezőség hills outside the farm and fields, hillside strip parcels with grass balks, the Görgényi / Kelemen mountains on
+  the horizon ✅ (part 3a). Next (3b): haystacks (boglya), pole gates at the field entries, a wayside cross; hedges dropped (not local)
 
 ### Step 4: landscape
 - [ ] Sky (Poly Haven HDRI), tree lines, woods, roadside (poles, signs), grass tufts near the camera

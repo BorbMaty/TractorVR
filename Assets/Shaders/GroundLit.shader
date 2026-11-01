@@ -61,6 +61,7 @@ Shader "TractorVR/GroundLit"
             {
                 float4 positionOS : POSITION;
                 float3 normalOS : NORMAL;
+                half4 color : COLOR;            // R: countryside (TerrainGenerator.Countryside)
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
@@ -70,6 +71,7 @@ Shader "TractorVR/GroundLit"
                 float3 positionWS : TEXCOORD0;
                 float3 normalWS : TEXCOORD1;
                 half fogFactor : TEXCOORD2;
+                half country : TEXCOORD3;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
                 UNITY_VERTEX_OUTPUT_STEREO
             };
@@ -85,6 +87,7 @@ Shader "TractorVR/GroundLit"
                 o.positionWS = p.positionWS;
                 o.normalWS = TransformObjectToWorldNormal(v.normalOS);
                 o.fogFactor = ComputeFogFactor(p.positionCS.z);
+                o.country = v.color.r;
                 return o;
             }
 
@@ -117,6 +120,30 @@ Shader "TractorVR/GroundLit"
                     g = lerp(g, luma * half3(1.35h, 1.4h, 0.75h), fm.r * 0.65h);
                     half3 hay = SAMPLE_TEXTURE2D(_GrassTex, sampler_GrassTex, float2(xz.y, -xz.x) * 1.7).rgb;
                     g = lerp(g, hay * half3(0.75h, 0.82h, 0.45h), saturate(fm.g * 1.5h - 0.2h));
+                    // Countryside (Mezőség): drier pasture, and the hillsides cut into long narrow strip parcels with grass balks
+                    // between them (stubble, ploughland, a green crop, hay meadow), each block of strips running its own way.
+                    UNITY_BRANCH if (i.country > 0.01h)
+                    {
+                        float2 block = floor(xz / 230.0);
+                        float h1 = frac(sin(dot(block, float2(12.9898, 78.233))) * 43758.5453);
+                        float h2 = frac(sin(dot(block, float2(39.346, 11.135))) * 24634.6345);
+                        float ang = h1 * 3.14159;
+                        float width = 12.0 + 18.0 * h2;
+                        float s = dot(xz, float2(cos(ang), sin(ang))) / width;
+                        float id = floor(s);
+                        half kind = frac(sin(id * 91.17 + h1 * 47.3) * 13758.37);
+                        half balk = step(frac(s) * width, 1.4h);                       // 1.4 m of untilled grass between strips
+                        half2 edge = abs(frac(xz / 230.0) - 0.5h);
+                        balk = max(balk, step(0.497h, max(edge.x, edge.y)));          // and along the blocks' edges
+                        half lum = dot(g, half3(0.3h, 0.6h, 0.1h));
+                        half3 parcel = g * half3(1.08h, 1.02h, 0.82h);                 // dry pasture
+                        parcel = kind < 0.20h ? lum * half3(1.75h, 1.5h, 0.8h) : parcel; // stubble / straw
+                        parcel = kind >= 0.20h && kind < 0.36h ? lum * half3(0.95h, 0.68h, 0.45h) : parcel; // ploughland
+                        parcel = kind >= 0.36h && kind < 0.48h ? g * half3(0.75h, 1.0h, 0.6h) : parcel;     // green crop
+                        parcel = kind >= 0.48h && kind < 0.58h ? lum * half3(1.35h, 1.4h, 0.7h) : parcel;   // hay meadow
+                        parcel = lerp(parcel, g * half3(1.08h, 1.02h, 0.82h), balk);
+                        g = lerp(g, parcel, i.country);
+                    }
                     albedo += g * wGrass;
                 }
                 // Furrows: ridges 0.35 m apart across the plough's direction of travel, troughs darker.

@@ -28,7 +28,36 @@ public class TerrainGenerator : MonoBehaviour
                 + 9f * (Mathf.PerlinNoise(x / 140f + 71.3f, z / 140f + 22.9f) - 0.5f);
         float r = Mathf.Sqrt(x * x + z * z);
         float t = Mathf.Clamp01((r - FlatRadius) / (BlendRadius - FlatRadius));
-        return h * t * t * (3f - 2f * t);
+        h *= t * t * (3f - 2f * t);
+        // Phase 5: Mezőség relief outside the farm and the fields (they keep the gentle hills above): higher, rounder hills that
+        // mostly rise, and the small hummocks of old landslides on their slopes.
+        float c = Countryside(x, z);
+        if (c > 0f)
+        {
+            float hills = 40f * (Mathf.PerlinNoise(x / 450f + 3.3f, z / 450f + 8.8f) - 0.3f);
+            float hummocks = 1.6f * (Mathf.PerlinNoise(x / 30f + 41.7f, z / 30f + 17.2f) - 0.5f)
+                           + 0.8f * (Mathf.PerlinNoise(x / 14f + 9.1f, z / 14f + 63.5f) - 0.5f);
+            h += c * (hills + hummocks);
+        }
+        return h;
+    }
+
+    /// <summary>0 on the farm (within 170 m of the yard) and on the fields, rising to 1 in the open countryside (Mezőség relief,
+    /// hillside strip parcels in GroundLit through the vertex colour).</summary>
+    public static float Countryside(float x, float z)
+    {
+        float r = Mathf.Sqrt(x * x + z * z);
+        float farm = Mathf.Clamp01((r - 170f) / 130f);
+        if (farm <= 0f) return 0f;
+        float d = float.MaxValue;
+        foreach (var f in WorldLayout.Fields)
+        {
+            float dx = Mathf.Max(f.x0 - x, 0f, x - f.x1), dz = Mathf.Max(f.z0 - z, 0f, z - f.z1);
+            d = Mathf.Min(d, Mathf.Sqrt(dx * dx + dz * dz));
+        }
+        float fields = Mathf.Clamp01((d - 30f) / 120f);
+        float s = Mathf.Min(farm, fields);
+        return s * s * (3f - 2f * s);
     }
 
     public static Vector3 Normal(float x, float z, float e = 0.5f)
@@ -91,6 +120,7 @@ public class TerrainGenerator : MonoBehaviour
         int row = n + 1;
         var v = new Vector3[row * row];
         var nrm = new Vector3[v.Length];
+        var col = new Color[v.Length];   // R: Countryside (GroundLit: strip parcels, drier grass)
         for (int j = 0; j <= n; j++)
         for (int i = 0; i <= n; i++)
         {
@@ -98,6 +128,7 @@ public class TerrainGenerator : MonoBehaviour
             int k = j * row + i;
             v[k] = new Vector3(x, Height(x, z), z);
             nrm[k] = Normal(x, z);
+            col[k] = new Color(Countryside(x, z), 0f, 0f, 0f);
         }
         var tris = new int[n * n * 6];
         int t = 0;
@@ -111,6 +142,7 @@ public class TerrainGenerator : MonoBehaviour
         var m = new Mesh { name = "TerrainChunk", indexFormat = UnityEngine.Rendering.IndexFormat.UInt32 };
         m.vertices = v;
         m.normals = nrm;
+        m.colors = col;
         m.triangles = tris;
         m.RecalculateBounds();
         return m;
