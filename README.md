@@ -59,7 +59,8 @@ The land around Reghin, every asset modelled by a Python script in Blender in a 
 A start screen (FREE ROAM / TUTORIAL / CONTROLS / QUIT), nine self-checking lessons that take the tractor to where they happen,
 glows on the control to use, a 1-5 star rating per lesson, and CONTROLS pages with annotated pictures.
 
-Future ideas: working mirrors, original model textures. See the [Roadmap](docs/ROADMAP.md).
+**The game is complete** (phases 1-6, 2026-11-01). Future ideas: a working cab radio, working mirrors, original model textures.
+See the [Roadmap](docs/ROADMAP.md).
 
 ## What's in it
 

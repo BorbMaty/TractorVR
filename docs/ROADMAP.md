@@ -1,5 +1,10 @@
 # Roadmap
 
+## ✅ The game is complete (user, 2026-11-01)
+Phases 1-6 are done: the Quest 2 standalone, PC VR and PC desktop versions, the farm near Reghin, the physics, the implements, the
+start screen and the nine-lesson tutorial; documented in the README, docs/PHYSICS.md and this log. What follows below
+(performance tuning, the tutorial's par times, the open headset checks) and the **Future ideas** at the end are optional extras.
+
 ## ▶ Where we left off (2026-11-01, end of the day): a complete game, documented
 - **Phase 5** (environment) and **phase 6** (start screen + tutorial) are built: trees, stream, village, Poly Haven skies, power
   lines and signs, grass tufts; the practice area; the start screen (free roam / tutorial / controls with annotated pictures / quit),
@@ -378,6 +383,13 @@ repeated things, no shadows on Quest except buildings, impostors for far trees, 
   every step at both quality levels. In the headset: still to do
 
 ## Future ideas / reference (not scheduled)
+- **Working cab radio** (user, 2026-11-01): the 6195M has a radio in the cab roof console above the driver. Cut its buttons out of the
+  cab mesh like the console switches (on / off, station up / down, volume knob), each pressable with a fingertip or the controller tip;
+  a small display with the station name and frequency (TextMesh, like the CommandCenter). Stations: a few looping tracks or synthesised
+  jingles (no licensed music in the repo), radio static between stations, a news / weather voice optional; the sound from the cab
+  speakers (spatialised AudioSources at the roof corners), muffled outside the cab like the engine; volume ducks under the horn and
+  the reverse beeper. Panel buttons RADIO / STATION for the desktop version; saved station and volume (PlayerPrefs). Quest cost:
+  one or two compressed audio streams, negligible GPU.
 - Tutorial: voice-over / sounds per step, a score for the slalom and the reversing bay.
 - **Working mirrors**: the model has three parts with the `mirror` material. One small render-texture camera per mirror (mono, from the reflected
   eye position), ~256², short draw distance, no shadows, updated every other frame, shown on the mirror glass; a MIRRORS on/off panel button.

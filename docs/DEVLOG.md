@@ -1459,3 +1459,7 @@ the Ackermann formula had the sign the wrong way round (left R + t/2, right R - 
 97 % is only the cap inside the slip formula (also on the slip chart); steering ratio 13 = 13 deg of steering wheel per deg at the road
 wheels; the bump stop adds 10 x k (11 x in total); the parking brake removes half the speed per step (+ slope compensation); the STOP
 result is test P, not C.
+
+## 2026-11-01: the game is complete
+The user considers the game completed. Phases 1-6 are done; open, optional items stay in the ROADMAP (Quest tree cost, tutorial par
+times, headset checks). A **working cab radio** was added to the future ideas at the user's request.
