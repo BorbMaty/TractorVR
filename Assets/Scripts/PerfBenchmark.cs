@@ -151,7 +151,10 @@ public class PerfBenchmark : MonoBehaviour
         {
             QualityTier.ApplyEnvironment(QualityTier.Current);
             hud.Show("BENCHMARK: FARMYARD, LOOK AHEAD");
-            tractor.TeleportTo(new Vector3(spot.x, tractor.SpawnPosition.y, spot.z), Quaternion.Euler(0f, yaw, 0f));
+            // On the ground there: the meadow lies 0.9 m above the yard, and a teleport at the yard's height put the tractor
+            // inside the hill (run 2026-11-01 02:39: ~20 ms GPU there with or without the grass).
+            float ground = TerrainGenerator.SurfaceHeight(spot.x, spot.z) - TerrainGenerator.SurfaceHeight(tractor.SpawnPosition.x, tractor.SpawnPosition.z);
+            tractor.TeleportTo(new Vector3(spot.x, tractor.SpawnPosition.y + ground, spot.z), Quaternion.Euler(0f, yaw, 0f));
             tractor.RequestStop();
             rig.SnapFollow();
             if (desktop && DesktopMode.Active) desktop.ResetLook();
