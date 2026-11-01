@@ -1148,3 +1148,23 @@ the shed, which only the yard view shows.
 Also: the yard concrete's stains repeated visibly every 4 m slab from above: `make_yard_concrete.py` halves their contrast.
 
 User's look at the remade implements (and the new yard parts): "looks good to me".
+
+## 2026-11-01: Phase 5 step 3, part 1 — worked ground (FieldMap), meadow + wheat field
+Until now ploughing changed the physics (`GroundMap` → PLOUGHED) but the look only through flat `TrailRenderer` ribbons, and the
+mower laid a green ribbon. Now **`FieldMap`**: one `RenderTexture` over the bounding box of the fields (850 × 800 m, 0.5 m per texel,
+1700 × 1600 RGBA8 ≈ 11 MB): R = cut, G = swath, B = ploughed, A = furrow direction (heading mod 180°). `Implement` paints a strip from
+its `workPoint` (`workWidth` wide) every 0.3 m of travel (each paint is a small GPU pass: `GL` quads with `FieldBrush`, blend op Max for
+R/G/B, overwrite for A). The plough paints ploughed + direction; the mower paints cut over 2.8 m and a 1.2 m swath down its middle.
+`GroundLit` samples it inside the fields' box: ploughed ground gets the soil layer, darker, with furrows 0.35 m apart across the
+plough's heading (albedo trough / crest and a tilted normal; faded where a furrow gets smaller than ~2 pixels, they shimmered);
+cut grass becomes pale stubble, the swath a darker, lumpier row. The trail ribbons and their materials are gone.
+
+**Layout**: the north field became a **meadow** (x −160…80, grass: the mower is a grass mower) and a **wheat field** (x 80…160, east of the
+main road; Ground.Crop). Standing grass and wheat come in part 2.
+
+`PhysicsTest`: the plough and traction runs (J, U) were on the north field's soil, now meadow grass, so they moved to the west field.
+The first spot there ran into one of the field's wet patches after 14 s (4WD 53 % slip at 0.4 km/h); the test now picks a 100 m strip
+with no mud and < 8 m of climb (found at (−400, −50)): 4WD 12.1 % slip, 2WD 15.8 %, 2WD + diff lock 16.7 % at 7.1 km/h (north field
+soil before: 16.2 / 17.6 / 16.7 %). New: after ploughing and mowing it reads the FieldMap back from the GPU (ploughed 1.00, furrows
+173°; cut 1.00, swath 1.00). Surface test O got the meadow (grass) and the west field (soil). Previews `field_mown` / `field_ploughed`
+paint a few passes first. `PlayModeTest` passes at both levels.

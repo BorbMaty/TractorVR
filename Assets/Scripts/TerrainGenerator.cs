@@ -13,6 +13,7 @@ public class TerrainGenerator : MonoBehaviour
 {
     public Material material;                          // GroundLit; an instance gets the control texture
     public Material gravel, asphalt, concrete;         // TriplanarLit
+    public Shader fieldBrush;                          // FieldMap painting (kept referenced here so builds include it)
     public float size = 2000f;
     public int chunks = 8;
     public float cell = 5f;
@@ -61,6 +62,7 @@ public class TerrainGenerator : MonoBehaviour
             if (Application.isPlaying) Destroy(c); else DestroyImmediate(c);
         }
         GroundMap.Build();
+        FieldMap.Init(fieldBrush);
         var mat = new Material(material) { name = "Ground (runtime)" };
         mat.SetTexture("_Control", GroundMap.ControlTexture());
         mat.SetFloat("_WorldHalf", size * 0.5f);

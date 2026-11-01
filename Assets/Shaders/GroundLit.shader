@@ -1,6 +1,7 @@
 // Terrain: grass / field soil / mud blended from the GroundMap control texture (R soil, G mud, B ploughed = darker soil),
 // each with its own tiling albedo + normal map in world XZ. A large-scale variation texture breaks up the tiling.
 // Blinn-Phong lighting (main-light shadows, SH ambient, fog, stereo); only the layers present are sampled (Quest GPU budget).
+// Phase 5 step 3: the global FieldMap (R cut, G swath, B ploughed, A furrow direction) adds furrows, stubble and swaths.
 Shader "TractorVR/GroundLit"
 {
     Properties
@@ -46,6 +47,8 @@ Shader "TractorVR/GroundLit"
             TEXTURE2D(_SoilTex); TEXTURE2D(_SoilN);
             TEXTURE2D(_MudTex); TEXTURE2D(_MudN);
             TEXTURE2D(_Macro); SAMPLER(sampler_Macro);
+            TEXTURE2D(_FieldMap); SAMPLER(sampler_FieldMap);   // global (FieldMap.cs)
+            float4 _FieldRect;                                 // x0, z0, 1 / width, 1 / height
 
             CBUFFER_START(UnityPerMaterial)
                 float4 _Control_ST, _GrassTex_ST, _GrassN_ST, _SoilTex_ST, _SoilN_ST, _MudTex_ST, _MudN_ST, _Macro_ST;
@@ -92,7 +95,12 @@ Shader "TractorVR/GroundLit"
 
                 float2 xz = i.positionWS.xz;
                 half4 ctrl = SAMPLE_TEXTURE2D(_Control, sampler_Control, (xz + _WorldHalf) / (2.0 * _WorldHalf));
-                half wSoil = ctrl.r, wMud = ctrl.g;
+                // FieldMap, only inside the fields' box.
+                half4 fm = 0;
+                float2 fuv = (xz - _FieldRect.xy) * _FieldRect.zw;
+                UNITY_BRANCH if (all(fuv > 0.0) && all(fuv < 1.0)) fm = SAMPLE_TEXTURE2D(_FieldMap, sampler_FieldMap, fuv);
+                half ploughed = max(ctrl.b, fm.b);
+                half wSoil = max(ctrl.r, fm.b), wMud = ctrl.g * (1.0h - fm.b);
                 half wGrass = saturate(1.0h - wSoil - wMud);
                 half sum = max(wGrass + wSoil + wMud, 1e-3h);
                 wGrass /= sum; wSoil /= sum; wMud /= sum;
@@ -101,8 +109,27 @@ Shader "TractorVR/GroundLit"
                 // Quest budget: sample only the layers that are present here (most pixels are pure grass), and one normal map
                 // (the dominant layer's).
                 half3 albedo = 0;
-                UNITY_BRANCH if (wGrass > 0.01h) albedo += SAMPLE_TEXTURE2D(_GrassTex, sampler_GrassTex, uvG).rgb * wGrass;
-                UNITY_BRANCH if (wSoil > 0.01h) albedo += SAMPLE_TEXTURE2D(_SoilTex, sampler_GrassTex, uvS).rgb * wSoil * (1.0h - 0.3h * ctrl.b);
+                UNITY_BRANCH if (wGrass > 0.01h)
+                {
+                    half3 g = SAMPLE_TEXTURE2D(_GrassTex, sampler_GrassTex, uvG).rgb;
+                    // Mown: pale stubble; the swath: a darker, lumpier row of cut grass (the texture at another scale and angle).
+                    half luma = dot(g, half3(0.3h, 0.6h, 0.1h));
+                    g = lerp(g, luma * half3(1.35h, 1.4h, 0.75h), fm.r * 0.65h);
+                    half3 hay = SAMPLE_TEXTURE2D(_GrassTex, sampler_GrassTex, float2(xz.y, -xz.x) * 1.7).rgb;
+                    g = lerp(g, hay * half3(0.75h, 0.82h, 0.45h), saturate(fm.g * 1.5h - 0.2h));
+                    albedo += g * wGrass;
+                }
+                // Furrows: ridges 0.35 m apart across the plough's direction of travel, troughs darker.
+                float heading = fm.a * PI;
+                float2 across = float2(cos(heading), -sin(heading));
+                float along = dot(xz, across) / 0.35;
+                float stripe = frac(along);
+                half ridge = 1.0h - abs(stripe * 2.0h - 1.0h);                   // 0 in the trough, 1 on the crest
+                // Fade the furrows where one is smaller than ~2 pixels (they shimmer in the distance otherwise).
+                half furrows = fm.b * saturate(1.5h - 2.0h * fwidth(along));
+                UNITY_BRANCH if (wSoil > 0.01h)
+                    albedo += SAMPLE_TEXTURE2D(_SoilTex, sampler_GrassTex, uvS).rgb * wSoil * (1.0h - 0.3h * ploughed)
+                              * lerp(1.0h, lerp(0.7h, 1.1h, ridge), furrows);
                 UNITY_BRANCH if (wMud > 0.01h) albedo += SAMPLE_TEXTURE2D(_MudTex, sampler_GrassTex, uvM).rgb * wMud;
                 half macro = SAMPLE_TEXTURE2D(_Macro, sampler_Macro, xz * _Tiling.w).r;
                 albedo *= lerp(0.8h, 1.15h, macro);
@@ -115,6 +142,9 @@ Shader "TractorVR/GroundLit"
                 float3 t = normalize(float3(1, 0, 0) - n * n.x);   // planar XZ mapping: tangent along +X,
                 float3 b = cross(t, n);                            // bitangent along +Z
                 float3 normalWS = normalize(t * nTS.x + b * nTS.y + n * max(nTS.z, 0.2h));
+                // Furrow slopes: the profile's gradient tilts the normal across the furrows.
+                half slope = (stripe < 0.5 ? 1.0h : -1.0h) * 0.55h * furrows;
+                normalWS = normalize(normalWS + float3(across.x, 0, across.y) * slope);
 
                 SurfaceData s = (SurfaceData)0;
                 s.albedo = albedo;

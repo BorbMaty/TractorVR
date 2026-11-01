@@ -349,7 +349,7 @@ public static class PhysicsTest
         {
             ("asphalt road (uphill)", new Vector3(80f, 0f, roadZ), 0f), ("gravel track", new Vector3(32f, 0f, 0f), 90f),
             ("yard concrete", new Vector3(14f, 0f, -20f), 0f), ("pasture", new Vector3(-150f, 0f, 500f), 0f),
-            ("north field soil", new Vector3(60f, 0f, 300f), 0f), ($"mud at ({mud.x:0}, {mud.z:0})", mud, 0f),
+            ("north meadow (grass)", new Vector3(60f, 0f, 300f), 0f), ("west field soil", new Vector3(-320f, 0f, 0f), 0f), ($"mud at ({mud.x:0}, {mud.z:0})", mud, 0f),
         };
         foreach (var (name, at, yaw) in spots)
         {
@@ -407,10 +407,11 @@ public static class PhysicsTest
         log.AppendLine($"   top link set to {hitch.TopLinkLength * 100f:0} cm, plough pitch {hitch.RearPitch:0.0}° at the coupling height");
         // On the yard concrete the plough can't go in: lowering stops at the surface, no draft.
         input.scriptedHitch = -1f; Simulate(3f, 0f, 0f, 1.5f); input.scriptedHitch = 1f; Simulate(4f, 0f, 0f, 10f); input.scriptedHitch = 0f;
-        log.AppendLine("   → carried to the north field (soil):");
-        Place(new Vector3(-60f, 0f, 250f), 0f); Simulate(1f, 0f, 0f, 10f);
+        log.AppendLine("   → carried to the west field (soil; the north field became a meadow and a wheat field in phase 5):");
+        Place(PloughSpot, 0f); Simulate(1f, 0f, 0f, 10f);
         input.scriptedHitch = -1f; Simulate(6f, 0f, 0f, 2f);
         Simulate(20f, 0.21f, 0f, 2f);
+        LogFieldMap("ploughed strip", plough.workPoint.position - ctrl.transform.forward * 4f);
         TractionScenario(plough);
         input.scriptedHitch = 1f; Simulate(5f, 0.21f, 0f, 1f);
         input.scriptedHitch = 0f;
@@ -438,6 +439,7 @@ public static class PhysicsTest
         extra = () => $"front {hitch.FrontPosition:0.00}  depth {mower.Depth:0.00}  {(mower.Working ? "WORK" : "")}  PTO {hitch.PtoPowerKW:0} kW";
         input.scriptedHitch = -1f; Simulate(3f, 0f, 0f, 1f); input.scriptedHitch = 0f;
         Simulate(15f, 0.25f, 0f, 3f);
+        LogFieldMap("mown strip", mower.workPoint.position - ctrl.transform.forward * 4f);
         hitch.SetPto(false);
         input.scriptedHitch = 1f; Simulate(4f, 0f, 0f, 2f);
         input.scriptedHitch = -1f; Simulate(5f, 0f, 0f, 10f); input.scriptedHitch = 0f;
@@ -551,6 +553,38 @@ public static class PhysicsTest
     static string Wheels() => string.Join(" ", ctrl.wheels.Select(w =>
         $"{(w.steers ? "F" : "R")}{(w.leftSide ? "L" : "R")} {w.surface.label.PadRight(4).Substring(0, 4)} {w.wheelSpeed * 3.6f:0.0}{(w.spinning ? "*" : w.locked ? "#" : "")}"));
 
+    /// <summary>The FieldMap texel 4 m behind a working implement (R cut, G swath, B ploughed, A furrow direction × 180°).</summary>
+    static void LogFieldMap(string what, Vector3 p)
+    {
+        if (!FieldMap.Ready) { log.AppendLine($"   FieldMap: not initialised"); return; }
+        var c = FieldMap.Sample(p.x, p.z);
+        log.AppendLine($"   FieldMap {what} at ({p.x:0.0}, {p.z:0.0}): cut {c.r:0.00}  swath {c.g:0.00}  ploughed {c.b:0.00}  furrows {c.a * 180f:0}°");
+    }
+
+    /// <summary>Start of the plough and traction runs: on the west field (soil), a 100 m strip northwards with no mud (the fields have
+    /// wet spots) and less than 8 m of climb, the first one found scanning from the south-west corner.</summary>
+    static Vector3 PloughSpot
+    {
+        get
+        {
+            if (ploughSpot.HasValue) return ploughSpot.Value;
+            var f = WorldLayout.Fields[System.Array.FindIndex(WorldLayout.Fields, a => a.name == "West field")];
+            for (float x = f.x0 + 20f; x < f.x1 - 20f && !ploughSpot.HasValue; x += 10f)
+            for (float z = f.z0 + 10f; z < f.z1 - 110f && !ploughSpot.HasValue; z += 10f)
+            {
+                bool ok = Mathf.Abs(TerrainGenerator.Height(x, z + 100f) - TerrainGenerator.Height(x, z)) < 8f;
+                for (float d = 0f; d <= 100f && ok; d += 2f)
+                    foreach (float dx in new[] { -3f, 0f, 3f })
+                        if (GroundMap.At(x + dx, z + d) != Ground.Soil) { ok = false; break; }
+                if (ok) ploughSpot = new Vector3(x, 0f, z);
+            }
+            if (!ploughSpot.HasValue) ploughSpot = new Vector3(-320f, 0f, -60f);
+            log.AppendLine($"   plough runs start at ({ploughSpot.Value.x:0}, {ploughSpot.Value.z:0}), west field");
+            return ploughSpot.Value;
+        }
+    }
+    static Vector3? ploughSpot;
+
     // U. With the plough in: 4WD, 2WD, 2WD + diff lock (slip and speed), then the left side in mud (open diff: that wheel spins).
     static void TractionScenario(Implement plough)
     {
@@ -576,7 +610,7 @@ public static class PhysicsTest
             ctrl.SetDiffLock(false);
         }
         ctrl.SetFourWheelDrive(true);
-        Place(new Vector3(-60f, 0f, 250f), 0f); Simulate(1f, 0f, 0f, 10f);
+        Place(PloughSpot, 0f); Simulate(1f, 0f, 0f, 10f);
         extra = null;
     }
 

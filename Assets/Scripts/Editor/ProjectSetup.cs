@@ -345,6 +345,7 @@ public static class ProjectSetup
         terrain.gravel = Surface("Gravel", 1.5f, 0.1f);
         terrain.asphalt = Surface("Asphalt", 2f, 0.2f);
         terrain.concrete = Surface("Concrete", 4f, 0.15f);
+        terrain.fieldBrush = Shader.Find("Hidden/TractorVR/FieldBrush");
         terrain.gameObject.isStatic = true;
 
         BuildFarmyard();   // imports the Env textures (ImportEnvAssets) on its first PlaceEnv
@@ -2289,9 +2290,7 @@ public static class ProjectSetup
         foreach (var old in new[] { "Impl_TrailerTyre", "Impl_SmallTyre", "Impl_Mouldboard" })
             AssetDatabase.DeleteAsset($"{GenDir}/{old}.asset");
         if (envMats == null) ImportEnvAssets();
-        var unlit = Shader.Find("Universal Render Pipeline/Unlit");
-        var soil = SaveMat(new Material(unlit), "Trail_Soil"); soil.SetColor("_BaseColor", new Color(0.33f, 0.22f, 0.13f));
-        var mown = SaveMat(new Material(unlit), "Trail_Mown"); mown.SetColor("_BaseColor", new Color(0.5f, 0.62f, 0.27f));
+        foreach (var old in new[] { "Trail_Soil", "Trail_Mown" }) AssetDatabase.DeleteAsset($"{GenDir}/{old}.mat");   // trails: now the FieldMap
         var heapMat = SaveMat(new Material(LitShader) { color = new Color(0.36f, 0.25f, 0.16f) }, "Impl_Soil");
         heapMat.SetFloat("_Smoothness", 0.05f);
         var parent = new GameObject("Implements").transform;
@@ -2327,7 +2326,7 @@ public static class ProjectSetup
             // Physics: frame + bodies box (rests on the shares), a stand under the headstock.
             Box(go, new Vector3(0.5f, 0.45f, -1.8f), new Vector3(1.4f, 0.85f, 2.4f));
             Box(go, new Vector3(0f, 0.37f, 0f), new Vector3(0.9f, 0.74f, 0.25f));
-            imp.trail = Trail(t, new Vector3(0.55f, 0f, -2.2f), 1.05f, soil);
+            imp.work = Implement.Work.Plough; imp.workPoint = Point(t, "WorkPoint", new Vector3(0.55f, 0f, -2.2f)); imp.workWidth = 1.05f;
             Body(go, imp.mass, new Vector3(0.3f, 0.45f, -1.4f));
         }
 
@@ -2352,7 +2351,7 @@ public static class ProjectSetup
             imp.groundPoints = new[] { Point(t, "Skid_L", new Vector3(-1.45f, 0.03f, 1.15f)), Point(t, "Skid_R", new Vector3(1.45f, 0.03f, 1.15f)) };
             Box(go, new Vector3(0f, 0.25f, 1.05f), new Vector3(3.0f, 0.5f, 1.0f));
             Box(go, new Vector3(0f, 0.22f, 0.1f), new Vector3(0.6f, 0.44f, 0.15f));
-            imp.trail = Trail(t, new Vector3(0f, 0f, 1.0f), 2.8f, mown);
+            imp.work = Implement.Work.Mow; imp.workPoint = Point(t, "WorkPoint", new Vector3(0f, 0f, 1.0f)); imp.workWidth = 2.8f;
             Body(go, imp.mass, new Vector3(0f, 0.3f, 0.8f));
         }
 
@@ -2499,23 +2498,6 @@ public static class ProjectSetup
         rb.interpolation = RigidbodyInterpolation.Interpolate;
         rb.angularDamping = 0.5f;
         return rb;
-    }
-
-    // Flat strip left on the ground while working (TrailRenderer facing up; Implement keeps it at ground height).
-    static TrailRenderer Trail(Transform parent, Vector3 local, float width, Material mat)
-    {
-        var t = Point(parent, "Trail", local);
-        var tr = t.gameObject.AddComponent<TrailRenderer>();
-        tr.time = 1200f;
-        tr.minVertexDistance = 0.5f;
-        tr.widthMultiplier = width;
-        tr.alignment = LineAlignment.TransformZ;
-        tr.sharedMaterial = mat;
-        tr.shadowCastingMode = ShadowCastingMode.Off;
-        tr.receiveShadows = false;
-        tr.emitting = false;
-        tr.autodestruct = false;
-        return tr;
     }
 
     // ------------------------------------------------------------------ XR rig + HUD
@@ -2918,6 +2900,26 @@ public static class ProjectSetup
         Shot("road.png", At(77f, -30f, 2.5f), Quaternion.LookRotation(At(80f, 60f, 0f) - At(77f, -30f, 2.5f)));
         Shot("field_gate.png", At(-6f, 96f, 3f), Quaternion.LookRotation(At(4f, 135f, 0f) - At(-6f, 96f, 3f)));
         Shot("ground_close.png", At(3f, 110f, 1.6f), Quaternion.LookRotation(At(3.5f, 116f, 0f) - At(3f, 110f, 1.6f)));
+        // Phase 5 step 3: worked ground from the FieldMap, painted here as the implements would (then cleared again).
+        // Meadow west of the north track: three mown passes (stubble, swaths); west field: ploughed lands in two directions.
+        if (FieldMap.Ready)
+        {
+            for (int k = 0; k < 3; k++)
+            {
+                float x = -8f - k * 2.8f;
+                FieldMap.Paint(new Vector3(x, 0f, 125f), new Vector3(x, 0f, 175f), 2.8f, new Color(1f, 0f, 0f, 0f));
+                FieldMap.Paint(new Vector3(x, 0f, 125f), new Vector3(x, 0f, 175f), 1.2f, new Color(0f, 1f, 0f, 0f));
+            }
+            for (int k = 0; k < 8; k++)
+            {
+                float x = -236f - k * 1.05f;
+                FieldMap.Paint(new Vector3(x, 0f, -50f), new Vector3(x, 0f, -20f), 1.05f, new Color(0f, 0f, 1f, 0f), furrows: true);
+                FieldMap.Paint(new Vector3(-245f, 0f, -18f + k * 1.05f), new Vector3(-275f, 0f, -18f + k * 1.05f), 1.05f, new Color(0f, 0f, 1f, 0f), furrows: true);
+            }
+            Shot("field_mown.png", At(-2f, 120f, 2.8f), Quaternion.LookRotation(At(-14f, 150f, 0f) - At(-2f, 120f, 2.8f)));
+            Shot("field_ploughed.png", At(-228f, -58f, 2.8f), Quaternion.LookRotation(At(-246f, -30f, 0f) - At(-228f, -58f, 2.8f)));
+            FieldMap.Clear();
+        }
 
         // Linkages and implements.
         var hitch = tractor.GetComponent<Hitch>();

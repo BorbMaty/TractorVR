@@ -69,7 +69,9 @@ public static class WorldLayout
 
     public static readonly Area[] Fields =
     {
-        new Area { name = "North field (crop)", type = Ground.Crop, x0 = -160f, z0 = 115f, x1 = 160f, z1 = 420f },
+        // Phase 5 step 3: the north field is split by the main road into a meadow (grass, the mower's work) and a wheat field.
+        new Area { name = "North meadow", type = Ground.Grass, x0 = -160f, z0 = 115f, x1 = 80f, z1 = 420f },
+        new Area { name = "North wheat field", type = Ground.Crop, x0 = 80f, z0 = 115f, x1 = 160f, z1 = 420f },
         new Area { name = "South-east field", type = Ground.Soil, x0 = 115f, z0 = -360f, x1 = 410f, z1 = -75f },
         new Area { name = "West field", type = Ground.Soil, x0 = -420f, z0 = -160f, x1 = -225f, z1 = 140f },
     };

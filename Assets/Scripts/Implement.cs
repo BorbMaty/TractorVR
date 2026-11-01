@@ -8,7 +8,7 @@ using UnityEngine;
 /// Work: <see cref="Depth"/> is how far the ground points (plough shares, cutter bar) are below the ground.
 ///   Plough: draft force against the motion, growing with depth and speed, applied to the tractor at the hitch.
 ///   PTO implements: parts spin with the PTO; power is taken from the engine (Hitch.PtoPowerKW).
-///   A trail marks worked ground (furrows / mown strip).
+///   Worked ground is painted into the FieldMap (furrows / cut grass and its swath) as the work point moves.
 /// </summary>
 public class Implement : MonoBehaviour
 {
@@ -29,7 +29,11 @@ public class Implement : MonoBehaviour
     public float ptoKW = 0f;
     public Transform[] spinners = new Transform[0];   // spin around their local Y with the PTO
     public float spinRatio = 1f;
-    public TrailRenderer trail;             // child "marker", kept on the ground; emits while working
+    public enum Work { None, Plough, Mow }
+    public Work work;                       // what it does to the ground (FieldMap)
+    public Transform workPoint;             // centre of the worked strip (plough: behind the bodies, mower: under the cutter bar)
+    public float workWidth;                 // m
+    const float SwathWidth = 1.2f;          // the mower lays the cut grass in a row this wide behind its centre
 
     public bool Attached { get; private set; }
     public float Depth { get; private set; } = -1f;
@@ -50,12 +54,13 @@ public class Implement : MonoBehaviour
     Collider[] tractorColliders;
     float spinAngle;
     float parkedPinHeight;                  // coupling point above the ground when standing on its own
+    Vector3 lastPaint;                      // FieldMap: where the last painted strip ended
+    bool painting;
 
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
         colliders = GetComponentsInChildren<Collider>();
-        if (trail) trail.emitting = false;
         parkedPinHeight = hitchPoint ? hitchPoint.localPosition.y : 0f;
     }
 
@@ -89,7 +94,7 @@ public class Implement : MonoBehaviour
         hitch = null;
         Working = false;
         DraftForce = 0f;
-        if (trail) trail.emitting = false;
+        painting = false;
         // Collisions with the tractor come back once nothing overlaps (see FrameUpdate).
     }
 
@@ -188,10 +193,10 @@ public class Implement : MonoBehaviour
         }
 
         // Ploughing turns the ground over: lower grip, more rolling resistance, less draft on the next pass.
-        if (Working && draftKN > 0f && trail)
+        if (Working && draftKN > 0f && workPoint)
         {
-            Vector3 c = trail.transform.position, right = transform.right;
-            float half = trail.widthMultiplier * 0.5f;
+            Vector3 c = workPoint.position, right = transform.right;
+            float half = workWidth * 0.5f;
             for (float o = -half; o <= half; o += 0.5f)
             {
                 Vector3 q = c + right * o;
@@ -200,13 +205,22 @@ public class Implement : MonoBehaviour
             }
         }
 
-        if (trail)
+        // The look of the worked ground: a strip into the FieldMap every 0.3 m of travel (each paint is a GPU pass).
+        if (workPoint && work != Work.None)
         {
-            trail.emitting = Working;
-            Vector3 m = trail.transform.position;
-            m.y = TerrainGenerator.Height(m.x, m.z) + 0.04f;
-            trail.transform.position = m;
-            trail.transform.rotation = Quaternion.LookRotation(Vector3.up, transform.forward);  // trail lies flat (Transform Z alignment)
+            Vector3 c = workPoint.position;
+            if (!Working) painting = false;
+            else if (!painting) { painting = true; lastPaint = c; }
+            else if ((c - lastPaint).sqrMagnitude > 0.09f)
+            {
+                if (work == Work.Plough) FieldMap.Paint(lastPaint, c, workWidth, new Color(0f, 0f, 1f, 0f), furrows: true);
+                else
+                {
+                    FieldMap.Paint(lastPaint, c, workWidth, new Color(1f, 0f, 0f, 0f));
+                    FieldMap.Paint(lastPaint, c, SwathWidth, new Color(0f, 1f, 0f, 0f));
+                }
+                lastPaint = c;
+            }
         }
     }
 
