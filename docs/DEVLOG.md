@@ -1414,3 +1414,9 @@ should be pictures with arrows and text, not plain text.
 
 **Fix (user): the km/h readout overlapped the start menu board** (it is fixed to the view, and the menu board is in front of
 the eye): `TractorHud` shows nothing while `StartMenu.IsOpen`.
+
+**Hand tracking in PC VR (user: "no luck with hand tracking in the PC VR version").** `Player.log` showed the cause: the Oculus PC
+OpenXR runtime listed 36 extensions, none of them `XR_EXT_hand_tracking`, and Unity logged "Requested feature extensions not
+supported by runtime: XR_EXT_hand_tracking". Meta exposes hand tracking over Link only with *Developer Runtime Features* (Meta Horizon
+Link app → Settings → Beta). The user switched it on; after a restart of TractorVR.exe the runtime offers `XR_EXT_hand_tracking`
+(version 4) and `XR_EXT_hand_tracking_data_source`, and no requested extension is missing. No code change.
