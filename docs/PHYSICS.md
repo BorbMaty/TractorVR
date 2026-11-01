@@ -81,7 +81,7 @@ springs and swings with their difference: roll $= \arctan\frac{x_R - x_L}{\text{
 The first headset test caused motion sickness, so speed changes are **limited before any physics**: the stick (or the speed lever)
 sets a target speed $v_t$, and a command $v_c$ moves towards it at a limited rate:
 
-$$v_c \leftarrow v_c + \operatorname{clamp}\big(v_t - v_c,\; -a\,\Delta t,\; a\,\Delta t\big)$$
+$$v_c \leftarrow v_c + \mathrm{clamp}\big(v_t - v_c,\; -a\,\Delta t,\; a\,\Delta t\big)$$
 
 | Situation | Rate $a$ |
 |---|---|
@@ -297,7 +297,7 @@ $$m = m_\text{chassis} + m_\text{body} + m_\text{load} \qquad \vec c = \frac{m_\
 A pure velocity brake creeps down a slope (each step it only removes the speed gained in the last one). When the command is 0 and
 the tractor is (almost) standing, the model remembers the position $p_0$ and holds it like a spring:
 
-$$a = -\frac{v}{2\,\Delta t} - 20\,(p - p_0)\cdot\hat f \qquad F_\text{lat} \mathrel{+}= -20\,(p - p_0)\cdot\hat s \,\frac{N}{g}$$
+$$a = -\frac{v}{2\,\Delta t} - 20\,(p - p_0)\cdot\hat f \qquad F_\text{lat} \leftarrow F_\text{lat} - 20\,(p - p_0)\cdot\hat s \,\frac{N}{g}$$
 
 All four wheels hold (park lock + front axle engaged). Test G parks on 4.3° and measures 0.0 cm creep in 5 s. A teleport (reset,
 lesson set-up) clears $p_0$; a stale one once pulled the tractor back towards its old spot.
