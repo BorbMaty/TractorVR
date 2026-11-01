@@ -128,8 +128,18 @@ Shader "TractorVR/GroundLit"
                 // Fade the furrows where one is smaller than ~2 pixels (they shimmer in the distance otherwise).
                 half furrows = fm.b * saturate(1.5h - 2.0h * fwidth(along));
                 UNITY_BRANCH if (wSoil > 0.01h)
-                    albedo += SAMPLE_TEXTURE2D(_SoilTex, sampler_GrassTex, uvS).rgb * wSoil * (1.0h - 0.3h * ploughed)
-                              * lerp(1.0h, lerp(0.7h, 1.1h, ridge), furrows);
+                {
+                    half3 soilC = SAMPLE_TEXTURE2D(_SoilTex, sampler_GrassTex, uvS).rgb * (1.0h - 0.3h * ploughed)
+                                  * lerp(1.0h, lerp(0.7h, 1.1h, ridge), furrows);
+                    // Standing crop (control A, not ploughed or cut): straw gold, so the wheat field reads beyond its clumps.
+                    half crop = ctrl.a * (1.0h - fm.b) * (1.0h - fm.r);
+                    UNITY_BRANCH if (crop > 0.01h)
+                    {
+                        half3 g = SAMPLE_TEXTURE2D(_GrassTex, sampler_GrassTex, uvG * 0.5).rgb;
+                        soilC = lerp(soilC, dot(g, half3(0.3h, 0.6h, 0.1h)) * half3(2.2h, 1.75h, 0.85h), crop * 0.85h);
+                    }
+                    albedo += soilC * wSoil;
+                }
                 UNITY_BRANCH if (wMud > 0.01h) albedo += SAMPLE_TEXTURE2D(_MudTex, sampler_GrassTex, uvM).rgb * wMud;
                 half macro = SAMPLE_TEXTURE2D(_Macro, sampler_Macro, xz * _Tiling.w).r;
                 albedo *= lerp(0.8h, 1.15h, macro);

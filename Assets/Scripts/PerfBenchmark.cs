@@ -40,6 +40,9 @@ public class PerfBenchmark : MonoBehaviour
     /// <summary>Second env view: west side of the yard facing east-south-east, so the shed, silos, diesel tank, house and gate are in view.</summary>
     static readonly Vector3 YardSpot = new Vector3(-18f, 0f, -8f);
     const float YardYaw = 95f;
+    /// <summary>Third view (phase 5 step 3): in the meadow, facing across it and the wheat field; "nomeadow" switches the vegetation off.</summary>
+    static readonly Vector3 MeadowSpot = new Vector3(-30f, 0f, 200f);
+    const float MeadowYaw = 75f;
 
     public static bool Running { get; private set; }
     /// <summary>Folder of the last finished run (null before).</summary>
@@ -142,7 +145,9 @@ public class PerfBenchmark : MonoBehaviour
         // First facing the barn (as in the step 0 runs), then across the yard (shed, silos, tank, house, gate).
         var variants = FindObjectsByType<TierVariant>(FindObjectsInactive.Include);
         float envStart = Time.unscaledTime;
-        foreach (var (on, off, spot, yaw) in new[] { ("env", "noenv", EnvSpot, -90f), ("yard", "noyard", YardSpot, YardYaw) })
+        var vegetation = FindAnyObjectByType<Vegetation>();
+        foreach (var (on, off, spot, yaw) in new[] { ("env", "noenv", EnvSpot, -90f), ("yard", "noyard", YardSpot, YardYaw),
+                                                     ("meadow", "nomeadow", MeadowSpot, MeadowYaw) })
         {
             QualityTier.ApplyEnvironment(QualityTier.Current);
             hud.Show("BENCHMARK: FARMYARD, LOOK AHEAD");
@@ -156,7 +161,8 @@ public class PerfBenchmark : MonoBehaviour
                 if (phase == off)
                 {
                     Still(Path.Combine(dir, on + ".png"));
-                    foreach (var v in variants) v.gameObject.SetActive(false);
+                    if (on == "meadow") { if (vegetation) vegetation.enabled = false; }   // grass and wheat only
+                    else foreach (var v in variants) v.gameObject.SetActive(false);
                     yield return new WaitForSeconds(1f);
                 }
                 float phaseStart = Time.unscaledTime;
@@ -170,6 +176,7 @@ public class PerfBenchmark : MonoBehaviour
             }
         }
         QualityTier.ApplyEnvironment(QualityTier.Current);
+        if (vegetation) vegetation.enabled = true;
         tractor.ResetTractor();
         tractor.GetComponent<CabControls>().Neutral();
         tractor.RequestStop();
@@ -241,24 +248,25 @@ public class PerfBenchmark : MonoBehaviour
         float budget = 1000f / RefreshRate();
         var s = new StringBuilder();
         s.AppendLine();
-        s.AppendLine("Phase   frames   fps    frame ms avg / p95 / p99 / max   over budget   CPU ms avg / p95   GPU ms avg / p95   XR app GPU ms   XR compositor GPU ms   dropped");
-        foreach (var phase in new[] { "cab", "third", "all", "env", "noenv", "yard", "noyard" })
+        s.AppendLine("Phase     frames   fps    frame ms avg / p95 / p99 / max   over budget   CPU ms avg / p95   GPU ms avg / p95   XR app GPU ms   XR compositor GPU ms   dropped");
+        foreach (var phase in new[] { "cab", "third", "all", "env", "noenv", "yard", "noyard", "meadow", "nomeadow" })
         {
             var fs = frames.Where(f => phase == "all" ? f.phase == "cab" || f.phase == "third" : f.phase == phase).ToList();
             if (fs.Count == 0) continue;
             var ft = fs.Select(f => f.frameMs).ToList();
             string Pair(IEnumerable<float> xs) { var l = xs.Where(x => x >= 0f).ToList(); return l.Count == 0 ? "n/a" : $"{l.Average():0.0} / {Percentile(l, 0.95f):0.0}"; }
             string Avg(IEnumerable<float> xs) { var l = xs.Where(x => x > 0f).ToList(); return l.Count == 0 ? "n/a" : $"{l.Average():0.0}"; }
-            int dropped = (phase.EndsWith("env") || phase.EndsWith("yard")) && fs.Min(f => f.dropped) >= 0 ? fs.Max(f => f.dropped) - fs.Min(f => f.dropped) : fs.Max(f => f.dropped);
+            int dropped = (phase.EndsWith("env") || phase.EndsWith("yard") || phase.EndsWith("meadow")) && fs.Min(f => f.dropped) >= 0 ? fs.Max(f => f.dropped) - fs.Min(f => f.dropped) : fs.Max(f => f.dropped);
             float over = 100f * ft.Count(x => x > budget * 1.1f) / ft.Count;
-            s.AppendLine($"{phase,-6} {fs.Count,7} {1000f / ft.Average(),6:0.0}    {ft.Average(),5:0.0} / {Percentile(ft, 0.95f),5:0.0} / {Percentile(ft, 0.99f),5:0.0} / {ft.Max(),6:0.0}   {over,8:0.0} %   " +
+            s.AppendLine($"{phase,-8} {fs.Count,7} {1000f / ft.Average(),6:0.0}    {ft.Average(),5:0.0} / {Percentile(ft, 0.95f),5:0.0} / {Percentile(ft, 0.99f),5:0.0} / {ft.Max(),6:0.0}   {over,8:0.0} %   " +
                          $"{Pair(fs.Select(f => f.cpuMs)),-17}  {Pair(fs.Select(f => f.gpuMs)),-17}  {Avg(fs.Select(f => f.xrAppGpu)),-14}  {Avg(fs.Select(f => f.xrCompGpu)),-21}  {(dropped >= 0 ? dropped.ToString() : "n/a")}");
         }
         s.AppendLine();
         s.AppendLine($"over budget = frames longer than 110 % of the {budget:0.0} ms budget. CPU / GPU = Unity FrameTimingManager (-1 / n/a where the platform doesn't report it).");
         s.AppendLine("XR values come from the runtime (XR_META_performance_metrics); dropped = frames the compositor dropped during the run.");
         s.AppendLine("all = the drive (cab + third), comparable with runs before phase 5; env / noenv = standing in the yard facing the barn with / without the phase 5 assets; " +
-                     "yard / noyard = the same, looking east across the yard (shed, silos, tank, house, gate).");
+                     "yard / noyard = the same, looking east across the yard (shed, silos, tank, house, gate); " +
+                     "meadow / nomeadow = in the meadow with / without the standing grass and wheat.");
         return s.ToString();
     }
 

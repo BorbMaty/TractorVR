@@ -359,6 +359,8 @@ public static class ProjectSetup
             EditorUtility.SetDirty(terrain.concrete);
         }
 
+        BuildVegetation();
+
         // Round hay bales (Ø 1.5 m × 1.2 m, 350 kg) on the flat start area: things to push around.
         var baleMat = SaveMat(new Material(LitShader) { color = new Color(0.82f, 0.7f, 0.38f) }, "HayBale");
         baleMat.SetFloat("_Smoothness", 0.05f);
@@ -383,6 +385,108 @@ public static class ProjectSetup
             rb.angularDamping = 0.5f;
             rb.interpolation = RigidbodyInterpolation.Interpolate;
         }
+    }
+
+    // ------------------------------------------------------------------ standing grass and wheat (phase 5 step 3)
+    // Clump meshes made here (a few tapered blades / stalks with ears; vertex colour R = height along the blade, G = tint variation,
+    // B = ear), drawn instanced by Vegetation with TractorVR/Vegetation.
+    static void BuildVegetation()
+    {
+        var shader = Shader.Find("TractorVR/Vegetation");
+        Material Mat(string name, Color root, Color tip, Color ear, Color hay)
+        {
+            var m = new Material(shader) { enableInstancing = true };
+            m.SetColor("_BaseColor", root); m.SetColor("_TipColor", tip); m.SetColor("_EarColor", ear); m.SetColor("_HayColor", hay);
+            return SaveMat(m, name);
+        }
+        var grassMat = Mat("Veg_Meadow", new Color(0.10f, 0.22f, 0.05f), new Color(0.40f, 0.60f, 0.18f), new Color(0.55f, 0.55f, 0.30f), new Color(0.60f, 0.62f, 0.30f));
+        var wheatMat = Mat("Veg_Wheat", new Color(0.35f, 0.38f, 0.14f), new Color(0.80f, 0.68f, 0.34f), new Color(0.88f, 0.74f, 0.40f), new Color(0.75f, 0.66f, 0.38f));
+        wheatMat.SetFloat("_Wind", 0.07f);
+        wheatMat.SetFloat("_StubbleHeight", 0.15f);
+        var veg = new GameObject("Vegetation").AddComponent<Vegetation>();
+        veg.kinds = new[]
+        {
+            new Vegetation.Kind { field = "North meadow", mesh = SaveMesh(GrassClump(), "Veg_GrassClump"), material = grassMat, perSquareMetre = 2.2f },
+            new Vegetation.Kind { field = "North wheat field", mesh = SaveMesh(WheatClump(), "Veg_WheatClump"), material = wheatMat, perSquareMetre = 2.5f, distanceScale = 1.2f },
+        };
+        veg.Build();
+    }
+
+    /// <summary>Nine tapered blades, 0.35–0.6 m, each three segments bending outward; two-sided (the shader culls nothing).</summary>
+    static Mesh GrassClump()
+    {
+        var v = new System.Collections.Generic.List<Vector3>();
+        var c = new System.Collections.Generic.List<Color>();
+        var t = new System.Collections.Generic.List<int>();
+        var rnd = new System.Random(5);
+        float R() => (float)rnd.NextDouble();
+        for (int b = 0; b < 9; b++)
+        {
+            float a = R() * Mathf.PI * 2f, r = R() * 0.22f, h = 0.35f + R() * 0.25f, w = 0.025f + R() * 0.015f;
+            float lean = 0.12f + R() * 0.15f, tint = R();
+            Vector3 root = new Vector3(Mathf.Cos(a) * r, 0f, Mathf.Sin(a) * r), outward = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+            Vector3 side = Vector3.Cross(outward, Vector3.up).normalized;
+            int first = v.Count;
+            for (int k = 0; k <= 3; k++)
+            {
+                float f = k / 3f;
+                Vector3 p = root + Vector3.up * (h * f) + outward * (lean * f * f * h);
+                float half = w * (1f - f * 0.85f);
+                v.Add(p - side * half); v.Add(p + side * half);
+                c.Add(new Color(f, tint, 0f)); c.Add(new Color(f, tint, 0f));
+            }
+            for (int k = 0; k < 3; k++)
+            {
+                int i = first + k * 2;
+                t.AddRange(new[] { i, i + 2, i + 1, i + 1, i + 2, i + 3 });
+            }
+        }
+        var m = new Mesh { name = "GrassClump" };
+        m.SetVertices(v); m.SetColors(c); m.SetTriangles(t, 0);
+        m.RecalculateNormals(); m.RecalculateBounds();
+        return m;
+    }
+
+    /// <summary>Seven wheat stalks (0.8–0.95 m) with an ear each (two crossed quads) and two leaves.</summary>
+    static Mesh WheatClump()
+    {
+        var v = new System.Collections.Generic.List<Vector3>();
+        var c = new System.Collections.Generic.List<Color>();
+        var t = new System.Collections.Generic.List<int>();
+        var rnd = new System.Random(11);
+        float R() => (float)rnd.NextDouble();
+        void Quad(Vector3 a, Vector3 b, Vector3 d, Vector3 e, Color ca, Color cb)
+        {
+            int i = v.Count;
+            v.Add(a); v.Add(b); v.Add(d); v.Add(e);
+            c.Add(ca); c.Add(ca); c.Add(cb); c.Add(cb);
+            t.AddRange(new[] { i, i + 2, i + 1, i + 1, i + 2, i + 3 });
+        }
+        for (int s = 0; s < 7; s++)
+        {
+            float a = R() * Mathf.PI * 2f, r = R() * 0.16f, h = 0.8f + R() * 0.15f, tint = R();
+            Vector3 root = new Vector3(Mathf.Cos(a) * r, 0f, Mathf.Sin(a) * r);
+            Vector3 lean = new Vector3(R() - 0.5f, 0f, R() - 0.5f) * 0.08f;
+            Vector3 top = root + Vector3.up * h + lean;
+            Vector3 side = Quaternion.Euler(0f, R() * 180f, 0f) * Vector3.right;
+            Quad(root - side * 0.005f, root + side * 0.005f, top - side * 0.003f, top + side * 0.003f, new Color(0f, tint, 0f), new Color(0.9f, tint, 0f));
+            // Ear: two crossed quads from the top of the stalk, 11 cm long.
+            Vector3 earTop = top + Vector3.up * 0.11f + lean * 0.3f;
+            foreach (var sd in new[] { side, Quaternion.Euler(0f, 90f, 0f) * side })
+                Quad(top - sd * 0.012f, top + sd * 0.012f, earTop - sd * 0.006f, earTop + sd * 0.006f, new Color(1f, tint, 1f), new Color(1f, tint, 1f));
+            // A leaf hanging out from a third of the way up.
+            if (s < 2)
+            {
+                Vector3 l0 = root + Vector3.up * h * 0.35f, dir = (side + Vector3.up * 0.3f).normalized;
+                Vector3 l1 = l0 + dir * 0.22f + Vector3.down * 0.06f;
+                Vector3 w = Vector3.Cross(dir, Vector3.up).normalized * 0.012f;
+                Quad(l0 - w, l0 + w, l1, l1 + w * 0.2f, new Color(0.35f, tint, 0f), new Color(0.6f, tint, 0f));
+            }
+        }
+        var m = new Mesh { name = "WheatClump" };
+        m.SetVertices(v); m.SetColors(c); m.SetTriangles(t, 0);
+        m.RecalculateNormals(); m.RecalculateBounds();
+        return m;
     }
 
     // ------------------------------------------------------------------ ground textures + farmyard
@@ -2825,11 +2929,13 @@ public static class ProjectSetup
         cam.fieldOfView = 90f;
         cam.farClipPlane = 1500f;
         Directory.CreateDirectory("Logs/Previews");
+        var vegetation = Object.FindAnyObjectByType<Vegetation>();
         void Shot(string file, Vector3 pos, Quaternion rot)
         {
             cam.transform.SetPositionAndRotation(pos, rot);
             var rt = new RenderTexture(1280, 1000, 24);
             cam.targetTexture = rt;
+            if (vegetation) vegetation.Submit(cam, cam);   // instanced grass / wheat for this render only
             cam.Render();
             RenderTexture.active = rt;
             var tex = new Texture2D(rt.width, rt.height, TextureFormat.RGB24, false);
@@ -2917,6 +3023,8 @@ public static class ProjectSetup
                 FieldMap.Paint(new Vector3(-245f, 0f, -18f + k * 1.05f), new Vector3(-275f, 0f, -18f + k * 1.05f), 1.05f, new Color(0f, 0f, 1f, 0f), furrows: true);
             }
             Shot("field_mown.png", At(-2f, 120f, 2.8f), Quaternion.LookRotation(At(-14f, 150f, 0f) - At(-2f, 120f, 2.8f)));
+            Shot("field_meadow.png", At(-20f, 160f, 2.6f), Quaternion.LookRotation(At(-10f, 145f, 0.3f) - At(-20f, 160f, 2.6f)));
+            Shot("field_wheat.png", At(77f, 200f, 2.6f), Quaternion.LookRotation(At(95f, 215f, 0.5f) - At(77f, 200f, 2.6f)));
             Shot("field_ploughed.png", At(-228f, -58f, 2.8f), Quaternion.LookRotation(At(-246f, -30f, 0f) - At(-228f, -58f, 2.8f)));
             FieldMap.Clear();
         }

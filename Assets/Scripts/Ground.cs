@@ -189,7 +189,7 @@ public static class GroundMap
     }
 
     /// <summary>
-    /// Terrain control texture (2 m per texel): R = field soil, G = mud, B = ploughed (darker soil); grass is what's left.
+    /// Terrain control texture (2 m per texel): R = field soil, G = mud, B = ploughed (darker soil), A = standing crop; grass is what's left.
     /// Roads and the yard are separate meshes; under them the terrain shows soil (a dirt verge).
     /// </summary>
     public static Texture2D ControlTexture(int res = 1024)
@@ -201,14 +201,15 @@ public static class GroundMap
         for (int i = 0; i < res; i++)
         {
             Ground g = At(-Half + (i + 0.5f) * step, -Half + (j + 0.5f) * step);
-            byte r = 0, gm = 0, b = 0;
+            byte r = 0, gm = 0, b = 0, a = 0;
             switch (g)
             {
-                case Ground.Soil: case Ground.Crop: case Ground.Gravel: case Ground.Asphalt: case Ground.Concrete: r = 255; break;
+                case Ground.Crop: r = 255; a = 255; break;   // A: standing crop (GroundLit colours it like wheat beyond the clumps)
+                case Ground.Soil: case Ground.Gravel: case Ground.Asphalt: case Ground.Concrete: r = 255; break;
                 case Ground.Ploughed: r = 255; b = 255; break;
                 case Ground.Mud: gm = 255; break;
             }
-            px[j * res + i] = new Color32(r, gm, b, 0);
+            px[j * res + i] = new Color32(r, gm, b, a);
         }
         tex.SetPixels32(px);
         tex.Apply(false, false);
