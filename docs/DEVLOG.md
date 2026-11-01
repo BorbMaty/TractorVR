@@ -1445,3 +1445,9 @@ that's needed."
   the first headset frame-rate numbers with the trees, and a credits / licences section. 41 README pictures re-rendered from
   today's scene (real skies, trees, tufts).
 - **ROADMAP**: a new "where we left off" with the next session's list. **CLAUDE.md**: PHYSICS.md and its chart script.
+
+**Quest benchmarks with the landscape (2026-11-01, 21:54 and 22:01).** Drive GPU 10.3 -> 11.7-12.0 ms (cab 12.6 ms, p95 14.3; 2.8 % of
+cab frames over budget, ~100 dropped); +1.2-1.5 ms wherever the landscape is in view, nothing facing the barn. New benchmark phases at
+the yard view (land / notrees / notufts / nosky): everything 11.5 ms, without the trees 10.8 (-0.7), without the tufts 11.4 (-0.1),
+without the sky picture 11.3 (-0.2). The trees are the main cost. Possible fixes (not done, user: leave it for now): near-tree
+distance on the Quest 120 -> 60 m, draw the near trees front to back, fewer crown lumps in the Light variant.

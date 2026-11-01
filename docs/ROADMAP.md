@@ -9,8 +9,9 @@
 - Tests: `PlayModeTest` (both quality levels; start menu, controls pages, all lessons) and `PhysicsTest` pass. Quest APK and PC exe current.
 
 ### ▶ Next session: start here
-1. **Quest benchmark** (cab panel BENCHMARK) with the trees, skies and tufts: the first session with the trees averaged 69 fps
-   (72 fps 70 % of the time). If the trees cost too much: shorten their near distance on the Quest (120 m → ~80 m).
+1. **Quest performance with the landscape** (benchmarks 2026-11-01 21:54 / 22:01): cab drive 12.6 ms GPU, 2.8 % of frames over
+   budget; the trees cost 0.7 ms (tufts 0.1, sky 0.2). Fix when wanted: near trees 120 → 60 m on the Quest, front-to-back order,
+   fewer crown lumps in the Light variant.
 2. **Tutorial tuning** after real runs: par times for the stars, the step checks (coupling distance, reversing bay, earth ramp).
 3. **Readability** of the CONTROLS pictures in the headset (bigger lettering or zoomed crops if needed).
 4. Still open from before: the desktop check of coupling from the shed bays with the mouse.
