@@ -42,8 +42,18 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: Env_HayGrey
+    second: {fileID: 2100000, guid: 884a0c9f39d711d4c8e52011ceb06a8a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: Env_HayOld
     second: {fileID: 2100000, guid: ef0124100d287bc4e90784d8f8d74358, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_HayStack
+    second: {fileID: 2100000, guid: 008ee1425f0beb54a930824eb295a612, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
@@ -89,6 +99,11 @@ ModelImporter:
       assembly: UnityEngine.CoreModule
       name: Env_RoofTiles
     second: {fileID: 2100000, guid: d6e665ddfafda164c9c914d4b81ee152, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_Rope
+    second: {fileID: 2100000, guid: 4898024fed6a543469201ab601427956, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule

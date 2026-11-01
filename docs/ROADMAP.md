@@ -309,12 +309,14 @@ repeated things, no shadows on Quest except buildings, impostors for far trees, 
   `GroundLit` (furrows 0.35 m apart across the plough's heading, faded in the distance). Replaces the trail ribbons
 - [x] Field with crop rows (phase 2 environment item): maize or wheat next to the meadow, for the look. Built 2026-11-01: wheat
   (instanced stalks with ears near the camera, golden ground beyond)
-- [ ] Field edges: headlands, gates, ditches, hedges. Changed 2026-11-01 (user: make it look like the land around Reghin / the
+- [x] Field edges: headlands, gates, ditches, hedges. Changed 2026-11-01 (user: make it look like the land around Reghin / the
   Mezőség): Mezőség hills outside the farm and fields, hillside strip parcels with grass balks, the Görgényi / Kelemen mountains on
-  the horizon ✅ (part 3a). Next (3b): haystacks (boglya), pole gates at the field entries, a wayside cross; hedges dropped (not local)
+  the horizon (part 3a); haystacks (boglya), pole gates at the three field entries, a wayside cross (part 3b). Hedges and ditches
+  dropped (not part of this landscape); the balks are the field edges. Trees (walnut, wild pear, acacia, willows) go to step 4
 
 ### Step 4: landscape
-- [ ] Sky (Poly Haven HDRI), tree lines, woods, roadside (poles, signs), grass tufts near the camera
+- [ ] Sky (Poly Haven HDRI), tree lines, woods, roadside (poles, signs), grass tufts near the camera. Around Reghin: solitary walnut
+  and wild pear trees on the balks, acacia (black locust) strips along the tracks and ravines, willows and poplars along a stream
 - [ ] Village silhouette with a church spire on the horizon
 
 ### Step 5: tutorial places (phase 6)

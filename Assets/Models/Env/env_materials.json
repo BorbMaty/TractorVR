@@ -221,6 +221,36 @@
       "smoothness": 0.55
     },
     {
+      "name": "Env_Rope",
+      "tex": null,
+      "tint": [
+        0.55,
+        0.48,
+        0.32
+      ],
+      "smoothness": 0.1
+    },
+    {
+      "name": "Env_HayStack",
+      "tex": null,
+      "tint": [
+        0.52,
+        0.48,
+        0.28
+      ],
+      "smoothness": 0.05
+    },
+    {
+      "name": "Env_HayGrey",
+      "tex": null,
+      "tint": [
+        0.42,
+        0.4,
+        0.33
+      ],
+      "smoothness": 0.05
+    },
+    {
       "name": "Impl_Blue",
       "tex": "impl_paint",
       "tint": [

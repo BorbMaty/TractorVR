@@ -54,6 +54,9 @@ MATERIALS = {
     "Env_RubberBlack":  dict(tex=None, rot=0, tint=(0.05, 0.05, 0.05), smooth=0.20),
     "Env_Earth":        dict(tex="brown_mud_dry",        rot=0,  tint=(0.95, 0.90, 0.82), smooth=0.06),
     "Env_SilageSheet":  dict(tex=None, rot=0, tint=(0.03, 0.03, 0.035), smooth=0.55),
+    "Env_Rope":         dict(tex=None, rot=0, tint=(0.55, 0.48, 0.32), smooth=0.10),
+    "Env_HayStack":     dict(tex=None, rot=0, tint=(0.52, 0.48, 0.28), smooth=0.05),
+    "Env_HayGrey":      dict(tex=None, rot=0, tint=(0.42, 0.40, 0.33), smooth=0.05),
     # Implements (phase 5 step 2): worn paint (impl_paint is near white, the tint is the paint colour), bare metal, rubber.
     "Impl_Blue":        dict(tex="impl_paint", rot=0, tint=(0.14, 0.26, 0.60), smooth=0.35),
     "Impl_Red":         dict(tex="impl_paint", rot=0, tint=(0.80, 0.12, 0.09), smooth=0.35),

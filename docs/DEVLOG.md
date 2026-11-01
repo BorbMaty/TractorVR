@@ -1213,3 +1213,15 @@ is "near Reghin" and gets both. Instead of hedges (not a Transylvanian thing), t
 
 Previews `landscape_ne`, `landscape_w`, `hills`. `PlayModeTest` passes at both levels.
 
+## 2026-11-01: Phase 5 step 3, part 3b — haystacks, pole gates, a wayside cross
+Blender assets placed from `WorldLayout`:
+- **Haystack** (`haystack.py`, 7 on the pastures west of the meadow and two by the main road): the Mezőség boglya, hay stacked around
+  a pole into a pointed cone 3.15 m high, olive-brown with a weathered grey top, the pole to 3.75 m, three props (Full). First made
+  bright yellow and round: they looked like beehives.
+- **Pole gate** (`polegate.py`, at the three field entries where the tracks end): a forked oak post with a long swing pole and a log
+  as counterweight, shown open (65° up), a rest post 5 m across. Placed so the brake and split-grip tests through the meadow gate pass
+  between the posts (results unchanged).
+- **Wayside cross** (`wayside.py`) at the corner of the yard road and the main road: oak cross with a small shingled roof, stone base.
+New materials `Env_HayStack`, `Env_HayGrey`, `Env_Rope`. The meadow grass is a little less bright (it stood out against the terrain).
+Previews `country_gate / country_haystacks / country_cross`. `PhysicsTest` and `PlayModeTest` (both levels) pass.
+

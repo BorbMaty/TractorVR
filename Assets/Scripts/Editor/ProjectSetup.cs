@@ -403,7 +403,7 @@ public static class ProjectSetup
             m.SetColor("_BaseColor", root); m.SetColor("_TipColor", tip); m.SetColor("_EarColor", ear); m.SetColor("_HayColor", hay);
             return SaveMat(m, name);
         }
-        var grassMat = Mat("Veg_Meadow", new Color(0.10f, 0.22f, 0.05f), new Color(0.40f, 0.60f, 0.18f), new Color(0.55f, 0.55f, 0.30f), new Color(0.60f, 0.62f, 0.30f));
+        var grassMat = Mat("Veg_Meadow", new Color(0.09f, 0.18f, 0.05f), new Color(0.34f, 0.48f, 0.17f), new Color(0.55f, 0.55f, 0.30f), new Color(0.60f, 0.62f, 0.30f));
         var wheatMat = Mat("Veg_Wheat", new Color(0.35f, 0.38f, 0.14f), new Color(0.80f, 0.68f, 0.34f), new Color(0.88f, 0.74f, 0.40f), new Color(0.75f, 0.66f, 0.38f));
         wheatMat.SetFloat("_Wind", 0.07f);
         wheatMat.SetFloat("_StubbleHeight", 0.15f);
@@ -682,6 +682,13 @@ public static class ProjectSetup
         // Speed bumps across the west track (the wheel rays ride over their sloped colliders).
         foreach (var sb in WorldLayout.SpeedBumps)
             PlaceEnv("SpeedBump", parent, new Vector3(sb.x, TerrainGenerator.Height(sb.x, sb.y), sb.y), sb.z, prop: true);
+        // The countryside around Reghin: haystacks, pole gates at the field entries, a wayside cross.
+        foreach (var stack in WorldLayout.Haystacks)
+            PlaceEnv("Haystack", parent, new Vector3(stack.x, TerrainGenerator.SurfaceHeight(stack.x, stack.y), stack.y), (stack.x * 37f + stack.y * 11f) % 360f, prop: true);
+        foreach (var g in WorldLayout.PoleGates)
+            PlaceEnv("PoleGate", parent, new Vector3(g.x, TerrainGenerator.SurfaceHeight(g.x, g.y), g.y), g.z, prop: true);
+        var wc = WorldLayout.WaysideCross;
+        PlaceEnv("WaysideCross", parent, new Vector3(wc.x, TerrainGenerator.SurfaceHeight(wc.x, wc.y), wc.y), wc.z, prop: true);
         // Steep practice slopes (sloped colliders under the driving surfaces).
         foreach (var (asset, at) in new[] { ("SilageClamp", WorldLayout.SilageClamp), ("EarthRamp", WorldLayout.EarthRamp) })
             PlaceEnv(asset, parent, new Vector3(at.x, TerrainGenerator.Height(at.x, at.y), at.y), at.z, prop: true);
@@ -3034,6 +3041,9 @@ public static class ProjectSetup
             }
             Shot("field_mown.png", At(-2f, 120f, 2.8f), Quaternion.LookRotation(At(-14f, 150f, 0f) - At(-2f, 120f, 2.8f)));
             Shot("field_meadow.png", At(-20f, 160f, 2.6f), Quaternion.LookRotation(At(-10f, 145f, 0.3f) - At(-20f, 160f, 2.6f)));
+            Shot("country_gate.png", At(3f, 98f, 2.4f), Quaternion.LookRotation(At(0f, 116f, 1.8f) - At(3f, 98f, 2.4f)));
+            Shot("country_haystacks.png", At(-165f, 135f, 2.6f), Quaternion.LookRotation(At(-192f, 160f, 1.2f) - At(-165f, 135f, 2.6f)));
+            Shot("country_cross.png", At(76f, -6f, 2.2f), Quaternion.LookRotation(At(86.5f, 5f, 2f) - At(76f, -6f, 2.2f)));
             Shot("landscape_ne.png", At(150f, 430f, 6f), Quaternion.LookRotation(new Vector3(0.75f, -0.05f, 0.66f)));
             Shot("landscape_w.png", At(-200f, 180f, 6f), Quaternion.LookRotation(new Vector3(-0.8f, -0.06f, -0.6f)));
             Shot("field_wheat.png", At(77f, 200f, 2.6f), Quaternion.LookRotation(At(95f, 215f, 0.5f) - At(77f, 200f, 2.6f)));

@@ -1,0 +1,65 @@
+{
+  "asset": "PoleGate",
+  "notes": "Pole gate (open, 65\u00b0), fork post + swing pole + counterweight log, rest post 5 m across. Colliders: the two posts.",
+  "variants": {
+    "Full": {
+      "triangles": 352,
+      "vertices": 194,
+      "materials": [
+        "Env_Timber",
+        "Env_Steel",
+        "Env_BoardsDark",
+        "Env_Rope"
+      ],
+      "size_unity": [
+        5.906,
+        6.862,
+        0.7
+      ]
+    },
+    "Light": {
+      "triangles": 204,
+      "vertices": 118,
+      "materials": [
+        "Env_Timber",
+        "Env_Steel",
+        "Env_BoardsDark"
+      ],
+      "size_unity": [
+        5.906,
+        6.859,
+        0.7
+      ]
+    }
+  },
+  "colliders": [
+    {
+      "centre": [
+        0,
+        0.8,
+        0
+      ],
+      "size": [
+        0.24,
+        1.6,
+        0.24
+      ],
+      "yaw": 0.0,
+      "roll": 0.0
+    },
+    {
+      "centre": [
+        5.0,
+        0.6,
+        0
+      ],
+      "size": [
+        0.18,
+        1.2,
+        0.18
+      ],
+      "yaw": 0.0,
+      "roll": 0.0
+    }
+  ]
+}

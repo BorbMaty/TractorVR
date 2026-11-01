@@ -41,6 +41,22 @@ public static class WorldLayout
     /// with 1:3 (18°) ramps at both ends. Earth ramp on the pasture north-west of the yard: track along X, 15° side west, 22° side east.</summary>
     public static readonly Vector3 SilageClamp = new Vector3(-52f, 0f, 90f), EarthRamp = new Vector3(-35f, 40f, 0f);
 
+    /// <summary>The countryside around Reghin (phase 5 step 3): haystacks (boglya) on the pastures beside the meadow (x, z), pole gates
+    /// at the three field entries where the tracks end (x, z of the fork post, yaw: the pole swings across the track along local +X),
+    /// a wayside cross at the corner of the yard road and the main road (x, z, yaw).</summary>
+    public static readonly Vector2[] Haystacks =
+    {
+        new Vector2(-185f, 125f), new Vector2(-196f, 141f), new Vector2(-181f, 158f), new Vector2(-200f, 176f),
+        new Vector2(-188f, 200f), new Vector2(102f, 30f), new Vector2(115f, 46f),
+    };
+    public static readonly Vector3[] PoleGates =
+    {
+        new Vector3(-2.6f, 113.5f, 0f),      // north track -> meadow (the pole swings across to +X)
+        new Vector3(113.5f, -97.4f, 90f),    // south-east track -> south-east field (across to -Z)
+        new Vector3(-223.5f, -57.4f, 90f),   // west track -> west field
+    };
+    public static readonly Vector3 WaysideCross = new Vector3(86.5f, 5f, -90f);
+
     static Vector3 BumpOnWestTrack(float along)
     {
         Vector2 a = new Vector2(-25f, -30f), b = new Vector2(-60f, -60f), d = (b - a).normalized, p = a + d * along;

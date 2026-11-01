@@ -1,0 +1,50 @@
+{
+  "asset": "Haystack",
+  "notes": "Haystack (boglya), 2.6 m across, 3 m high, pole to 3.75 m. Collider: one box.",
+  "variants": {
+    "Full": {
+      "triangles": 486,
+      "vertices": 255,
+      "materials": [
+        "Env_HayStack",
+        "Env_HayGrey",
+        "Env_Timber"
+      ],
+      "size_unity": [
+        3.158,
+        3.951,
+        3.088
+      ]
+    },
+    "Light": {
+      "triangles": 190,
+      "vertices": 101,
+      "materials": [
+        "Env_HayStack",
+        "Env_HayGrey",
+        "Env_Timber"
+      ],
+      "size_unity": [
+        2.471,
+        3.951,
+        2.535
+      ]
+    }
+  },
+  "colliders": [
+    {
+      "centre": [
+        0,
+        1.2,
+        0
+      ],
+      "size": [
+        2.0,
+        2.4,
+        2.0
+      ],
+      "yaw": 0.0,
+      "roll": 0.0
+    }
+  ]
+}

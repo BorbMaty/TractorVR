@@ -1,0 +1,50 @@
+{
+  "asset": "WaysideCross",
+  "notes": "Wayside cross, 4 m, small shingled roof, stone base. Collider: the base and upright.",
+  "variants": {
+    "Full": {
+      "triangles": 212,
+      "vertices": 143,
+      "materials": [
+        "Env_Concrete",
+        "Env_Timber",
+        "Env_BoardsDark"
+      ],
+      "size_unity": [
+        1.94,
+        4.2,
+        0.912
+      ]
+    },
+    "Light": {
+      "triangles": 92,
+      "vertices": 64,
+      "materials": [
+        "Env_Concrete",
+        "Env_Timber",
+        "Env_BoardsDark"
+      ],
+      "size_unity": [
+        1.94,
+        4.2,
+        0.912
+      ]
+    }
+  },
+  "colliders": [
+    {
+      "centre": [
+        0,
+        0.9,
+        0
+      ],
+      "size": [
+        0.7,
+        1.8,
+        0.7
+      ],
+      "yaw": 0.0,
+      "roll": 0.0
+    }
+  ]
+}
