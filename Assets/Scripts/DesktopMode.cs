@@ -345,21 +345,42 @@ public class DesktopMode : MonoBehaviour
         var tut = Tutorial.Instance;
         if (tut != null && tut.Visible)
         {
-            float tw = Mathf.Min(Screen.width * 0.36f, u * 22f);
+            // Sizes measured from the text: the box grows with the title and body, buttons drop to one column when their labels
+            // are long, and a label that still doesn't fit wraps onto two lines (taller button).
+            float tw = Mathf.Min(Screen.width * 0.42f, u * 30f), inner = tw - u;
             var titleStyle = new GUIStyle(labelStyle) { fontStyle = FontStyle.Bold, normal = { textColor = new Color(1f, 0.85f, 0.3f) } };
-            float bodyH = labelStyle.CalcHeight(new GUIContent(tut.Body), tw - u);
-            int nb = tut.ButtonCount, tcols = nb > 4 ? 2 : Mathf.Max(1, nb), tbrows = (nb + tcols - 1) / tcols;
-            Rect box = new Rect(u * 0.5f, u, tw, u * 1.6f + bodyH + tbrows * (u + gap) + u * 0.6f);
+            var tutButton = new GUIStyle(buttonStyle) { wordWrap = true };
+            float titleH = titleStyle.CalcHeight(new GUIContent(tut.Title), inner);
+            float bodyH = labelStyle.CalcHeight(new GUIContent(tut.Body), inner);
+            int nb = tut.ButtonCount;
+            float widest = 0f;
+            for (int i = 0; i < nb; i++) widest = Mathf.Max(widest, tutButton.CalcSize(new GUIContent(tut.ButtonLabel(i))).x + u * 0.4f);
+            int tcols = nb <= 1 ? 1 : nb > 4 ? 2 : nb;
+            while (tcols > 1 && widest > (inner - (tcols - 1) * gap) / tcols) tcols--;
+            float bw2 = (inner - (tcols - 1) * gap) / tcols;
+            int tbrows = (nb + tcols - 1) / tcols;
+            var rowH = new float[Mathf.Max(1, tbrows)];
+            for (int i = 0; i < nb; i++)
+                rowH[i / tcols] = Mathf.Max(rowH[i / tcols], Mathf.Max(u, tutButton.CalcHeight(new GUIContent(tut.ButtonLabel(i)), bw2) + u * 0.2f));
+            float buttonsH = 0f;
+            for (int r = 0; r < tbrows; r++) buttonsH += rowH[r] + gap;
+            Rect box = new Rect(u * 0.5f, u, tw, u * 0.3f + titleH + u * 0.3f + bodyH + u * 0.4f + buttonsH + u * 0.3f);
             tutorialRect = box;
             GUI.Box(box, GUIContent.none, boxStyle);
-            GUI.Label(new Rect(box.x + u * 0.5f, box.y + u * 0.3f, tw - u, u * 1.2f), tut.Title, titleStyle);
-            GUI.Label(new Rect(box.x + u * 0.5f, box.y + u * 1.5f, tw - u, bodyH), tut.Body, labelStyle);
-            float bw2 = (tw - u - (tcols - 1) * gap) / tcols, by = box.y + u * 1.6f + bodyH + u * 0.2f;
+            float y = box.y + u * 0.3f;
+            GUI.Label(new Rect(box.x + u * 0.5f, y, inner, titleH), tut.Title, titleStyle);
+            y += titleH + u * 0.3f;
+            GUI.Label(new Rect(box.x + u * 0.5f, y, inner, bodyH), tut.Body, labelStyle);
+            y += bodyH + u * 0.4f;
+            int pressed = -1;
             for (int i = 0; i < nb; i++)
             {
-                Rect r = new Rect(box.x + u * 0.5f + (i % tcols) * (bw2 + gap), by + (i / tcols) * (u + gap), bw2, u);
-                if (GUI.Button(r, tut.ButtonLabel(i), buttonStyle)) { tut.Press(i); break; }
+                int r = i / tcols, c = i % tcols;
+                float ry = y;
+                for (int k = 0; k < r; k++) ry += rowH[k] + gap;
+                if (GUI.Button(new Rect(box.x + u * 0.5f + c * (bw2 + gap), ry, bw2, rowH[r]), tut.ButtonLabel(i), tutButton)) pressed = i;
             }
+            if (pressed >= 0) tut.Press(pressed);
         }
         else tutorialRect = Rect.zero;
 

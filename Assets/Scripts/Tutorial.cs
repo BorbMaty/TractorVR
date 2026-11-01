@@ -470,8 +470,7 @@ public class Tutorial : MonoBehaviour
     bool dirty = true;
     float cooldown;
 
-    const float BoardW = 0.32f, LineH = 0.0125f, BtnH = 0.034f, Gap = 0.006f;
-    const int WrapChars = 50;
+    const float BoardW = 0.36f, Margin = 0.012f, BtnH = 0.036f, Gap = 0.006f;
 
     void Changed() => dirty = true;
 
@@ -541,9 +540,11 @@ public class Tutorial : MonoBehaviour
         board.gameObject.SetActive(show);
         if (!show) return;
 
-        string body = Wrap(Body, WrapChars);
+        // Line breaks from the font's real glyph widths (a fixed character count let wide letters run off the board).
+        string body = WrapToWidth(bodyText, Body, BoardW - 2f * Margin);
         int lines = body.Split('\n').Length;
         titleText.text = Title;
+        FitSize(titleText, Title, 0.0135f, BoardW - 2f * Margin);
         bodyText.text = body;
         if (dirty || lines != lastLines)
         {
@@ -552,7 +553,11 @@ public class Tutorial : MonoBehaviour
             Layout(lines);
         }
         for (int i = 0; i < boardButtons.Count && i < actions.Count; i++)
-            boardButtons[i].label.text = actions[i].label;
+            if (boardLabels[i] != actions[i].label)
+            {
+                boardLabels[i] = actions[i].label;
+                FitButton(boardButtons[i].label, actions[i].label, boardButtonWidth - 0.012f);
+            }
 
         cooldown -= Time.deltaTime;
         for (int i = 0; i < boardButtons.Count; i++)
@@ -572,6 +577,63 @@ public class Tutorial : MonoBehaviour
         }
     }
 
+    // ---- text measuring (TextMesh: one font pixel = characterSize * 0.1 local units)
+    float Width(TextMesh tm, string line)
+    {
+        font.RequestCharactersInTexture(line, tm.fontSize, tm.fontStyle);
+        float w = 0f;
+        foreach (char c in line)
+            if (font.GetCharacterInfo(c, out CharacterInfo ci, tm.fontSize, tm.fontStyle)) w += ci.advance;
+        return w * tm.characterSize * 0.1f;
+    }
+
+    // Line pitch from the TextMesh size (font.lineHeight is at the font's own size, not tm.fontSize); 1.3 x the size matches the render.
+    float LineHeight(TextMesh tm) => tm.fontSize * tm.characterSize * 0.1f * 1.3f * tm.lineSpacing;
+
+    string WrapToWidth(TextMesh tm, string s, float maxW)
+    {
+        var sb = new System.Text.StringBuilder();
+        foreach (var para in s.Split('\n'))
+        {
+            string line = "";
+            foreach (var word in para.Split(' '))
+            {
+                string tryLine = line.Length == 0 ? word : line + " " + word;
+                if (line.Length > 0 && Width(tm, tryLine) > maxW) { sb.Append(line).Append('\n'); line = word; }
+                else line = tryLine;
+            }
+            sb.Append(line).Append('\n');
+        }
+        return sb.ToString().TrimEnd('\n');
+    }
+
+    static float CharSize(float height, TextMesh tm) => height / (tm.fontSize * 0.1f);
+
+    void FitSize(TextMesh tm, string text, float height, float maxW)
+    {
+        tm.characterSize = CharSize(height, tm);
+        float w = Width(tm, text);
+        if (w > maxW) tm.characterSize *= maxW / w;
+    }
+
+    /// <summary>Button label: one line if it fits, else two lines, else smaller.</summary>
+    void FitButton(TextMesh tm, string text, float maxW)
+    {
+        tm.characterSize = CharSize(0.0105f, tm);
+        if (Width(tm, text) <= maxW) { tm.text = text; return; }
+        tm.characterSize = CharSize(0.0092f, tm);
+        string two = WrapToWidth(tm, text, maxW);
+        while (two.Split('\n').Length > 2 && tm.characterSize > CharSize(0.006f, tm))
+        {
+            tm.characterSize *= 0.9f;
+            two = WrapToWidth(tm, text, maxW);
+        }
+        tm.text = two;
+    }
+
+    float boardButtonWidth;
+    readonly List<string> boardLabels = new List<string>();
+
     void Layout(int lines)
     {
         foreach (var b in boardButtons) { if (Application.isPlaying) Destroy(b.t.gameObject); else DestroyImmediate(b.t.gameObject); }
@@ -579,14 +641,17 @@ public class Tutorial : MonoBehaviour
         int n = actions.Count;
         int cols = n > 4 ? 2 : Mathf.Max(1, n);
         int rows = (n + cols - 1) / cols;
-        float textH = 0.022f + lines * LineH * 1.12f;
+        float titleH = LineHeight(titleText) + 0.006f;
+        float textH = titleH + lines * LineHeight(bodyText) + 0.004f;
         float h = Gap + textH + Gap + rows * (BtnH + Gap) + Gap;
         back.transform.localScale = new Vector3(BoardW, h, 1f);
         back.transform.localPosition = new Vector3(0f, 0f, 0.003f);
         float top = h * 0.5f - Gap;
-        titleText.transform.localPosition = new Vector3(-BoardW * 0.5f + 0.012f, top, -0.001f);
-        bodyText.transform.localPosition = new Vector3(-BoardW * 0.5f + 0.012f, top - 0.022f, -0.001f);
+        titleText.transform.localPosition = new Vector3(-BoardW * 0.5f + Margin, top, -0.001f);
+        bodyText.transform.localPosition = new Vector3(-BoardW * 0.5f + Margin, top - titleH, -0.001f);
         float bw = (BoardW - (cols + 1) * Gap) / cols;
+        boardButtonWidth = bw;
+        boardLabels.Clear();
         float y0 = top - textH - Gap - BtnH * 0.5f;
         for (int i = 0; i < n; i++)
         {
@@ -601,7 +666,8 @@ public class Tutorial : MonoBehaviour
             label.alignment = TextAlignment.Center;
             label.transform.localPosition = new Vector3(0f, 0f, -0.07f);
             label.transform.localScale = new Vector3(1f / bw, 1f / BtnH, 1f);
-            boardButtons.Add((t, face, label, true));   // "inside" until the hand leaves: no press on the frame a page opens
+            boardButtons.Add((t, face, label, true));
+            boardLabels.Add(null);   // "inside" until the hand leaves: no press on the frame a page opens
         }
     }
 
@@ -661,7 +727,8 @@ public class Tutorial : MonoBehaviour
     public void Preview(int lesson, int step)
     {
         if (board == null) { Instance = this; cones.Clear(); lessons.Clear(); BuildLessons(); BuildBoard(); }
-        if (lesson < 0) ShowStart();
+        if (lesson == -2) ShowLessons();
+        else if (lesson < 0) ShowStart();
         else { lessonIndex = lesson; page = Page.Step; EnterStep(step); }
         UpdateBoard();
         UpdateHalos();

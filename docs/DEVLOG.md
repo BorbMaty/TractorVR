@@ -1295,3 +1295,9 @@ Builds: Quest APK and PC exe rebuilt (both 0 errors). Not yet seen in the headse
 | The village on its plateau | The goal glow over the plough's bay |
 |---|---|
 | ![village](images/phase5_village.png) | ![goal](images/phase6_goal.png) |
+
+**Fix (user, same evening): text ran out of the tutorial boxes in both versions.** The board wrapped at a fixed 50 characters,
+but the letters are wider than that assumed. Now the line breaks come from the font's real glyph widths, the title shrinks to fit, button labels
+wrap onto two lines (or shrink), and the board height follows the measured line pitch (the font's `lineHeight` is at its own size,
+not the TextMesh size: first try overlapped). Board 36 cm wide. Desktop: the box, title, body and buttons are sized with
+`GUIStyle.CalcHeight / CalcSize`; buttons drop to one column when their labels are long and wrap if needed. New preview `tutorial_lessons`.

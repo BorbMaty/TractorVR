@@ -3209,6 +3209,8 @@ public static class ProjectSetup
         {
             tutorial.Preview(-1, 0);
             Shot("tutorial_start.png", seat.position, Quaternion.LookRotation(tutorial.transform.position - seat.position));
+            tutorial.Preview(-2, 0);
+            Shot("tutorial_lessons.png", seat.position, Quaternion.LookRotation(tutorial.transform.position - seat.position));
             tutorial.Preview(0, 1);
             Shot("tutorial_step.png", seat.position, Quaternion.LookRotation(tutorial.transform.position + tractor.right * 0.25f - seat.position));
             tutorial.Preview(3, 1);
