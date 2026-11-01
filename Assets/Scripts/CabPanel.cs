@@ -55,7 +55,7 @@ public class CabPanel : MonoBehaviour
         var lights = tractor.GetComponent<TractorLights>();
         var items = new (string id, System.Func<string> text, System.Action press, bool repeat)[]
         {
-            ("tutorial", () => "TUTORIAL", () => { if (Tutorial.Instance) Tutorial.Instance.ShowLessons(); }, false),
+            ("mainMenu", () => "MAIN MENU", () => { if (StartMenu.Instance) StartMenu.Instance.Open(); }, false),
             ("view",     () => rig.view == VRCameraRig.View.Cab ? "VIEW: CAB" : "VIEW: 3RD", () => rig.ToggleView(), false),
             ("recenter", () => "RECENTER", () => rig.Recenter(), false),
             ("comfort",  () => "COMFORT: " + comfort.CurrentLevel.ToString().ToUpperInvariant(), () => comfort.Cycle(), false),

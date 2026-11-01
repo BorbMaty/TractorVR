@@ -92,14 +92,16 @@ public static class WorldLayout
     /// the yard road's north side to the farmhouse.</summary>
     public static Vector2[][] PowerLines()
     {
+        // Poles at z = 25 + 50 k: none in a junction (the first grid had one at z 0, right in the yard road's mouth). The corner pole of
+        // the feeder stands 8 m north of the yard road, clear of it and of the REGHIN sign.
         var south = new System.Collections.Generic.List<Vector2>();
-        var north = new System.Collections.Generic.List<Vector2>();
-        for (float z = -950f; z <= 950f; z += 50f)
+        var north = new System.Collections.Generic.List<Vector2> { new Vector2(74.5f, 8f) };
+        for (float z = -975f; z <= 975f; z += 50f)
         {
-            if (z > -95f && z < -2f) continue;
+            if (z > -95f && z < 20f) continue;   // the practice pad and the junction
             (z < 0f ? south : north).Add(new Vector2(74.5f, z));
         }
-        var feeder = new[] { new Vector2(74.5f, 0f), new Vector2(60f, 4.5f), new Vector2(46f, 4.5f) };
+        var feeder = new[] { new Vector2(74.5f, 8f), new Vector2(60f, 4.5f), new Vector2(46f, 4.5f) };
         return new[] { south.ToArray(), north.ToArray(), feeder };
     }
 

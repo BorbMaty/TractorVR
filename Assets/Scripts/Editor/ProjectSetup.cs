@@ -3041,15 +3041,38 @@ public static class ProjectSetup
         return driver;
     }
 
-    // Phase 6: start menu + tutorial board at the cab's left front (mirrors the panel), built by Tutorial at runtime.
+    // Phase 6: the tutorial (its board low at the cab's left, below the window line so it doesn't hide the view; user,
+    // 2026-11-01) and the start screen (a big board in the yard, the player standing beside the tractor).
     static void BuildTutorial(Transform rig, VRCameraRig vr, GameObject tractor, TractorHud hud, VRHands hands)
     {
-        var go = new GameObject("Tutorial");
-        go.transform.SetParent(rig, false);
-        go.transform.localPosition = new Vector3(-0.34f, -0.09f, 0.44f);
-        go.transform.localRotation = Quaternion.LookRotation(go.transform.localPosition);   // face the eye point
-        var t = go.AddComponent<Tutorial>();
         var panel = rig.GetComponentInChildren<CabPanel>();
+        var unlit = Shader.Find("Universal Render Pipeline/Unlit");
+        Material Flat(string name, Color c) { var m = new Material(unlit); m.SetColor("_BaseColor", c); return SaveMat(m, name); }
+        var back = Flat("Board_Back", new Color(0.03f, 0.05f, 0.035f));
+        var starOn = Flat("Board_StarOn", new Color(1f, 0.78f, 0.12f));
+        var starOff = Flat("Board_StarOff", new Color(0.42f, 0.42f, 0.38f));
+        TouchBoard Board(string name, Transform parent, Vector3 pos, Quaternion rot)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = pos;
+            go.transform.localRotation = rot;
+            var b = go.AddComponent<TouchBoard>();
+            b.hands = hands;
+            b.buttonMat = panel.buttonMat; b.buttonHotMat = panel.buttonHotMat; b.panelMat = back; b.textMat = panel.textMat;
+            b.starOnMat = starOn; b.starOffMat = starOff;
+            var src = go.AddComponent<AudioSource>();
+            src.playOnAwake = false; src.spatialBlend = 0.3f; src.volume = 0.6f;
+            src.clip = panel.click.clip;
+            b.click = src;
+            return b;
+        }
+
+        // Tutorial board: left of the steering wheel, 33 cm below the eye, tilted up to face it.
+        var at = new Vector3(-0.36f, -0.33f, 0.32f);
+        var tb = Board("Tutorial Board", rig, at, Quaternion.LookRotation(at));
+        var tgo = new GameObject("Tutorial");
+        var t = tgo.AddComponent<Tutorial>();
         t.rig = vr;
         t.tractor = tractor.GetComponent<TractorController>();
         t.drivetrain = tractor.GetComponent<Drivetrain>();
@@ -3058,18 +3081,25 @@ public static class ProjectSetup
         t.cab = tractor.GetComponent<CabControls>();
         t.panel = panel;
         t.hud = hud;
-        t.hands = hands;
-        t.buttonMat = panel.buttonMat;
-        t.buttonHotMat = panel.buttonHotMat;
-        var unlit = Shader.Find("Universal Render Pipeline/Unlit");
-        var back = new Material(unlit); back.SetColor("_BaseColor", new Color(0.03f, 0.05f, 0.035f));
-        t.panelMat = SaveMat(back, "Tutorial_Back");
-        t.textMat = panel.textMat;
+        t.board = tb;
         t.haloMat = SaveMat(new Material(Shader.Find("TractorVR/Halo")), "Tutorial_Halo");
-        var src = go.AddComponent<AudioSource>();
-        src.playOnAwake = false; src.spatialBlend = 0.3f; src.volume = 0.6f;
-        src.clip = panel.click.clip;
-        t.click = src;
+        t.click = tb.click;
+
+        // Start screen: the eye spot and the big board are moved next to the tractor whenever the menu opens.
+        var mgo = new GameObject("Start Menu");
+        var eye = new GameObject("Eye").transform;
+        eye.SetParent(mgo.transform, false);
+        var mb = Board("Menu Board", mgo.transform, Vector3.zero, Quaternion.identity);
+        mb.width = 0.62f; mb.titleSize = 0.03f; mb.bodySize = 0.0165f; mb.buttonSize = 0.019f; mb.buttonHeight = 0.06f;
+        mb.screenCentered = true;
+        var menu = mgo.AddComponent<StartMenu>();
+        menu.rig = vr;
+        menu.tractor = t.tractor;
+        menu.input = tractor.GetComponent<TractorInput>();
+        menu.panel = panel;
+        menu.tutorial = t;
+        menu.board = mb;
+        menu.eye = eye;
     }
 
     // Cab panel at the right front, within reach, facing the driver (built by CabPanel at runtime from these materials).
@@ -3401,14 +3431,25 @@ public static class ProjectSetup
         cabCtl.speedLever.localRotation = Quaternion.AngleAxis(15f, Vector3.right);
         cam.fieldOfView = 70f;
         var tutorial = Object.FindAnyObjectByType<Tutorial>();
-        if (tutorial)
+        var startMenu = Object.FindAnyObjectByType<StartMenu>();
+        if (tutorial && startMenu)
         {
-            tutorial.Preview(-1, 0);
-            Shot("tutorial_start.png", seat.position, Quaternion.LookRotation(tutorial.transform.position - seat.position));
-            tutorial.Preview(-2, 0);
-            Shot("tutorial_lessons.png", seat.position, Quaternion.LookRotation(tutorial.transform.position - seat.position));
+            // The start screen: stand where StartMenu.Open puts the player (beside the tractor) and look at the board.
+            Vector3 eyeAt = tractor.position + tractor.rotation * new Vector3(-4.5f, 0f, 6f);
+            eyeAt.y = TerrainGenerator.SurfaceHeight(eyeAt.x, eyeAt.z) + 1.65f;
+            Vector3 lookAt = tractor.position + tractor.rotation * new Vector3(0f, 2f, 1f) - eyeAt; lookAt.y = 0f;
+            var eyeRot = Quaternion.LookRotation(lookAt);
+            startMenu.board.transform.SetPositionAndRotation(eyeAt + eyeRot * new Vector3(0f, -0.14f, 0.6f), eyeRot * Quaternion.Euler(12f, 0f, 0f));
+            foreach (var page in new[] { "main", "lessons", "controls:controllers" })
+            {
+                startMenu.Preview(page);
+                Shot($"menu_{page.Replace("controls:", "controls_")}.png", eyeAt, eyeRot * Quaternion.Euler(10f, 0f, 0f));
+            }
+            Shot("menu_wide.png", eyeAt, eyeRot * Quaternion.Euler(4f, 0f, 0f));
+            startMenu.board.Hide(); startMenu.board.Refresh(false);
             tutorial.Preview(0, 1);
-            Shot("tutorial_step.png", seat.position, Quaternion.LookRotation(tutorial.transform.position + tractor.right * 0.25f - seat.position));
+            Shot("tutorial_step.png", seat.position, Quaternion.Euler(10f, 0f, 0f) * Quaternion.LookRotation(tractor.forward));
+            Shot("tutorial_board.png", seat.position, Quaternion.LookRotation(tutorial.board.transform.position - seat.position));
             tutorial.Preview(3, 1);
             Shot("tutorial_goal.png", seat.position, Quaternion.LookRotation(new Vector3(5f, 0f, -36f) - seat.position));
             tutorial.PreviewCleanup();

@@ -22,6 +22,9 @@ public class VRCameraRig : MonoBehaviour
     public Transform head;
 
     public View view = View.Cab;
+    /// <summary>Start menu (phase 6): the rig stands at <see cref="menuAnchor"/> instead of the seat / behind the tractor.</summary>
+    [System.NonSerialized] public bool InMenu;
+    [System.NonSerialized] public Transform menuAnchor;
     public Vector3 thirdPersonOffset = new Vector3(0f, 4.2f, -9.5f);
     public float thirdPersonYawSmoothing = 0.35f;
 
@@ -58,7 +61,7 @@ public class VRCameraRig : MonoBehaviour
 
     void Update()
     {
-        if (input.SwitchViewPressed) ToggleView();
+        if (input.SwitchViewPressed && !InMenu) ToggleView();
         if (input.RecenterPressed) Recenter();
 
         // Auto recenter once the headset has delivered its first poses.
@@ -68,12 +71,17 @@ public class VRCameraRig : MonoBehaviour
             if (recenterTimer <= 0f) { Recenter(); recentered = true; }
         }
 
-        if (input.Calibrating && view == View.Cab) CalibrateSeat();
+        if (input.Calibrating && view == View.Cab && !InMenu) CalibrateSeat();
     }
 
     void LateUpdate()
     {
         Transform t = tractor.transform;
+        if (InMenu && menuAnchor != null)
+        {
+            transform.SetPositionAndRotation(menuAnchor.position, menuAnchor.rotation);
+            return;
+        }
         if (view == View.Cab)
         {
             transform.SetPositionAndRotation(seatAnchor.position, seatAnchor.rotation);

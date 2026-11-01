@@ -1355,3 +1355,34 @@ The user asked for the two "Future ideas" lines to be done now, before the tutor
 | Power line, sign, posts | Grass tufts |
 |---|---|
 | ![roadside](images/phase5_roadside.png) | ![tufts](images/phase5_tufts.png) |
+
+## 2026-11-01 (late night): a real start screen, lessons with set-ups and stars
+User, after playing: a power pole stood in the road by the REGHIN sign; the tutorial should take the tractor to where each lesson
+happens and rate it with up to five stars; a separate start screen; the tutorial text hid the view in VR.
+
+- **Pole in the road**: the main line's poles were on a z grid of 50 m from 0, so one stood in the yard road's mouth. Now at
+  z = 25 + 50 k, the feeder's corner pole 8 m north of the yard road.
+- **`TouchBoard.cs`** (new, shared): title, measured wrapped text, an optional star row, buttons (optionally with stars), fingertip /
+  controller-tip pokes; `DrawGUI` draws the same on the desktop (`screenCentered` for the menu, top left otherwise). The text
+  measuring from the earlier fix moved here.
+- **`StartMenu.cs`** (new): at launch and from the cab panel's MAIN MENU button the player stands in the farmyard (or wherever the
+  tractor is), 6 m off its front-left corner, a 62 cm board at arm's length: TUTORIAL / FREE ROAM (CONTINUE later) / CONTROLS / QUIT;
+  the lesson list with each lesson's best stars; CONTROLS has four information pages (Quest controllers, hand tracking, in the cab,
+  keyboard and mouse). `VRCameraRig.InMenu` / `menuAnchor`: the rig stands there; the tractor's sticks are off (scripted, zero) and
+  the cab panel hidden while the menu is open. Desktop: the board in the middle of the screen, the cab menu and key help hidden.
+- **Tutorial**: each lesson first **sets its scene up** (`ResetScene`: everything uncoupled and back in its shed bay, cones back,
+  day, lights off, 4WD on, AUTO), then teleports the tractor: slalom → at the start line; coupling lessons → 7-8 m in front of the
+  implement's bay (rear / drawbar: facing away, to reverse in; front: nose to the shed); ploughing → in the west field with the plough
+  already coupled (`Hitch.ForceAttach`: linkage at the pin height, top link set); traction → in front of the earth ramp's 22° side;
+  road → in the yard facing the gate. `Hitch.ForceAttach / ForceDetach` (no checks) are only for these set-ups.
+- **Stars**: 5, minus 1 per skipped step, 1 per two mistakes (slalom: cone down, missed gate, too fast), 1 / 2 for more than 1.5 / 2.5
+  times the lesson's par time (75 s .. 5 min); at least 1. Shown on the lesson's end board (with time, par, skips, mistakes) and in
+  the lesson list (best per lesson, PlayerPrefs). End board: NEXT LESSON / TRY AGAIN / MENU / FREE ROAM.
+- **Tutorial board moved** low on the left (left of the steering wheel, 33 cm below the eye, tilted up), below the window line.
+- `PlayModeTest`: checks the start menu at launch, opens the CONTROLS pages, FREE ROAM, later starts the lessons from the menu's
+  list and walks all nine (set-ups and teleports included); deletes the scores it made. Passes at both levels; `PhysicsTest` unchanged
+  (noise; the plough parked at the end of J now stays upright, 5° instead of 115°: run-to-run, the coupling code is unchanged).
+
+| Start screen | Lesson list with stars | The tutorial board, low left |
+|---|---|---|
+| ![menu](images/phase6_menu_main.png) | ![lessons](images/phase6_menu_lessons.png) | ![board](images/phase6_tutorial_board.png) |

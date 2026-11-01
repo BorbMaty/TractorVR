@@ -437,6 +437,47 @@ public class Hitch : MonoBehaviour
         Message?.Invoke(target.displayName + " ATTACHED");
     }
 
+    /// <summary>Tutorial set-up: couple an implement without the checks (the tractor was just placed so its mount is at the
+    /// implement's coupling point). A rear one gets the linkage at its pin height and the top link set, like a real coupling.</summary>
+    public void ForceAttach(Implement target)
+    {
+        if (target.mount == Implement.Mount.Rear)
+        {
+            if (rearTable.Count == 0) BuildRearTable();
+            float best = RearPosition, bestErr = float.MaxValue;
+            for (float p = 0f; p <= 1f; p += 0.005f)
+            {
+                ApplyRear(p);
+                float err = Mathf.Abs(rearMount.position.y - target.hitchPoint.position.y);
+                if (err < bestErr) { bestErr = err; best = p; }
+            }
+            RearPosition = best;
+            ApplyRear(best);
+        }
+        target.Attach(this, MountFor(target), rb);
+        if (target.mount == Implement.Mount.Rear && target.topPin != null)
+        {
+            rearMount.localRotation = Quaternion.identity;
+            TopLinkLength = Vector3.Distance(YZ(rearMount.localPosition) + TopPinOffset(target), YZ(topLinkPivot));
+        }
+        if (target.mount == Implement.Mount.Rear) Rear = target;
+        else if (target.mount == Implement.Mount.Front) Front = target;
+        else Towed = target;
+        UpdateMass();
+    }
+
+    /// <summary>Tutorial set-up: uncouple without the checks (the caller puts the implement back in its bay).</summary>
+    public void ForceDetach(Implement imp)
+    {
+        if (imp == null || (imp != Rear && imp != Front && imp != Towed)) return;
+        imp.Detach();
+        if (imp == Rear) { Rear = null; TopLinkLength = 0f; ApplyRear(RearPosition); }
+        if (imp == Front) Front = null;
+        if (imp == Towed) Towed = null;
+        if (Pto) SetPto(false);
+        UpdateMass();
+    }
+
     /// <summary>The tractor was teleported: bring a coupled trailer along, straight behind on the drawbar
     /// (mounted implements are children of their mounts and follow by themselves).</summary>
     public void AfterTeleport()

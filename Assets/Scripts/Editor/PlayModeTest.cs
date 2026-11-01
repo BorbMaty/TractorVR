@@ -141,24 +141,47 @@ public static class PlayModeTest
         Once("hitchDown", 19, t, () => input.scriptedHitch = -1f);
         Once("hitchUp", 22, t, () => input.scriptedHitch = 1f);
         Once("tip", 20, t, () => Object.FindAnyObjectByType<Tipper>().Move(1f, 7f));   // raise the parked trailer's body straight to the top
-        // Phase 6: the start menu is up at start; walk through every lesson's steps (SKIP / NEXT LESSON each frame), so each
-        // step's enter, check, status and highlight code runs at least once.
+        // Phase 6: the start screen is up at launch: log it, open every CONTROLS page, then FREE ROAM (before the drive at 2 s).
+        Once("menu", 0.8, t, () =>
+        {
+            var menu = StartMenu.Instance;
+            if (menu == null || !StartMenu.IsOpen) { Debug.LogError("[PlayModeTest] the start menu is not open at launch"); return; }
+            var b = menu.board;
+            log.AppendLine($"{t:0.0}s start menu: \"{b.Title}\", buttons {string.Join(" / ", Enumerable.Range(0, b.ButtonCount).Select(i => b.ButtonAt(i).label))}");
+            b.Press(2);                                    // CONTROLS
+            for (int i = 0; i < 4; i++) b.Press(i);        // the four pages
+            b.Press(4);                                    // BACK
+            log.AppendLine($"{t:0.0}s controls pages opened, back on \"{b.Title}\"");
+        });
+        Once("freeRoam", 1.2, t, () =>
+        {
+            var b = StartMenu.Instance.board;
+            b.Press(1);                                    // FREE ROAM
+            log.AppendLine($"{t:0.0}s FREE ROAM: menu open {StartMenu.IsOpen}, rig in menu {Object.FindAnyObjectByType<VRCameraRig>().InMenu}");
+        });
+        // Then every lesson from the menu's lesson list: its set-up (teleport, implements) and each step (SKIP / NEXT LESSON every frame).
         Once("tutorial", 22.5, t, () =>
         {
-            var tut = Tutorial.Instance;
-            if (tut == null) { Debug.LogError("[PlayModeTest] no Tutorial in the scene"); return; }
-            log.AppendLine($"{t:0.0}s tutorial board: \"{tut.Title}\" with {tut.ButtonCount} buttons");
-            tut.ShowLessons();
-            log.AppendLine($"{t:0.0}s lessons: {tut.ButtonCount - 1}");
-            tut.StartLesson(0);
+            var menu = StartMenu.Instance;
+            menu.ShowLessons();
+            log.AppendLine($"{t:0.0}s lessons in the menu: {menu.board.ButtonCount - 1}");
+            menu.board.Press(0);
+            log.AppendLine($"{t:0.0}s lesson 1 started: \"{Tutorial.Instance.board.Title}\", menu open {StartMenu.IsOpen}");
         });
-        if (t > 22.6 && t < 24.6 && Tutorial.Instance != null && Tutorial.Instance.Visible && Tutorial.Instance.ButtonCount > 0)
+        if (t > 22.6 && t < 24.6 && Tutorial.Instance != null && Tutorial.Instance.board.Visible && Tutorial.Instance.board.ButtonCount > 0)
+        {
+            var tb = Tutorial.Instance.board;
+            if (tb.Title != lastTutorialTitle) { tutorialPages++; lastTutorialTitle = tb.Title; }
+            tb.Press(0);
+        }
+        Once("tutorialEnd", 24.7, t, () =>
         {
             var tut = Tutorial.Instance;
-            if (tut.Title != lastTutorialTitle) { tutorialPages++; lastTutorialTitle = tut.Title; }
-            tut.Press(0);
-        }
-        Once("tutorialEnd", 24.7, t, () => log.AppendLine($"{t:0.0}s tutorial: {tutorialPages} pages walked, now \"{Tutorial.Instance?.Title}\""));
+            log.AppendLine($"{t:0.0}s tutorial: {tutorialPages} pages walked, now \"{tut.board.Title}\"; best stars " +
+                           string.Join(" ", Enumerable.Range(0, tut.LessonCount).Select(Tutorial.BestStars)));
+            tut.Stop();
+            for (int i = 0; i < tut.LessonCount; i++) { PlayerPrefs.DeleteKey("LessonStars" + i); PlayerPrefs.DeleteKey("Lesson" + i); }   // not real scores
+        });
         Once("end", 25, t, () =>
         {
             input.scriptedHitch = 0f;

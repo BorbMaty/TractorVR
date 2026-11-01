@@ -2,15 +2,16 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Phase 6: the start menu (FREE ROAM / TUTORIAL) and the tutorial. A board at the cab's left front (riding with the rig, like the
-/// panel on the right) shows the menu, the lesson list and each step's instruction; its buttons are pressed with a fingertip or a
-/// controller tip. On the desktop the same content is drawn on screen by <see cref="DesktopMode"/> (<see cref="Title"/>,
-/// <see cref="Body"/>, <see cref="ButtonCount"/> / <see cref="ButtonLabel"/> / <see cref="Press"/>).
+/// Phase 6: the tutorial. The lessons are picked on the start screen (<see cref="StartMenu"/>); each one first sets its scene up
+/// (implements back in their shed bays, the tractor teleported next to what the lesson is about, a coupled implement where the
+/// lesson needs one), then runs its steps. The step's instruction is on a small <see cref="TouchBoard"/> low at the cab's left
+/// (below the window line, so it doesn't hide the view; on the desktop: top left of the screen).
 ///
 /// A lesson is a list of steps; each step has a goal and a check that is evaluated every frame (the tractor's, hitch's, lights'
-/// own state; nothing is faked), so a step whose goal is already met passes at once: a lesson can be started in any state
-/// (e.g. "couple the plough" passes if it is coupled). A pulsing glow sits on the control to use (wheel, lever, panel button,
-/// console switch) and a large one on the place to drive to. SKIP / REPEAT / LESSONS on every step.
+/// own state; nothing is faked), so a step whose goal is already met passes at once. A pulsing glow sits on the control to use
+/// (wheel, lever, panel button, console switch) and a large one on the place to drive to. SKIP STEP / REPEAT LESSON / MENU.
+/// At the end: a 1-5 star rating from the time (against the lesson's par time), skipped steps and mistakes (slalom cones),
+/// the best one kept per lesson (PlayerPrefs), shown in the lesson list.
 /// </summary>
 public class Tutorial : MonoBehaviour
 {
@@ -24,8 +25,8 @@ public class Tutorial : MonoBehaviour
     public CabPanel panel;
     public CabControls cab;
     public TractorHud hud;
-    public VRHands hands;
-    public Material buttonMat, buttonHotMat, panelMat, textMat, haloMat;
+    public TouchBoard board;
+    public Material haloMat;
     public AudioSource click;
 
     class Step
@@ -40,23 +41,23 @@ public class Tutorial : MonoBehaviour
         public bool info;            // NEXT button instead of a check
     }
 
-    class Lesson { public string name, intro; public List<Step> steps = new List<Step>(); }
+    class Lesson { public string name; public float par; public System.Action setup; public List<Step> steps = new List<Step>(); }
 
-    enum Page { Start, Lessons, Step, Done, Hidden }
+    enum Page { Step, Done, Hidden }
 
     readonly List<Lesson> lessons = new List<Lesson>();
-    Page page = Page.Start;
+    Page page = Page.Hidden;
     int lessonIndex, stepIndex;
     float stepTime, doneDelay = -1f;
 
-    // ---- shared content (board + desktop)
-    public string Title { get; private set; } = "";
-    public string Body { get; private set; } = "";
-    public bool Visible => page != Page.Hidden;
-    readonly List<(string label, System.Action press)> actions = new List<(string, System.Action)>();
-    public int ButtonCount => actions.Count;
-    public string ButtonLabel(int i) => actions[i].label;
-    public void Press(int i) { if (i < actions.Count) { if (click) click.Play(); actions[i].press(); } }
+    public int LessonCount { get { if (lessons.Count == 0) BuildLessons(); return lessons.Count; } }
+    public string LessonName(int i) => lessons[i].name;
+    public static int BestStars(int i) => PlayerPrefs.GetInt("LessonStars" + i, 0);
+    public bool Running => page == Page.Step;
+
+    // ---- per-lesson score
+    float lessonTime;
+    int skipped, mistakes;
 
     // ---- per-step trackers
     Vector3 lastPos;
@@ -64,8 +65,9 @@ public class Tutorial : MonoBehaviour
     int counter, startGear;
     bool flag, flag2;
 
-    // ---- slalom
+    // ---- scene set-up: cones and the implements' parking places at start
     readonly List<(Rigidbody rb, Vector3 pos, Quaternion rot)> cones = new List<(Rigidbody, Vector3, Quaternion)>();
+    readonly List<(Implement imp, Vector3 pos, Quaternion rot)> parked = new List<(Implement, Vector3, Quaternion)>();
 
     void Awake() => Instance = this;
 
@@ -74,56 +76,31 @@ public class Tutorial : MonoBehaviour
         foreach (var rb in FindObjectsByType<Rigidbody>(FindObjectsSortMode.None))
             if (rb.name == "Cone") cones.Add((rb, rb.position, rb.rotation));
         cones.Sort((a, b) => b.pos.z.CompareTo(a.pos.z));
-        BuildLessons();
-        BuildBoard();
+        foreach (var imp in FindObjectsByType<Implement>(FindObjectsSortMode.None))
+            parked.Add((imp, imp.transform.position, imp.transform.rotation));
+        if (lessons.Count == 0) BuildLessons();
         lastPos = tractor.transform.position;
-        ShowStart();
+        board.Hide();
     }
 
     // ================================================================== pages
-    public void ShowStart()
-    {
-        page = Page.Start;
-        Title = "TRACTOR VR";
-        Body = "A John Deere 6195M on a farm near Reghin, Transylvania.\n\n" +
-               "FREE ROAM: drive and work as you like.\nTUTORIAL: nine short lessons, from driving off to ploughing.\n\n" +
-               "Touch a button with a fingertip or the controller tip" + (DesktopMode.Active ? " (or click it)." : ".");
-        actions.Clear();
-        actions.Add(("FREE ROAM", () => Hide()));
-        actions.Add(("TUTORIAL", ShowLessons));
-        Changed();
-    }
-
-    public void ShowLessons()
-    {
-        page = Page.Lessons;
-        Title = "TUTORIAL: LESSONS";
-        Body = "Pick a lesson. Each step checks itself; a yellow glow marks the control to use or the place to drive to.";
-        actions.Clear();
-        for (int i = 0; i < lessons.Count; i++)
-        {
-            int k = i;
-            bool done = PlayerPrefs.GetInt("Lesson" + i, 0) == 1;
-            actions.Add(($"{i + 1}. {lessons[i].name}{(done ? " (done)" : "")}", () => StartLesson(k)));
-        }
-        actions.Add(("FREE ROAM", () => Hide()));
-        Changed();
-    }
-
-    /// <summary>Hides the board (free roam); the panel's TUTORIAL button brings back the lesson list.</summary>
-    public void Hide()
-    {
-        page = Page.Hidden;
-        actions.Clear();
-        Changed();
-    }
-
     public void StartLesson(int i)
     {
         lessonIndex = i;
         page = Page.Step;
+        lessonTime = 0f; skipped = 0; mistakes = 0;
+        lessons[i].setup?.Invoke();
         EnterStep(0);
     }
+
+    /// <summary>Stops the tutorial (free roam / back to the menu).</summary>
+    public void Stop()
+    {
+        page = Page.Hidden;
+        board.Hide();
+    }
+
+    void ToMenu() { Stop(); if (StartMenu.Instance) StartMenu.Instance.ShowLessons(); }
 
     void EnterStep(int i)
     {
@@ -134,42 +111,60 @@ public class Tutorial : MonoBehaviour
         lastPos = tractor.transform.position;
         var s = Current;
         s.enter?.Invoke();
-        actions.Clear();
-        if (s.info) actions.Add(("NEXT", NextStep));
-        else actions.Add(("SKIP STEP", NextStep));
-        actions.Add(("REPEAT LESSON", () => StartLesson(lessonIndex)));
-        actions.Add(("LESSONS", ShowLessons));
-        RefreshStepText();
-        Changed();
+        var buttons = new List<TouchBoard.Button>
+        {
+            s.info ? new TouchBoard.Button { label = "NEXT", press = NextStep, stars = -1 }
+                   : new TouchBoard.Button { label = "SKIP STEP", press = () => { skipped++; NextStep(); }, stars = -1 },
+            new TouchBoard.Button { label = "REPEAT LESSON", press = () => StartLesson(lessonIndex), stars = -1 },
+            new TouchBoard.Button { label = "MENU", press = ToMenu, stars = -1 },
+        };
+        board.Set(StepTitle(), StepBody(), buttons);
     }
 
     void NextStep()
     {
         if (stepIndex + 1 < lessons[lessonIndex].steps.Count) { EnterStep(stepIndex + 1); return; }
+        var l = lessons[lessonIndex];
+        int stars = Rating(l, out string why);
+        if (stars > BestStars(lessonIndex)) PlayerPrefs.SetInt("LessonStars" + lessonIndex, stars);
         PlayerPrefs.SetInt("Lesson" + lessonIndex, 1);
         page = Page.Done;
-        Title = $"LESSON {lessonIndex + 1} COMPLETE";
-        Body = lessonIndex + 1 < lessons.Count ? $"Well done!\n\nNext: {lessons[lessonIndex + 1].name}." : "Well done: that was the last lesson.\nThe farm is yours: free roam!";
-        actions.Clear();
-        if (lessonIndex + 1 < lessons.Count) { int n = lessonIndex + 1; actions.Add(("NEXT LESSON", () => StartLesson(n))); }
-        actions.Add(("LESSONS", ShowLessons));
-        actions.Add(("FREE ROAM", () => Hide()));
-        if (hud) hud.Show("LESSON COMPLETE");
-        Changed();
+        string next = lessonIndex + 1 < lessons.Count ? $"\n\nNext: {lessons[lessonIndex + 1].name}." : "\n\nThat was the last lesson: the farm is yours!";
+        var buttons = new List<TouchBoard.Button>();
+        if (lessonIndex + 1 < lessons.Count) { int n = lessonIndex + 1; buttons.Add(new TouchBoard.Button { label = "NEXT LESSON", press = () => StartLesson(n), stars = -1 }); }
+        buttons.Add(new TouchBoard.Button { label = "TRY AGAIN", press = () => StartLesson(lessonIndex), stars = -1 });
+        buttons.Add(new TouchBoard.Button { label = "MENU", press = ToMenu, stars = -1 });
+        buttons.Add(new TouchBoard.Button { label = "FREE ROAM", press = Stop, stars = -1 });
+        board.Set($"LESSON {lessonIndex + 1} COMPLETE", why + next, buttons, stars);
+        if (hud) hud.Show($"LESSON COMPLETE: {stars} STAR{(stars == 1 ? "" : "S")}");
+    }
+
+    /// <summary>5 stars, minus 1 per skipped step, 1 per two mistakes (rounded up), and 1 / 2 for taking more than 1.5 / 2.5 times
+    /// the lesson's par time; at least 1.</summary>
+    int Rating(Lesson l, out string why)
+    {
+        int stars = 5 - skipped - (mistakes + 1) / 2;
+        if (lessonTime > l.par * 2.5f) stars -= 2;
+        else if (lessonTime > l.par * 1.5f) stars -= 1;
+        stars = Mathf.Clamp(stars, 1, 5);
+        string T(float s) => $"{(int)(s / 60f)}:{(int)(s % 60f):00}";
+        why = $"Time {T(lessonTime)} (par {T(l.par)})" + (skipped > 0 ? $", {skipped} step{(skipped > 1 ? "s" : "")} skipped" : "") +
+              (mistakes > 0 ? $", {mistakes} mistake{(mistakes > 1 ? "s" : "")}" : "") + ".";
+        return stars;
     }
 
     Step Current => lessons[lessonIndex].steps[stepIndex];
 
-    void RefreshStepText()
+    string StepTitle() => $"{lessonIndex + 1}. {lessons[lessonIndex].name}  ({stepIndex + 1}/{lessons[lessonIndex].steps.Count})";
+
+    string StepBody()
     {
-        var l = lessons[lessonIndex];
         var s = Current;
-        Title = $"{lessonIndex + 1}. {l.name}  ({stepIndex + 1}/{l.steps.Count})";
         string status = s.status?.Invoke();
         var g = s.goal?.Invoke();
         if (g.HasValue && string.IsNullOrEmpty(status))
             status = $"Marker: {Flat(g.Value - tractor.transform.position).magnitude:0} m";
-        Body = s.text + (string.IsNullOrEmpty(status) ? "" : "\n\n> " + status);
+        return s.text + (string.IsNullOrEmpty(status) ? "" : "\n\n> " + status);
     }
 
     // ================================================================== per frame
@@ -183,7 +178,8 @@ public class Tutorial : MonoBehaviour
         {
             var s = Current;
             stepTime += Time.deltaTime;
-            s_moved = moved;
+            lessonTime += Time.deltaTime;
+            s_moved = moved > 5f ? 0f : moved;   // a teleport is not driving
             bool ok = false;
             if (!s.info)
             {
@@ -201,15 +197,89 @@ public class Tutorial : MonoBehaviour
                 if (click) click.pitch = 1f;
                 NextStep();
             }
-            if (page == Page.Step) RefreshStepText();
+            if (page == Page.Step) board.SetBody(StepBody());
         }
-        UpdateBoard();
         UpdateHalos();
     }
 
     float s_moved;   // metres the tractor moved this frame (for the counting steps)
 
     static Vector3 Flat(Vector3 v) { v.y = 0f; return v; }
+
+    // ================================================================== lesson set-up
+    /// <summary>Uncouples everything, puts every implement back where it stood at the start (its shed bay), the cones too,
+    /// day, lights off, PTO off.</summary>
+    void ResetScene()
+    {
+        foreach (var imp in new[] { hitch.Rear, hitch.Front, hitch.Towed }) if (imp) hitch.ForceDetach(imp);
+        foreach (var (imp, pos, rot) in parked)
+        {
+            var rb = imp.GetComponent<Rigidbody>();
+            imp.transform.SetPositionAndRotation(pos, rot);
+            if (rb) { rb.position = pos; rb.rotation = rot; if (!rb.isKinematic) { rb.linearVelocity = Vector3.zero; rb.angularVelocity = Vector3.zero; } }
+            var w = imp.GetComponent<SimpleWheels>();
+            if (w) w.ResetSuspension();
+        }
+        foreach (var c in cones)
+        {
+            c.rb.linearVelocity = Vector3.zero; c.rb.angularVelocity = Vector3.zero;
+            c.rb.position = c.pos; c.rb.rotation = c.rot;
+            c.rb.transform.SetPositionAndRotation(c.pos, c.rot);
+        }
+        while (lights.TimeOfDay != TractorLights.Sky.Day) lights.CycleSky();
+        if (lights.RoadLights != TractorLights.Road.Off) lights.SetRoadLights(TractorLights.Road.Off);
+        if (lights.Beacon) lights.SetBeacon(false);
+        if (lights.Indicator != 0) lights.SetIndicator(0);
+        if (!tractor.fourWheelDrive) tractor.SetFourWheelDrive(true);
+        if (tractor.DiffLock) tractor.SetDiffLock(false);
+        if (!drivetrain.Automatic) drivetrain.ToggleMode();
+    }
+
+    /// <summary>Teleports the tractor (heading <paramref name="yaw"/>) so that <paramref name="mount"/> (or its rear axle centre when
+    /// null) stands over x, z.</summary>
+    void Place(Transform mount, float x, float z, float yaw)
+    {
+        Vector3 local = mount ? Quaternion.Euler(0f, yaw, 0f) * tractor.transform.InverseTransformPoint(mount.position) : Vector3.zero;
+        float px = x - local.x, pz = z - local.z;
+        tractor.TeleportTo(new Vector3(px, TerrainGenerator.SurfaceHeight(px, pz), pz), Quaternion.Euler(0f, yaw, 0f));
+        hitch.AfterTeleport();
+        rig.SnapFollow();
+    }
+
+    /// <summary>The tractor back at its start in the yard.</summary>
+    void Spawn()
+    {
+        tractor.ResetTractor();
+        hitch.AfterTeleport();
+        rig.SnapFollow();
+    }
+
+    /// <summary>Set-up for an implement lesson: the tractor stands in front of the implement's bay, <paramref name="gap"/> metres
+    /// between its mount and the implement's coupling point (rear / drawbar: facing away from the shed, reverse in;
+    /// front: nose to the shed, drive in).</summary>
+    void InFrontOf(Implement imp, float gap)
+    {
+        if (imp == null) return;
+        Vector3 c = imp.hitchPoint.position;
+        bool front = imp.mount == Implement.Mount.Front;
+        Transform mount = front ? hitch.frontMount : imp.mount == Implement.Mount.Rear ? hitch.rearMount : hitch.drawbarMount;
+        Place(mount, c.x, c.z + gap, front ? 180f : 0f);
+    }
+
+    /// <summary>Set-up for a working lesson: the tractor at x, z with the implement already coupled (put on its mount first).</summary>
+    void PlaceCoupled(Implement imp, float x, float z, float yaw)
+    {
+        if (imp == null) return;
+        Place(null, x, z, yaw);
+        Transform mount = imp.mount == Implement.Mount.Front ? hitch.frontMount : imp.mount == Implement.Mount.Rear ? hitch.rearMount : hitch.drawbarMount;
+        var rb = imp.GetComponent<Rigidbody>();
+        Quaternion r = mount.rotation;
+        Vector3 pos = mount.position - r * imp.hitchPoint.localPosition;
+        imp.transform.SetPositionAndRotation(pos, r);
+        if (rb) { rb.position = pos; rb.rotation = r; }
+        hitch.ForceAttach(imp);
+        hitch.AfterTeleport();
+    }
 
     // ================================================================== lessons
     Implement FindImpl(string name)
@@ -246,7 +316,12 @@ public class Tutorial : MonoBehaviour
              float radius = 6f, System.Action enter = null, System.Func<string> status = null, bool info = false)
         => l.steps.Add(new Step { text = text, done = done, highlight = highlight, goal = goal, goalRadius = radius, enter = enter, status = status, info = info });
 
-    Lesson NewLesson(string name) { var l = new Lesson { name = name }; lessons.Add(l); return l; }
+    Lesson NewLesson(string name, float par, System.Action setup)
+    {
+        var l = new Lesson { name = name, par = par, setup = setup };
+        lessons.Add(l);
+        return l;
+    }
 
     void BuildLessons()
     {
@@ -256,7 +331,7 @@ public class Tutorial : MonoBehaviour
         Tipper Tip() => hitch.TowedTipper;
 
         // 1 ---------------------------------------------------------------
-        var l = NewLesson("DRIVING AND THE CAB");
+        var l = NewLesson("DRIVING AND THE CAB", 120f, () => { ResetScene(); Spawn(); });
         Add(l, "Welcome to the farm! This lesson shows how to drive off, steer, stop and reverse.\n\n" +
                "Look around the cab: the steering wheel, the speed lever by your right hand, the menu panel at the right front.", info: true);
         Add(l, "Drive off: push the RIGHT STICK forward (W), or grab the SPEED LEVER by your right hand and push it forward.\n\nReach 8 km/h.",
@@ -271,7 +346,7 @@ public class Tutorial : MonoBehaviour
             done: () => { if (rig.view == VRCameraRig.View.ThirdPerson) flag = true; return flag && rig.view == VRCameraRig.View.Cab; });
 
         // 2 ---------------------------------------------------------------
-        l = NewLesson("GEARBOX AND HAND THROTTLE");
+        l = NewLesson("GEARBOX AND HAND THROTTLE", 150f, () => { ResetScene(); Spawn(); });
         Add(l, "Open the MENU: the MENU button on the left controller (M), or touch the MENU tab at the right front.",
             done: () => panel.Open, highlight: () => PanelButton("tab"));
         Add(l, "The gearbox has 20 gears (A1 to E4) and shifts by itself in AUTO. Switch it to MANUAL: Y button (T), or GEARBOX on the panel.",
@@ -284,7 +359,7 @@ public class Tutorial : MonoBehaviour
             done: () => drivetrain.Automatic && drivetrain.HandThrottleRpm <= drivetrain.idleRpm + 60f, highlight: () => PanelButton("thrDown"));
 
         // 3 ---------------------------------------------------------------
-        l = NewLesson("SLALOM AT THE PRACTICE AREA");
+        l = NewLesson("SLALOM AT THE PRACTICE AREA", 75f, () => { ResetScene(); Place(null, 46f, -6f, 180f); });
         var slalomStart = new Vector3(46f, 0f, -10f);
         Add(l, "Drive to the PRACTICE AREA east of the yard: past the silos and round the south end of the fence, to the marker at the white START line.",
             goal: () => slalomStart, radius: 5f);
@@ -292,7 +367,7 @@ public class Tutorial : MonoBehaviour
             enter: ResetSlalom, done: SlalomDone, status: () => flag ? $"Cones passed: {counter} / {WorldLayout.SlalomCones.Length}" : "Drive over the START line");
 
         // 4 ---------------------------------------------------------------
-        l = NewLesson("COUPLING THE PLOUGH");
+        l = NewLesson("COUPLING THE PLOUGH", 120f, () => { ResetScene(); InFrontOf(plough, 7f); });
         Add(l, "Something is on the rear hitch: lower it (LEFT STICK down / E), stop, and press the LEFT STICK (J) or ATTACH/DETACH to park it.",
             done: () => hitch.Rear == null || hitch.Rear == plough);
         Add(l, "Drive to the MACHINE SHED. Turn, and REVERSE slowly up to the PLOUGH bay until the lower links are right at the plough's pins.\n\nLook back over your shoulder, or switch to the outside view (A).",
@@ -306,7 +381,7 @@ public class Tutorial : MonoBehaviour
             goal: () => new Vector3(0f, 0f, -18f), radius: 7f);
 
         // 5 ---------------------------------------------------------------
-        l = NewLesson("PLOUGHING");
+        l = NewLesson("PLOUGHING", 120f, () => { ResetScene(); PlaceCoupled(plough, -238f, -50f, -90f); });
         Add(l, "This lesson needs the plough on the rear hitch (lesson 4). Couple it in the shed, then come back here.",
             done: () => hitch.Rear == plough, goal: () => hitch.Rear == plough ? (Vector3?)null : At(plough), radius: 0f);
         Add(l, "Drive to the WEST FIELD: out of the yard's south-west corner, along the west track past the barn, to the field gate (marker).",
@@ -318,7 +393,7 @@ public class Tutorial : MonoBehaviour
             done: () => hitch.RearPosition > 0.9f);
 
         // 6 ---------------------------------------------------------------
-        l = NewLesson("MOWING");
+        l = NewLesson("MOWING", 300f, () => { ResetScene(); InFrontOf(mower, 8f); });
         Add(l, "Park the plough first, best in its shed bay: lower it to the ground (E), stop and DETACH (J).",
             done: () => hitch.Rear == null, goal: () => hitch.Rear == plough ? At(plough) : null, radius: 0f);
         Add(l, "Something is on the front linkage: lower it (hold LEFT TRIGGER + LEFT STICK down / Ctrl+E) and DETACH it (J).",
@@ -337,7 +412,7 @@ public class Tutorial : MonoBehaviour
             done: () => !hitch.Pto && hitch.FrontPosition > 0.9f);
 
         // 7 ---------------------------------------------------------------
-        l = NewLesson("TRAILER AND TIPPING");
+        l = NewLesson("TRAILER AND TIPPING", 300f, () => { ResetScene(); InFrontOf(trailer, 7f); });
         Add(l, "The trailer couples to the drawbar under the rear hitch. Park any rear implement first (lower it, DETACH).",
             done: () => hitch.Rear == null);
         Add(l, "REVERSE up to the TRAILER in the shed until the drawbar is right under its eye.",
@@ -355,7 +430,7 @@ public class Tutorial : MonoBehaviour
             done: () => Tip() != null && Tip().Angle < 1f);
 
         // 8 ---------------------------------------------------------------
-        l = NewLesson("TRACTION: 4WD AND DIFF LOCK");
+        l = NewLesson("TRACTION: 4WD AND DIFF LOCK", 90f, () => { ResetScene(); Place(null, -12f, WorldLayout.EarthRamp.y, -90f); });
         Add(l, "The front axle drive (4WD) is a rocker on the right console (or 4WD on the panel, F). Switch it OFF, then ON again.",
             done: () => { if (!tractor.fourWheelDrive) flag = true; return flag && tractor.fourWheelDrive; }, highlight: () => TractorPart("Switch_fourWd"));
         Add(l, "The diff lock makes both wheels of an axle turn together (for mud). Switch it ON: the push button next to 4WD, or DIFF LOCK (L).\n\nIt lets go by itself above 15 km/h or when you steer.",
@@ -366,7 +441,7 @@ public class Tutorial : MonoBehaviour
             goal: () => new Vector3(WorldLayout.EarthRamp.x, 0f, WorldLayout.EarthRamp.y), radius: 0f);
 
         // 9 ---------------------------------------------------------------
-        l = NewLesson("LIGHTS AND ROAD DRIVING");
+        l = NewLesson("LIGHTS AND ROAD DRIVING", 180f, () => { ResetScene(); Place(null, 15f, 0f, 90f); });
         Add(l, "Evening is coming: set SKY to DUSK on the panel (U).",
             done: () => lights.TimeOfDay != TractorLights.Sky.Day, highlight: () => PanelButton("sky"));
         Add(l, "Headlights on: turn the LIGHT KNOB on the right console to HEAD (two turns), or LIGHTS on the panel (G).",
@@ -428,6 +503,7 @@ public class Tutorial : MonoBehaviour
 
     void SlalomFail(string msg)
     {
+        mistakes++;
         if (hud) hud.Show(msg);
         ResetSlalom();
     }
@@ -461,216 +537,6 @@ public class Tutorial : MonoBehaviour
                           : $"In the bay: {Mathf.Abs(off):0.0} m off centre";
     }
 
-    // ================================================================== board (VR)
-    Transform board, buttonRoot;
-    TextMesh titleText, bodyText;
-    MeshRenderer back;
-    Font font;
-    readonly List<(Transform t, MeshRenderer face, TextMesh label, bool inside)> boardButtons = new List<(Transform, MeshRenderer, TextMesh, bool)>();
-    bool dirty = true;
-    float cooldown;
-
-    const float BoardW = 0.36f, Margin = 0.012f, BtnH = 0.036f, Gap = 0.006f;
-
-    void Changed() => dirty = true;
-
-    void BuildBoard()
-    {
-        font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        board = new GameObject("Board").transform;
-        board.SetParent(transform, false);
-        back = Quad("Back", board, Vector3.zero, Vector2.one, panelMat);
-        titleText = Text("Title", board, 0.0135f, new Color(1f, 0.85f, 0.3f));
-        bodyText = Text("Body", board, 0.0105f, new Color(0.95f, 0.95f, 0.9f));
-        buttonRoot = new GameObject("Buttons").transform;
-        buttonRoot.SetParent(board, false);
-    }
-
-    TextMesh Text(string name, Transform parent, float height, Color c)
-    {
-        var go = new GameObject(name);
-        go.transform.SetParent(parent, false);
-        var tm = go.AddComponent<TextMesh>();
-        tm.font = font;
-        tm.fontSize = 40;
-        tm.characterSize = height / (tm.fontSize * 0.1f);
-        tm.anchor = TextAnchor.UpperLeft;
-        tm.alignment = TextAlignment.Left;
-        tm.color = c;
-        go.GetComponent<MeshRenderer>().sharedMaterial = textMat;
-        return tm;
-    }
-
-    MeshRenderer Quad(string name, Transform parent, Vector3 pos, Vector2 size, Material mat)
-    {
-        var go = new GameObject(name);
-        go.transform.SetParent(parent, false);
-        go.transform.localPosition = pos;
-        go.transform.localScale = new Vector3(size.x, size.y, 1f);
-        go.AddComponent<MeshFilter>().sharedMesh = Resources.GetBuiltinResource<Mesh>("Quad.fbx");
-        var r = go.AddComponent<MeshRenderer>();
-        r.sharedMaterial = mat;
-        r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-        return r;
-    }
-
-    public static string Wrap(string s, int width)
-    {
-        var sb = new System.Text.StringBuilder();
-        foreach (var para in s.Split('\n'))
-        {
-            int col = 0;
-            foreach (var word in para.Split(' '))
-            {
-                if (col > 0 && col + 1 + word.Length > width) { sb.Append('\n'); col = 0; }
-                else if (col > 0) { sb.Append(' '); col++; }
-                sb.Append(word);
-                col += word.Length;
-            }
-            sb.Append('\n');
-        }
-        return sb.ToString().TrimEnd('\n');
-    }
-
-    int lastLines = -1;
-
-    void UpdateBoard()
-    {
-        bool show = page != Page.Hidden && !DesktopMode.Active;
-        board.gameObject.SetActive(show);
-        if (!show) return;
-
-        // Line breaks from the font's real glyph widths (a fixed character count let wide letters run off the board).
-        string body = WrapToWidth(bodyText, Body, BoardW - 2f * Margin);
-        int lines = body.Split('\n').Length;
-        titleText.text = Title;
-        FitSize(titleText, Title, 0.0135f, BoardW - 2f * Margin);
-        bodyText.text = body;
-        if (dirty || lines != lastLines)
-        {
-            dirty = false;
-            lastLines = lines;
-            Layout(lines);
-        }
-        for (int i = 0; i < boardButtons.Count && i < actions.Count; i++)
-            if (boardLabels[i] != actions[i].label)
-            {
-                boardLabels[i] = actions[i].label;
-                FitButton(boardButtons[i].label, actions[i].label, boardButtonWidth - 0.012f);
-            }
-
-        cooldown -= Time.deltaTime;
-        for (int i = 0; i < boardButtons.Count; i++)
-        {
-            var b = boardButtons[i];
-            bool inside = false;
-            foreach (var h in hands.Both)
-            {
-                if (!h.Tracked) continue;
-                Vector3 q = b.t.InverseTransformPoint(h.PokeTip);
-                if (Mathf.Abs(q.x) < 0.5f + 0.02f && Mathf.Abs(q.y) < 0.5f + 0.1f && q.z > -0.4f && q.z < 1.2f)   // in button units (scaled)
-                    inside = true;
-            }
-            b.face.sharedMaterial = inside ? buttonHotMat : buttonMat;
-            if (inside && !b.inside && cooldown <= 0f) { cooldown = 0.4f; boardButtons[i] = (b.t, b.face, b.label, true); Press(i); return; }
-            boardButtons[i] = (b.t, b.face, b.label, inside);
-        }
-    }
-
-    // ---- text measuring (TextMesh: one font pixel = characterSize * 0.1 local units)
-    float Width(TextMesh tm, string line)
-    {
-        font.RequestCharactersInTexture(line, tm.fontSize, tm.fontStyle);
-        float w = 0f;
-        foreach (char c in line)
-            if (font.GetCharacterInfo(c, out CharacterInfo ci, tm.fontSize, tm.fontStyle)) w += ci.advance;
-        return w * tm.characterSize * 0.1f;
-    }
-
-    // Line pitch from the TextMesh size (font.lineHeight is at the font's own size, not tm.fontSize); 1.3 x the size matches the render.
-    float LineHeight(TextMesh tm) => tm.fontSize * tm.characterSize * 0.1f * 1.3f * tm.lineSpacing;
-
-    string WrapToWidth(TextMesh tm, string s, float maxW)
-    {
-        var sb = new System.Text.StringBuilder();
-        foreach (var para in s.Split('\n'))
-        {
-            string line = "";
-            foreach (var word in para.Split(' '))
-            {
-                string tryLine = line.Length == 0 ? word : line + " " + word;
-                if (line.Length > 0 && Width(tm, tryLine) > maxW) { sb.Append(line).Append('\n'); line = word; }
-                else line = tryLine;
-            }
-            sb.Append(line).Append('\n');
-        }
-        return sb.ToString().TrimEnd('\n');
-    }
-
-    static float CharSize(float height, TextMesh tm) => height / (tm.fontSize * 0.1f);
-
-    void FitSize(TextMesh tm, string text, float height, float maxW)
-    {
-        tm.characterSize = CharSize(height, tm);
-        float w = Width(tm, text);
-        if (w > maxW) tm.characterSize *= maxW / w;
-    }
-
-    /// <summary>Button label: one line if it fits, else two lines, else smaller.</summary>
-    void FitButton(TextMesh tm, string text, float maxW)
-    {
-        tm.characterSize = CharSize(0.0105f, tm);
-        if (Width(tm, text) <= maxW) { tm.text = text; return; }
-        tm.characterSize = CharSize(0.0092f, tm);
-        string two = WrapToWidth(tm, text, maxW);
-        while (two.Split('\n').Length > 2 && tm.characterSize > CharSize(0.006f, tm))
-        {
-            tm.characterSize *= 0.9f;
-            two = WrapToWidth(tm, text, maxW);
-        }
-        tm.text = two;
-    }
-
-    float boardButtonWidth;
-    readonly List<string> boardLabels = new List<string>();
-
-    void Layout(int lines)
-    {
-        foreach (var b in boardButtons) { if (Application.isPlaying) Destroy(b.t.gameObject); else DestroyImmediate(b.t.gameObject); }
-        boardButtons.Clear();
-        int n = actions.Count;
-        int cols = n > 4 ? 2 : Mathf.Max(1, n);
-        int rows = (n + cols - 1) / cols;
-        float titleH = LineHeight(titleText) + 0.006f;
-        float textH = titleH + lines * LineHeight(bodyText) + 0.004f;
-        float h = Gap + textH + Gap + rows * (BtnH + Gap) + Gap;
-        back.transform.localScale = new Vector3(BoardW, h, 1f);
-        back.transform.localPosition = new Vector3(0f, 0f, 0.003f);
-        float top = h * 0.5f - Gap;
-        titleText.transform.localPosition = new Vector3(-BoardW * 0.5f + Margin, top, -0.001f);
-        bodyText.transform.localPosition = new Vector3(-BoardW * 0.5f + Margin, top - titleH, -0.001f);
-        float bw = (BoardW - (cols + 1) * Gap) / cols;
-        boardButtonWidth = bw;
-        boardLabels.Clear();
-        float y0 = top - textH - Gap - BtnH * 0.5f;
-        for (int i = 0; i < n; i++)
-        {
-            int c = i % cols, r = i / cols;
-            var t = new GameObject("Button_" + i).transform;
-            t.SetParent(buttonRoot, false);
-            t.localPosition = new Vector3(-BoardW * 0.5f + Gap + bw * 0.5f + c * (bw + Gap), y0 - r * (BtnH + Gap), 0f);
-            t.localScale = new Vector3(bw, BtnH, 0.03f);   // poke box in button units: z 1 = 3 cm
-            var face = Quad("Face", t, Vector3.zero, Vector2.one, buttonMat);
-            var label = Text("Label", t, 0.0105f, new Color(0.95f, 0.95f, 0.9f));
-            label.anchor = TextAnchor.MiddleCenter;
-            label.alignment = TextAlignment.Center;
-            label.transform.localPosition = new Vector3(0f, 0f, -0.07f);
-            label.transform.localScale = new Vector3(1f / bw, 1f / BtnH, 1f);
-            boardButtons.Add((t, face, label, true));
-            boardLabels.Add(null);   // "inside" until the hand leaves: no press on the frame a page opens
-        }
-    }
-
     // ================================================================== highlight glows
     Transform controlHalo, goalHalo;
     MaterialPropertyBlock haloBlock;
@@ -681,8 +547,8 @@ public class Tutorial : MonoBehaviour
         if (controlHalo == null)
         {
             haloBlock = new MaterialPropertyBlock();
-            controlHalo = Quad("ControlHalo", null, Vector3.zero, Vector2.one, haloMat).transform;
-            goalHalo = Quad("GoalHalo", null, Vector3.zero, Vector2.one, haloMat).transform;
+            controlHalo = HaloQuad("ControlHalo").transform;
+            goalHalo = HaloQuad("GoalHalo").transform;
         }
         Transform target = null;
         Vector3? goal = null;
@@ -722,15 +588,24 @@ public class Tutorial : MonoBehaviour
         r.SetPropertyBlock(haloBlock);
     }
 
-    /// <summary>Editor renders: builds the board outside play mode and shows lesson <paramref name="lesson"/>'s step
-    /// <paramref name="step"/> (-1 = the start page), with its glows.</summary>
+    MeshRenderer HaloQuad(string name)
+    {
+        var go = new GameObject(name);
+        go.AddComponent<MeshFilter>().sharedMesh = Resources.GetBuiltinResource<Mesh>("Quad.fbx");
+        var r = go.AddComponent<MeshRenderer>();
+        r.sharedMaterial = haloMat;
+        r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        return r;
+    }
+
+    /// <summary>Editor renders: shows lesson <paramref name="lesson"/>'s step <paramref name="step"/> on the board (no set-up, no
+    /// teleport), with its glows.</summary>
     public void Preview(int lesson, int step)
     {
-        if (board == null) { Instance = this; cones.Clear(); lessons.Clear(); BuildLessons(); BuildBoard(); }
-        if (lesson == -2) ShowLessons();
-        else if (lesson < 0) ShowStart();
-        else { lessonIndex = lesson; page = Page.Step; EnterStep(step); }
-        UpdateBoard();
+        if (lessons.Count == 0) { Instance = this; BuildLessons(); }
+        lessonIndex = lesson; page = Page.Step;
+        EnterStep(step);
+        board.Refresh(true);
         UpdateHalos();
     }
 
@@ -738,7 +613,8 @@ public class Tutorial : MonoBehaviour
     {
         if (controlHalo) DestroyImmediate(controlHalo.gameObject);
         if (goalHalo) DestroyImmediate(goalHalo.gameObject);
-        if (board) DestroyImmediate(board.gameObject);
+        board.Hide();
+        board.Refresh(false);
     }
 
     void OnDestroy()

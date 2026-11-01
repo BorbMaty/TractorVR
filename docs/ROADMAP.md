@@ -348,7 +348,11 @@ repeated things, no shadows on Quest except buildings, impostors for far trees, 
   spots the tutorial uses
 
 ## Phase 6: free roam + tutorial modes (planned 2026-10-30, built 2026-11-01 evening; headset play-through still to do)
-- [x] Start menu: FREE ROAM (as now) / TUTORIAL (board at the cab's left front; panel TUTORIAL brings back the lesson list)
+- [x] Start menu: FREE ROAM (as now) / TUTORIAL. Since 2026-11-01 (late night, user): a separate start screen (`StartMenu`): the
+  player stands beside the tractor with a big board: TUTORIAL (lessons with stars) / FREE ROAM / CONTROLS (4 information pages) /
+  QUIT; the cab panel's MAIN MENU brings it back
+- [x] Lessons take the tractor to where they happen (teleport + scene reset; ploughing starts with the plough coupled) and are rated
+  1-5 stars (time against par, skipped steps, mistakes); the tutorial board moved low on the left (it hid the view)
 - [x] Tutorial engine: steps with a goal and a check, in-headset prompts, highlight of the control to use, skip / repeat
   (`Tutorial.cs`: checks read the real state, so done steps pass at once; glows on controls and over places to drive to)
 - [x] Lessons: driving and the cab, gearbox and hand throttle, slalom, coupling the plough, ploughing, mowing, trailer + reversing +

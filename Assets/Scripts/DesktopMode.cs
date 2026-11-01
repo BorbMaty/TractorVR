@@ -48,7 +48,7 @@ public class DesktopMode : MonoBehaviour
     Rect menuRect;
     readonly HashSet<int> heldRepeat = new HashSet<int>();
     GUIStyle buttonStyle, labelStyle, boxStyle;
-    Rect tutorialRect;   // screen area of the tutorial box (mouse clicks there don't reach the cab)
+    readonly System.Collections.Generic.List<Rect> boardRects = new System.Collections.Generic.List<Rect>();   // clicks there don't reach the cab
 
     static bool XRRunning
     {
@@ -184,7 +184,8 @@ public class DesktopMode : MonoBehaviour
         if (rig.input.RecenterPressed) ResetLook();
 
         // The rig is placed for this frame now (VRCameraRig does it in LateUpdate, too late for the mouse hand in VRHands).
-        if (rig.view == VRCameraRig.View.Cab) rig.transform.SetPositionAndRotation(rig.seatAnchor.position, rig.seatAnchor.rotation);
+        if (rig.InMenu) rig.transform.SetPositionAndRotation(rig.menuAnchor.position, rig.menuAnchor.rotation);
+        else if (rig.view == VRCameraRig.View.Cab) rig.transform.SetPositionAndRotation(rig.seatAnchor.position, rig.seatAnchor.rotation);
 
         var mouse = Mouse.current;
         if (mouse != null)
@@ -220,7 +221,7 @@ public class DesktopMode : MonoBehaviour
     void PlaceCamera()
     {
         Transform c = cam.transform;
-        if (rig.view == VRCameraRig.View.Cab)
+        if (rig.view == VRCameraRig.View.Cab || rig.InMenu)
         {
             c.localPosition = Vector3.zero;
             c.localRotation = Quaternion.Euler(pitch, yaw, 0f);
@@ -246,7 +247,7 @@ public class DesktopMode : MonoBehaviour
         if (mouse == null || rig.view != VRCameraRig.View.Cab) { h.PokeTip = far; VRHands.Apply(h, false, far, false); return; }
         Vector2 mp = mouse.position.ReadValue();
         bool down = mouse.leftButton.isPressed;
-        bool overMenu = (panel.Open && menuRect.Contains(new Vector2(mp.x, Screen.height - mp.y))) || tutorialRect.Contains(new Vector2(mp.x, Screen.height - mp.y));
+        bool overMenu = (panel.Open && menuRect.Contains(new Vector2(mp.x, Screen.height - mp.y))) || boardRects.Exists(r => r.Contains(new Vector2(mp.x, Screen.height - mp.y))) || StartMenu.IsOpen;
         Ray ray = cam.ScreenPointToRay(mp);
 
         if (h.Grabbing && down)
@@ -315,6 +316,14 @@ public class DesktopMode : MonoBehaviour
         Styles();
         float u = Screen.height / 32f;   // row height
 
+        if (StartMenu.IsOpen)
+        {
+            boardRects.Clear();
+            foreach (var board in TouchBoard.All.ToArray())
+                if (board.Visible) boardRects.Add(board.DrawGUI(u, labelStyle, buttonStyle, boxStyle));
+            return;
+        }
+
         // Menu: the cab panel's buttons, three columns at the right edge of the screen, as wide as the longest label.
         int n = panel.EntryCount, cols = 3, rows = (n + cols - 1) / cols + 1;
         float Fit(string s) => buttonWidth = Mathf.Max(buttonWidth, buttonStyle.CalcSize(new GUIContent(s)).x + u * 0.6f);
@@ -341,48 +350,10 @@ public class DesktopMode : MonoBehaviour
             if (GUI.Button(win, "TRY VR (F9)", buttonStyle)) StartCoroutine(TryVR());
         }
 
-        // Start menu / tutorial (phase 6): the board's text and buttons, top left.
-        var tut = Tutorial.Instance;
-        if (tut != null && tut.Visible)
-        {
-            // Sizes measured from the text: the box grows with the title and body, buttons drop to one column when their labels
-            // are long, and a label that still doesn't fit wraps onto two lines (taller button).
-            float tw = Mathf.Min(Screen.width * 0.42f, u * 30f), inner = tw - u;
-            var titleStyle = new GUIStyle(labelStyle) { fontStyle = FontStyle.Bold, normal = { textColor = new Color(1f, 0.85f, 0.3f) } };
-            var tutButton = new GUIStyle(buttonStyle) { wordWrap = true };
-            float titleH = titleStyle.CalcHeight(new GUIContent(tut.Title), inner);
-            float bodyH = labelStyle.CalcHeight(new GUIContent(tut.Body), inner);
-            int nb = tut.ButtonCount;
-            float widest = 0f;
-            for (int i = 0; i < nb; i++) widest = Mathf.Max(widest, tutButton.CalcSize(new GUIContent(tut.ButtonLabel(i))).x + u * 0.4f);
-            int tcols = nb <= 1 ? 1 : nb > 4 ? 2 : nb;
-            while (tcols > 1 && widest > (inner - (tcols - 1) * gap) / tcols) tcols--;
-            float bw2 = (inner - (tcols - 1) * gap) / tcols;
-            int tbrows = (nb + tcols - 1) / tcols;
-            var rowH = new float[Mathf.Max(1, tbrows)];
-            for (int i = 0; i < nb; i++)
-                rowH[i / tcols] = Mathf.Max(rowH[i / tcols], Mathf.Max(u, tutButton.CalcHeight(new GUIContent(tut.ButtonLabel(i)), bw2) + u * 0.2f));
-            float buttonsH = 0f;
-            for (int r = 0; r < tbrows; r++) buttonsH += rowH[r] + gap;
-            Rect box = new Rect(u * 0.5f, u, tw, u * 0.3f + titleH + u * 0.3f + bodyH + u * 0.4f + buttonsH + u * 0.3f);
-            tutorialRect = box;
-            GUI.Box(box, GUIContent.none, boxStyle);
-            float y = box.y + u * 0.3f;
-            GUI.Label(new Rect(box.x + u * 0.5f, y, inner, titleH), tut.Title, titleStyle);
-            y += titleH + u * 0.3f;
-            GUI.Label(new Rect(box.x + u * 0.5f, y, inner, bodyH), tut.Body, labelStyle);
-            y += bodyH + u * 0.4f;
-            int pressed = -1;
-            for (int i = 0; i < nb; i++)
-            {
-                int r = i / tcols, c = i % tcols;
-                float ry = y;
-                for (int k = 0; k < r; k++) ry += rowH[k] + gap;
-                if (GUI.Button(new Rect(box.x + u * 0.5f + c * (bw2 + gap), ry, bw2, rowH[r]), tut.ButtonLabel(i), tutButton)) pressed = i;
-            }
-            if (pressed >= 0) tut.Press(pressed);
-        }
-        else tutorialRect = Rect.zero;
+        // Start menu and tutorial (phase 6): every visible TouchBoard, drawn on screen (the menu centred, the tutorial top left).
+        boardRects.Clear();
+        foreach (var board in TouchBoard.All.ToArray())
+            if (board.Visible) boardRects.Add(board.DrawGUI(u, labelStyle, buttonStyle, boxStyle));
 
         // Key help, bottom left.
         GUI.Label(new Rect(u * 0.5f, Screen.height - u * 3.2f, Screen.width * 0.6f, u * 3f),

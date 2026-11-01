@@ -56,6 +56,8 @@ See `README.md` for controls, `docs/ROADMAP.md` for what's next and `docs/DEVLOG
 | `tools/fetch_sky.py` + `ProjectSetup.BuildSkies` | Poly Haven pure-sky HDRIs for DAY / DUSK / NIGHT → cubemap skyboxes; sun position, horizon (fog) colour and exposure measured in each picture (`Assets/Textures/Sky/sky.json`); `SkyRotationOffset` 225 = Unity's latlong convention (found by measuring a 15-degree render scan) |
 | `Assets/Scripts/GrassTufts.cs` | Grass tufts on the pastures near the camera: hashed per 3 m cell, rebuilt every 2 m, one instanced draw (meadow clump + shader) |
 | `tools/blender/roadside.py` | Power pole, delineator post, road signs (parts); `ProjectSetup.PlacePart` + generated wires (`WireMesh`, insulator points `PoleWirePoints` = `WIRE_POINTS`) |
+| `Assets/Scripts/TouchBoard.cs` | Shared touch board (title, measured text, stars, buttons; poke; `DrawGUI` for the desktop): the start menu and the tutorial use it |
+| `Assets/Scripts/StartMenu.cs` | Start screen: the rig stands beside the tractor (`VRCameraRig.InMenu` / `menuAnchor`), big board: TUTORIAL / FREE ROAM / CONTROLS / QUIT, lesson list with stars; tractor sticks off while open |
 | `Assets/Scripts/Tutorial.cs` | Phase 6: start menu (FREE ROAM / TUTORIAL) + 9 lessons of self-checking steps (checks read the real state), board at the cab's left front (rig), glows (`TractorVR/Halo`) on controls and goals; `Title` / `Body` / buttons also drawn by `DesktopMode` |
 | `Assets/Scripts/QualityTier.cs` | Quest / PC tier at start: PC = model renderers cast shadows, `ShadowProxy` off; `CurrentBudget` for environment assets |
 | `tools/blender/` (`tvr.py`, `build.py`, one script per asset: `barn.py`, `shed.py`, `farmhouse.py`, `silos.py`, `fueltank.py`, `muckpad.py`, `balestack.py`, `fences.py`, `speedbump.py`, `clamp.py`, `earthramp.py`) | Phase 5 environment assets, modelled by script in Blender: Unity coordinates, Full (PC) + Light (Quest) variant, AO baked into the vertex colour → `Assets/Models/Env/<Asset>.fbx` + `.json`, `env_materials.json`. Run headless: `blender -b --factory-startup -P tools/blender/build.py -- barn` (or `all`) |
@@ -191,6 +193,8 @@ $u = "C:\Program Files\Unity\Hub\Editor\6000.6.3f1\Editor\Unity.exe"
   shadow map 1024, the tractor's shadow comes from a 416-triangle `ShadowProxy` (model renderers don't cast), FBX mesh LODs (625k → 355k / 233k / 151k),
   `QualitySettings.meshLodThreshold` 1.5. Keep new shaders cheap (few texture reads, Blinn-Phong) and new meshes from casting shadows unless needed.
 - **Preview subsets**: `TVR_SHOTS=trees,tutorial` (env var) makes `RenderPreviews` render only the shots whose file names contain one of the words.
+- **Lesson set-ups** (`Tutorial.ResetScene`, `Place`, `InFrontOf`, `PlaceCoupled`) teleport and use `Hitch.ForceAttach / ForceDetach`;
+  implements go back to the poses they had at start. Star scores are PlayerPrefs `LessonStars<i>` (the test deletes its own).
 - **Tutorial steps** only read state (plus their own counters); a step whose check is already true passes at once, which is how a
   lesson works from any state. Glow targets: `TractorPart(name)` (any tractor child) / `PanelButton(id)` (the MENU tab if the panel is closed).
 - **Desktop mode**: layer 30 (`DesktopMode.PickLayer`) holds the mouse-pick proxies; ground / wheel rays must leave it out. New cab controls work
