@@ -1301,3 +1301,8 @@ but the letters are wider than that assumed. Now the line breaks come from the f
 wrap onto two lines (or shrink), and the board height follows the measured line pitch (the font's `lineHeight` is at its own size,
 not the TextMesh size: first try overlapped). Board 36 cm wide. Desktop: the box, title, body and buttons are sized with
 `GUIStyle.CalcHeight / CalcSize`; buttons drop to one column when their labels are long and wrap if needed. New preview `tutorial_lessons`.
+
+**First headset session with the trees + tutorial (Quest, 2026-11-01 19:28-19:33, logcat VrApi):** 297 one-second samples, mean
+69 fps, 72 fps in 70 %, below 70 fps in 21 % (dips to 51-65 fps around 19:30-19:32), App GPU mostly 9-11 ms (GPU 80-98 % busy), one
+20 ms second. No errors from the game in the log. Next: BENCHMARK run to see where the dips are (trees near 120 m on the Quest are
+the first suspect).
