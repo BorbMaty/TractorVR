@@ -1,0 +1,36 @@
+{
+  "asset": "Village",
+  "notes": "Village silhouette for the horizon (church with a spire and four corner turrets, ~30 houses, barns). No colliders.",
+  "variants": {
+    "Full": {
+      "triangles": 3592,
+      "vertices": 2352,
+      "materials": [
+        "Env_PlasterVillage",
+        "Env_RoofVillage",
+        "Env_RoofSlate",
+        "Env_Steel"
+      ],
+      "size_unity": [
+        369.176,
+        44.7,
+        124.53
+      ]
+    },
+    "Light": {
+      "triangles": 3072,
+      "vertices": 2090,
+      "materials": [
+        "Env_PlasterVillage",
+        "Env_RoofVillage",
+        "Env_RoofSlate",
+        "Env_Steel"
+      ],
+      "size_unity": [
+        369.176,
+        44.7,
+        124.53
+      ]
+    }
+  }
+}

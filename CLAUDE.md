@@ -52,6 +52,8 @@ See `README.md` for controls, `docs/ROADMAP.md` for what's next and `docs/DEVLOG
 | `Assets/Scripts/FieldMap.cs` + `Assets/Shaders/FieldBrush.shader` | Worked ground (phase 5 step 3): RenderTexture over the fields (0.5 m/texel; R cut, G swath, B ploughed, A furrow direction), painted with GL quads by `Implement` (every 0.3 m of travel), global `_FieldMap` / `_FieldRect` read by `GroundLit`. Starts empty each run; physics stays in `GroundMap` |
 | `Assets/Scripts/Vegetation.cs` + `Assets/Shaders/Vegetation.shader` | Standing grass (meadow) and wheat: clumps placed once in 8 m tiles (only on the field's own ground type), drawn with `Graphics.RenderMeshInstanced` near the camera (`QualityTier.Budget.grassDistance`: Quest 22 m, PC 70 m); the shader reads the FieldMap per clump (cut → stubble, swath → lying hay, ploughed → gone), per-vertex lighting, sinks into the ground at the edge. Clump meshes made in `ProjectSetup.GrassClump / WheatClump`; editor renders call `Submit(cam, cam)` |
 | `Assets/Scripts/Horizon.cs` + `Assets/Shaders/Horizon.shader` | Far silhouettes (Görgényi / Kelemen mountains, Mezőség hills) on two rings that follow the camera inside the far clip plane, own haze towards `unity_FogColor` (scene fog would hide them) |
+| `Assets/Scripts/Trees.cs` (+ `TreeLayout`) | Phase 5 step 4: ~1000 trees from `tools/blender/trees.py` (5 species, near Full / Light + far meshes), placed by rule (balks, steep slopes, main road, stream, garden), drawn with `RenderMeshInstanced` per species / list / sub-mesh (near within `detailDistance`, far to 1.4 km), capsule trunk colliders; editor renders call `Submit(cam, cam)` |
+| `Assets/Scripts/Tutorial.cs` | Phase 6: start menu (FREE ROAM / TUTORIAL) + 9 lessons of self-checking steps (checks read the real state), board at the cab's left front (rig), glows (`TractorVR/Halo`) on controls and goals; `Title` / `Body` / buttons also drawn by `DesktopMode` |
 | `Assets/Scripts/QualityTier.cs` | Quest / PC tier at start: PC = model renderers cast shadows, `ShadowProxy` off; `CurrentBudget` for environment assets |
 | `tools/blender/` (`tvr.py`, `build.py`, one script per asset: `barn.py`, `shed.py`, `farmhouse.py`, `silos.py`, `fueltank.py`, `muckpad.py`, `balestack.py`, `fences.py`, `speedbump.py`, `clamp.py`, `earthramp.py`) | Phase 5 environment assets, modelled by script in Blender: Unity coordinates, Full (PC) + Light (Quest) variant, AO baked into the vertex colour → `Assets/Models/Env/<Asset>.fbx` + `.json`, `env_materials.json`. Run headless: `blender -b --factory-startup -P tools/blender/build.py -- barn` (or `all`) |
 | `tools/fetch_polyhaven.py` | Poly Haven (CC0) textures at 1k → `Assets/Textures/Env/` (+ `sizes.json`, `LICENSE.txt`); the list must match `tvr.MATERIALS` |
@@ -59,6 +61,7 @@ See `README.md` for controls, `docs/ROADMAP.md` for what's next and `docs/DEVLOG
 | `Assets/Scripts/PerfBenchmark.cs` | Version benchmark: fixed machine state, scripted 63 s drive, per-frame frame / CPU / GPU / XR runtime times → `persistentDataPath/Benchmark/` (summary, CSV, stills). Results in `docs/benchmark/` (Quest: `adb pull /sdcard/Android/data/com.sapientia.tractorvr/files/Benchmark`, with `MSYS_NO_PATHCONV=1` in Git Bash) |
 | `tools/benchmark_charts.py` | README charts (light + dark PNGs) from the `docs/benchmark/` runs listed in `RUNS`; needs matplotlib |
 | `Assets/Scripts/Editor/VersionStills.cs` + `tools/compare_stills.py` | Fixed-viewpoint stills at both quality levels → `Logs/Quality/`, then side-by-side sheets → `docs/images/quality_*.png` |
+| Terrain extras (phase 5 steps 4-5) | `TerrainGenerator.Height` = hills + practice pad flattened + village plateau + stream channel (`WorldLayout.Stream`, `StreamBed`); the blends widen with the height difference (`PhysicsTest` F finds the steepest slope: keep it at about 23 degrees or less) |
 | `Assets/Scenes/TractorFlat.unity` | Generated scene (do not hand-edit, see below) |
 
 ## Workflow / commands
@@ -184,6 +187,9 @@ $u = "C:\Program Files\Unity\Hub\Editor\6000.6.3f1\Editor\Unity.exe"
   GroundLit samples only the layers present + Blinn-Phong, TriplanarLit projects from the dominant axis only, terrain casts no shadows,
   shadow map 1024, the tractor's shadow comes from a 416-triangle `ShadowProxy` (model renderers don't cast), FBX mesh LODs (625k → 355k / 233k / 151k),
   `QualitySettings.meshLodThreshold` 1.5. Keep new shaders cheap (few texture reads, Blinn-Phong) and new meshes from casting shadows unless needed.
+- **Preview subsets**: `TVR_SHOTS=trees,tutorial` (env var) makes `RenderPreviews` render only the shots whose file names contain one of the words.
+- **Tutorial steps** only read state (plus their own counters); a step whose check is already true passes at once, which is how a
+  lesson works from any state. Glow targets: `TractorPart(name)` (any tractor child) / `PanelButton(id)` (the MENU tab if the panel is closed).
 - **Desktop mode**: layer 30 (`DesktopMode.PickLayer`) holds the mouse-pick proxies; ground / wheel rays must leave it out. New cab controls work
   with the mouse for free if they use `VRHands` (GrabPoint / PokeTip) and their mesh is readable (generated). Batch-mode tests have no XR, so
   `PlayModeTest` runs in desktop mode.

@@ -57,6 +57,18 @@ MATERIALS = {
     "Env_Rope":         dict(tex=None, rot=0, tint=(0.55, 0.48, 0.32), smooth=0.10),
     "Env_HayStack":     dict(tex=None, rot=0, tint=(0.52, 0.48, 0.28), smooth=0.05),
     "Env_HayGrey":      dict(tex=None, rot=0, tint=(0.42, 0.40, 0.33), smooth=0.05),
+    # Trees (phase 5 step 4): plain colours, the crowns' light and depth come from the smooth blobs and the baked AO.
+    "Env_ConeOrange":   dict(tex=None, rot=0, tint=(0.95, 0.30, 0.04), smooth=0.35),
+    "Env_PlasterVillage": dict(tex=None, rot=0, tint=(0.86, 0.84, 0.78), smooth=0.05),
+    "Env_RoofVillage":  dict(tex=None, rot=0, tint=(0.55, 0.24, 0.16), smooth=0.10),
+    "Env_RoofSlate":    dict(tex=None, rot=0, tint=(0.24, 0.26, 0.28), smooth=0.30),
+    "Env_Bark":         dict(tex=None, rot=0, tint=(0.24, 0.21, 0.18), smooth=0.05),
+    "Env_BarkPale":     dict(tex=None, rot=0, tint=(0.46, 0.44, 0.40), smooth=0.05),
+    "Env_LeafWalnut":   dict(tex=None, rot=0, tint=(0.20, 0.31, 0.11), smooth=0.10),
+    "Env_LeafPear":     dict(tex=None, rot=0, tint=(0.22, 0.33, 0.12), smooth=0.10),
+    "Env_LeafAcacia":   dict(tex=None, rot=0, tint=(0.29, 0.39, 0.14), smooth=0.10),
+    "Env_LeafPoplar":   dict(tex=None, rot=0, tint=(0.18, 0.29, 0.11), smooth=0.10),
+    "Env_LeafWillow":   dict(tex=None, rot=0, tint=(0.36, 0.42, 0.25), smooth=0.10),
     # Implements (phase 5 step 2): worn paint (impl_paint is near white, the tint is the paint colour), bare metal, rubber.
     "Impl_Blue":        dict(tex="impl_paint", rot=0, tint=(0.14, 0.26, 0.60), smooth=0.35),
     "Impl_Red":         dict(tex="impl_paint", rot=0, tint=(0.80, 0.12, 0.09), smooth=0.35),
@@ -94,6 +106,7 @@ class Builder:
         self.grain = [self.bm.faces.layers.float.new(f"grain_{a}") for a in "xyz"]   # long axis of the box (Blender)
         self.keep = self.bm.faces.layers.int.new("keep_normals")   # text: winding from the font, not recalculated
         self.own_uv = self.bm.faces.layers.int.new("own_uv")       # revolve: UVs set when built (around / along)
+        self.smooth = self.bm.faces.layers.int.new("smooth")       # blob: smooth shading (crowns)
         self.colliders = []       # boxes for Unity (centre, size, yaw), written to <Asset>.json by build_asset
 
     def _mat(self, name):
@@ -518,6 +531,35 @@ class Builder:
                     f.normal_flip()
         self._weld(first)
 
+    def blob(self, centre, radii, mat, seed=0, rough=0.28, subdiv=None, flat=0.35, detail=False):
+        """Lumpy, smooth-shaded ellipsoid (a tree crown's leaf mass): an icosphere with radii (x, y, z, Unity), pushed in and out
+        by noise (`rough` = share of the radius), its underside flattened by `flat`. Full: 3 subdivisions (320 faces), Light: 2
+        (80), unless `subdiv` = (full, light)."""
+        from mathutils import noise
+        if detail and not self.detail:
+            return
+        sub = (subdiv or (3, 2))[0 if self.detail else 1]
+        tmp = bmesh.new()
+        bmesh.ops.create_icosphere(tmp, subdivisions=sub, radius=1.0)
+        off = Vector((seed * 7.31, seed * 3.17, seed * 5.53))
+        mi = self._mat(mat)
+        first = len(self.bm.verts)
+        vs = []
+        for v in tmp.verts:
+            d = v.co.normalized()                  # Blender axes here are only a direction on the unit sphere
+            k = 1.0 + rough * noise.noise(d * 1.7 + off) + rough * 0.5 * noise.noise(d * 4.1 + off)
+            x, y, z = d.x * radii[0] * k, d.z * radii[1] * k, d.y * radii[2] * k
+            if y < 0:
+                y *= 1.0 - flat
+            vs.append(self.bm.verts.new(U(centre[0] + x, centre[1] + y, centre[2] + z)))
+        for f in tmp.faces:
+            nf = self.bm.faces.new([vs[v.index] for v in f.verts])
+            nf.material_index = mi
+            nf[self.own_uv] = 1
+            nf[self.smooth] = 1
+        tmp.free()
+        self._weld(first)
+
     def _weld(self, first):
         """Merge the vertices of the piece just added (from index `first`), never across pieces."""
         self.bm.verts.ensure_lookup_table()
@@ -532,13 +574,14 @@ class Builder:
         for f in self.bm.faces:
             if not f[self.own_uv]:
                 self._uv(f)
+        smooth = [bool(f[self.smooth]) for f in self.bm.faces]
         me = bpy.data.meshes.new(name)
         self.bm.to_mesh(me)
         self.bm.free()
         for m in self.mats:
             me.materials.append(_material(m))
         for p in me.polygons:
-            p.use_smooth = False
+            p.use_smooth = smooth[p.index]
         ob = bpy.data.objects.new(name, me)
         bpy.context.scene.collection.objects.link(ob)
         return ob

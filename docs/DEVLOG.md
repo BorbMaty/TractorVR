@@ -1230,3 +1230,68 @@ other buildings, the practice bumps and slopes, the fields and the land around R
 numbers of phase 5 so far; 39 pictures re-rendered from today's scene (the ploughing shot moved to the west field, with furrows,
 since the north field is a meadow now) and new sheets `phase5_fields.png`, `phase5_reghin.png`. Next session: ROADMAP "Next session".
 
+
+## 2026-11-01 (evening): Phase 5 steps 4 + 5, phase 6 — a playable game
+The user's goal for the evening: a working game. Done in order (finish phases in order): the landscape (step 4), the practice area
+(step 5), then phase 6 (start menu + tutorial). The headset checks from the morning list are still open (no headset connected).
+
+### Trees (step 4)
+- `tools/blender/trees.py`: walnut (12 m), wild pear (10 m), black locust / acacia (13 m), Lombardy poplar (22 m), white willow
+  (9 m). New `Builder.blob`: a lumpy, smooth-shaded icosphere (noise-displaced, flat underside). A crown = a core blob + 11-14 smaller
+  lumps on its surface + limbs into the lowest ones; AO baked over 3 m, so the inner and lower leaf masses go dark like a real crown.
+  First try was one big blob + a few: it looked like smooth plastic; the "cauliflower" crown reads as a tree from the cab.
+  Near: Full 1.3-2.7k triangles (PC), Light 370-760 (Quest). Far: 44-68 triangles (both tiers).
+- **Far trees are low-poly meshes, not billboards** (the roadmap said impostors): no alpha test (expensive on the Quest's tile GPU),
+  no turning towards the camera, and beyond 120 m the difference is a few pixels.
+- `Trees.cs`: every frame each tree in view goes on its species' near list (within `detailDistance`: Quest 120 m, PC 400 m) or far
+  list (to 1.4 km), then one `RenderMeshInstanced` per species x list x sub-mesh (~20 draw calls). Shadows only on PC (`terrainShadows`).
+  Static capsule colliders on the trunks.
+- `TreeLayout` (in `Trees.cs`) places them by rule, deterministic, nothing stored: walnuts and pears on the balks of the strip parcels
+  (the same strip formula as `GroundLit`), acacia groves on the steepest countryside slopes and a row along the west track, poplars
+  along both sides of the main road (first all rejected: 7.5 m from the centre line is inside the 4 m road clearance; now 9 m),
+  willows along the new stream and in wet hollows, a walnut and a pear in the farmhouse garden, a walnut by the barn. 1036 trees.
+- **Stream** (`WorldLayout.Stream`): a flat-bottomed channel cut into `TerrainGenerator.Height` along 11 points east of the main road,
+  bed = smoothed ground - 1.6 m, a dark glossy water ribbon (EnvLit; first black: the ribbon had no vertex colours and EnvLit reads its
+  AO from them), mud on its banks. `PhysicsTest` F (steepest slope in the world) found **34.4 degrees** on its bank where the hills
+  are high: the bank width now grows with the cut depth (16 m + 4.5 x depth).
+- **Village on the horizon** (`village.py`, `WorldLayout.Village` ~700 m NW): ~30 white houses with red roofs along a winding street,
+  barns, and a Reformed church with a slate spire and four corner turrets (fiatornyos). First at 1 km: hidden behind the hills, and its
+  houses sank into / floated over the slopes (one mesh), so it now stands on a **plateau** in `Height` (blend widening with the height
+  difference: the first 90 m blend made a 27.5 degree slope, `PhysicsTest` F; now back to 22.8). The roofs first came out as a V
+  (sign of the roll). The spire is visible from the yard.
+- Sky HDRI (Poly Haven): not done; the procedural sky stays (it is what `TractorLights` animates for dusk / night).
+
+### Practice area (step 5)
+- `WorldLayout.PracticeArea`: a flat concrete pad 42 x 66 m east of the yard, beyond the rail fence (terrain flattened under it, 12 m
+  blend). `practice.py` (world coordinates): slalom start / finish lines, a reversing bay for the trailer (yellow lines, concrete kerb at
+  its end with a collider), a coupling spot, a PRACTICE AREA sign. `cone.py`: 12 traffic cones, pushable (Rigidbody 4 kg).
+
+### Phase 6: start menu + tutorial
+- `Tutorial.cs`: a board at the cab's left front (on the rig, mirroring the panel), built at runtime, buttons poked like the panel's.
+  At start: **FREE ROAM / TUTORIAL**. The panel's new TUTORIAL button brings back the lesson list.
+- **9 lessons, 45 steps**: driving and the cab; gearbox and hand throttle; slalom at the practice area; coupling the plough; ploughing;
+  mowing; trailer, reversing into the bay and tipping; traction (4WD, diff lock, the 22 degree earth ramp); lights and road driving
+  (dusk, headlights, beacon, indicate left onto the main road, 150 m on the road).
+- Each step's check reads the real state (speed, gear, hand throttle, `Hitch.Rear / Front / Towed / Nearest`, `Implement.Working`,
+  PTO, tipper angle, lights, position), so a lesson can start in any state: steps already done pass at once. Counting steps measure
+  metres driven (reversing, ploughing, mowing, road). The slalom checks alternate sides, speed and knocked cones (fail = cones reset,
+  back to the start line). SKIP STEP / REPEAT LESSON / LESSONS on every step; completed lessons are remembered (PlayerPrefs).
+- A pulsing glow (`TractorVR/Halo`) on the control to use (speed lever, wheel, panel button or the MENU tab if the panel is closed,
+  console switch, remote lever, indicator stalk) and a large one over the place to drive to (constant angular size).
+- Desktop version: the same title / text / buttons on screen, top left (`DesktopMode.OnGUI`); clicks there don't reach the cab.
+- `PlayModeTest` now also walks every step of every lesson (SKIP each frame for 2 s): passes at **both quality levels**.
+  `PhysicsTest`: unchanged results apart from F (see the stream). Previews `tutorial_start / tutorial_step / tutorial_goal`.
+
+Builds: Quest APK and PC exe rebuilt (both 0 errors). Not yet seen in the headset; not yet benchmarked on the Quest (trees!).
+
+| Start menu | A lesson step |
+|---|---|
+| ![menu](images/phase6_menu.png) | ![step](images/phase6_tutorial.png) |
+
+| Trees and the stream | Practice area, poplars along the road |
+|---|---|
+| ![trees](images/phase5_trees.png) | ![practice](images/phase5_practice.png) |
+
+| The village on its plateau | The goal glow over the plough's bay |
+|---|---|
+| ![village](images/phase5_village.png) | ![goal](images/phase6_goal.png) |

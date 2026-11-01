@@ -251,6 +251,116 @@
       "smoothness": 0.05
     },
     {
+      "name": "Env_ConeOrange",
+      "tex": null,
+      "tint": [
+        0.95,
+        0.3,
+        0.04
+      ],
+      "smoothness": 0.35
+    },
+    {
+      "name": "Env_PlasterVillage",
+      "tex": null,
+      "tint": [
+        0.86,
+        0.84,
+        0.78
+      ],
+      "smoothness": 0.05
+    },
+    {
+      "name": "Env_RoofVillage",
+      "tex": null,
+      "tint": [
+        0.55,
+        0.24,
+        0.16
+      ],
+      "smoothness": 0.1
+    },
+    {
+      "name": "Env_RoofSlate",
+      "tex": null,
+      "tint": [
+        0.24,
+        0.26,
+        0.28
+      ],
+      "smoothness": 0.3
+    },
+    {
+      "name": "Env_Bark",
+      "tex": null,
+      "tint": [
+        0.24,
+        0.21,
+        0.18
+      ],
+      "smoothness": 0.05
+    },
+    {
+      "name": "Env_BarkPale",
+      "tex": null,
+      "tint": [
+        0.46,
+        0.44,
+        0.4
+      ],
+      "smoothness": 0.05
+    },
+    {
+      "name": "Env_LeafWalnut",
+      "tex": null,
+      "tint": [
+        0.2,
+        0.31,
+        0.11
+      ],
+      "smoothness": 0.1
+    },
+    {
+      "name": "Env_LeafPear",
+      "tex": null,
+      "tint": [
+        0.22,
+        0.33,
+        0.12
+      ],
+      "smoothness": 0.1
+    },
+    {
+      "name": "Env_LeafAcacia",
+      "tex": null,
+      "tint": [
+        0.29,
+        0.39,
+        0.14
+      ],
+      "smoothness": 0.1
+    },
+    {
+      "name": "Env_LeafPoplar",
+      "tex": null,
+      "tint": [
+        0.18,
+        0.29,
+        0.11
+      ],
+      "smoothness": 0.1
+    },
+    {
+      "name": "Env_LeafWillow",
+      "tex": null,
+      "tint": [
+        0.36,
+        0.42,
+        0.25
+      ],
+      "smoothness": 0.1
+    },
+    {
       "name": "Impl_Blue",
       "tex": "impl_paint",
       "tint": [

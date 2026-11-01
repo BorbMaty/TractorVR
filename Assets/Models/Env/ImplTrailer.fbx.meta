@@ -7,6 +7,16 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: Env_Bark
+    second: {fileID: 2100000, guid: 1a372faef216c3e4d90ed934190edefb, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_BarkPale
+    second: {fileID: 2100000, guid: a0b57ffdb22f8f941a2cb6c472526351, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: Env_Boards
     second: {fileID: 2100000, guid: 0f2cd1523effb074f828ee02b853799f, type: 2}
   - first:
@@ -19,6 +29,11 @@ ModelImporter:
       assembly: UnityEngine.CoreModule
       name: Env_Concrete
     second: {fileID: 2100000, guid: ec76798bcdc6ce24cabe46be8eb5e908, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_ConeOrange
+    second: {fileID: 2100000, guid: 38b510e27011b6d4f8cc40a5afc6ec67, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
@@ -54,6 +69,31 @@ ModelImporter:
       assembly: UnityEngine.CoreModule
       name: Env_HayStack
     second: {fileID: 2100000, guid: 008ee1425f0beb54a930824eb295a612, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_LeafAcacia
+    second: {fileID: 2100000, guid: 2878c98e2a042fe4bb76c534740cdf31, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_LeafPear
+    second: {fileID: 2100000, guid: 5fcbc6c9761da5b4fb4e555b97a7a31b, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_LeafPoplar
+    second: {fileID: 2100000, guid: 267d790a415ef9b4f9637b9f5f46001c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_LeafWalnut
+    second: {fileID: 2100000, guid: 5719ddb140b30474898c08ca2fa60baa, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_LeafWillow
+    second: {fileID: 2100000, guid: 8a0505ba3554077499ce1e9c8bb0dc6d, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
@@ -97,8 +137,23 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: Env_PlasterVillage
+    second: {fileID: 2100000, guid: fed9c2aa2f352ab4cb1ae831f463e111, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_RoofSlate
+    second: {fileID: 2100000, guid: d501b7d844673f74a9d89b9cab82034d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: Env_RoofTiles
     second: {fileID: 2100000, guid: d6e665ddfafda164c9c914d4b81ee152, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_RoofVillage
+    second: {fileID: 2100000, guid: ecd25ba12f7bb954982dd1625348dd6e, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule

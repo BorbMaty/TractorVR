@@ -360,6 +360,11 @@ public static class ProjectSetup
         }
 
         BuildVegetation();
+        BuildTrees();
+        var water = new Material(Shader.Find("TractorVR/EnvLit")) { enableInstancing = true };
+        water.SetColor("_BaseColor", new Color(0.10f, 0.14f, 0.14f));
+        water.SetFloat("_Smoothness", 0.92f);
+        terrain.water = SaveMat(water, "Stream_Water");
         // The far horizon around Reghin: Görgényi / Gurghiu mountains to the north-east, Kelemen / Călimani to the north, Mezőség hills.
         var horizon = new GameObject("Horizon").AddComponent<Horizon>();
         horizon.material = SaveMat(new Material(Shader.Find("TractorVR/Horizon")), "Horizon");
@@ -417,6 +422,36 @@ public static class ProjectSetup
                                   material = wheatMat, perSquareMetre = 2.5f, distanceScale = 1.2f },
         };
         veg.Build();
+    }
+
+    // ------------------------------------------------------------------ trees (phase 5 step 4)
+    // tools/blender/trees.py → Trees.fbx: per species a near mesh (Full / Light) and a far one; Trees draws them instanced where
+    // TreeLayout puts them. Trunk collider sizes per species (radius, height to the first limbs).
+    static void BuildTrees()
+    {
+        if (envMats == null) ImportEnvAssets();
+        var fbx = AssetDatabase.LoadAssetAtPath<GameObject>($"{EnvDir}/Trees.fbx");
+        (Mesh mesh, Material[] mats) Part(string name)
+        {
+            var t = fbx.GetComponentsInChildren<MeshFilter>(true).First(f => f.name == $"Trees_{name}");
+            return (t.sharedMesh, t.GetComponent<MeshRenderer>().sharedMaterials);
+        }
+        Trees.Species Sp(TreeLayout.Kind k, float r, float h)
+        {
+            var full = Part($"{k}_Full");
+            var far = Part($"{k}Far_Light");
+            return new Trees.Species { kind = k, near = full.mesh, nearLight = Part($"{k}_Light").mesh, nearMats = full.mats,
+                                       far = far.mesh, farMats = far.mats, trunkRadius = r, trunkHeight = h };
+        }
+        foreach (var m in envMats.Values.Where(m => m.name.StartsWith("Env_Leaf") || m.name.StartsWith("Env_Bark"))) m.enableInstancing = true;
+        var trees = new GameObject("Trees").AddComponent<Trees>();
+        trees.species = new[]
+        {
+            Sp(TreeLayout.Kind.Walnut, 0.32f, 3f), Sp(TreeLayout.Kind.Pear, 0.22f, 3f), Sp(TreeLayout.Kind.Acacia, 0.2f, 6f),
+            Sp(TreeLayout.Kind.Poplar, 0.3f, 6f), Sp(TreeLayout.Kind.Willow, 0.42f, 2.5f),
+        };
+        trees.Build();
+        Debug.Log($"Trees: {trees.Count} placed");
     }
 
     /// <summary>Tapered blades, 0.35–0.6 m, each in segments bending outward; two-sided (the shader culls nothing).</summary>
@@ -692,6 +727,28 @@ public static class ProjectSetup
         // Steep practice slopes (sloped colliders under the driving surfaces).
         foreach (var (asset, at) in new[] { ("SilageClamp", WorldLayout.SilageClamp), ("EarthRamp", WorldLayout.EarthRamp) })
             PlaceEnv(asset, parent, new Vector3(at.x, TerrainGenerator.Height(at.x, at.y), at.y), at.z, prop: true);
+
+        // Phase 5 step 5: the practice area's markings (world coordinates) and its cones (pushable: Rigidbody, 4 kg).
+        PlaceEnv("Practice", parent, Vector3.zero, 0f, prop: true);
+        var cones = new GameObject("Cones").transform;
+        cones.SetParent(parent, false);
+        foreach (var c in WorldLayout.SlalomCones.Concat(WorldLayout.BayCones))
+        {
+            var cone = PlaceEnv("Cone", cones, new Vector3(c.x, 0.03f, c.y), 0f, prop: true);
+            foreach (var t in cone.GetComponentsInChildren<Transform>(true)) t.gameObject.isStatic = false;
+            foreach (var r in cone.GetComponentsInChildren<MeshRenderer>(true)) r.shadowCastingMode = ShadowCastingMode.Off;
+            var box = cone.gameObject.AddComponent<BoxCollider>();
+            box.center = new Vector3(0f, 0.3f, 0f);
+            box.size = new Vector3(0.36f, 0.6f, 0.36f);
+            var rb = cone.gameObject.AddComponent<Rigidbody>();
+            rb.mass = 4f;
+            rb.centerOfMass = new Vector3(0f, 0.12f, 0f);
+            rb.sleepThreshold = 0.05f;
+        }
+
+        // The village on the horizon (phase 5 step 4).
+        var v = WorldLayout.Village;
+        PlaceEnv("Village", parent, new Vector3(v.x, TerrainGenerator.VillageLevel - 0.3f, v.y), v.z, prop: true);
     }
 
     // ------------------------------------------------------------------ environment assets (phase 5, Blender)
@@ -2691,6 +2748,7 @@ public static class ProjectSetup
         hands.leftDriver = BuildHand(offset, true, handMat, log);
         hands.rightDriver = BuildHand(offset, false, handMat, log);
         BuildCabPanel(rig.transform, vr, tractor, hud.comfort, hands);
+        BuildTutorial(rig.transform, vr, tractor, hud, hands);
 
         // PC desktop version: same build, on the monitor when no headset is in use (mouse look, mouse hand, screen menu).
         var desktop = rig.AddComponent<DesktopMode>();
@@ -2806,6 +2864,37 @@ public static class ProjectSetup
         smr.enabled = false;
         log.AppendLine($"{root.name}: root bone {driver.rootTransform.name}, {driver.jointTransformReferences.Count} joints, missing: {string.Join(", ", missing)}");
         return driver;
+    }
+
+    // Phase 6: start menu + tutorial board at the cab's left front (mirrors the panel), built by Tutorial at runtime.
+    static void BuildTutorial(Transform rig, VRCameraRig vr, GameObject tractor, TractorHud hud, VRHands hands)
+    {
+        var go = new GameObject("Tutorial");
+        go.transform.SetParent(rig, false);
+        go.transform.localPosition = new Vector3(-0.34f, -0.09f, 0.44f);
+        go.transform.localRotation = Quaternion.LookRotation(go.transform.localPosition);   // face the eye point
+        var t = go.AddComponent<Tutorial>();
+        var panel = rig.GetComponentInChildren<CabPanel>();
+        t.rig = vr;
+        t.tractor = tractor.GetComponent<TractorController>();
+        t.drivetrain = tractor.GetComponent<Drivetrain>();
+        t.hitch = tractor.GetComponent<Hitch>();
+        t.lights = tractor.GetComponent<TractorLights>();
+        t.cab = tractor.GetComponent<CabControls>();
+        t.panel = panel;
+        t.hud = hud;
+        t.hands = hands;
+        t.buttonMat = panel.buttonMat;
+        t.buttonHotMat = panel.buttonHotMat;
+        var unlit = Shader.Find("Universal Render Pipeline/Unlit");
+        var back = new Material(unlit); back.SetColor("_BaseColor", new Color(0.03f, 0.05f, 0.035f));
+        t.panelMat = SaveMat(back, "Tutorial_Back");
+        t.textMat = panel.textMat;
+        t.haloMat = SaveMat(new Material(Shader.Find("TractorVR/Halo")), "Tutorial_Halo");
+        var src = go.AddComponent<AudioSource>();
+        src.playOnAwake = false; src.spatialBlend = 0.3f; src.volume = 0.6f;
+        src.clip = panel.click.clip;
+        t.click = src;
     }
 
     // Cab panel at the right front, within reach, facing the driver (built by CabPanel at runtime from these materials).
@@ -2945,13 +3034,18 @@ public static class ProjectSetup
         cam.farClipPlane = 1500f;
         Directory.CreateDirectory("Logs/Previews");
         var vegetation = Object.FindAnyObjectByType<Vegetation>();
+        var treesR = Object.FindAnyObjectByType<Trees>();
         var horizonRing = Object.FindAnyObjectByType<Horizon>();
+        // TVR_SHOTS=trees,practice renders only the shots whose names contain one of the words (plus the warm-up).
+        var only = System.Environment.GetEnvironmentVariable("TVR_SHOTS")?.Split(',');
         void Shot(string file, Vector3 pos, Quaternion rot)
         {
+            if (only != null && file != "warmup.png" && !only.Any(w => file.Contains(w))) return;
             cam.transform.SetPositionAndRotation(pos, rot);
             var rt = new RenderTexture(1280, 1000, 24);
             cam.targetTexture = rt;
             if (vegetation) vegetation.Submit(cam, cam);   // instanced grass / wheat for this render only
+            if (treesR) treesR.Submit(cam, cam);
             if (horizonRing) horizonRing.Follow(cam);
             cam.Render();
             RenderTexture.active = rt;
@@ -3048,6 +3142,16 @@ public static class ProjectSetup
             Shot("landscape_w.png", At(-200f, 180f, 6f), Quaternion.LookRotation(new Vector3(-0.8f, -0.06f, -0.6f)));
             Shot("field_wheat.png", At(77f, 200f, 2.6f), Quaternion.LookRotation(At(95f, 215f, 0.5f) - At(77f, 200f, 2.6f)));
             Shot("field_ploughed.png", At(-228f, -58f, 2.8f), Quaternion.LookRotation(At(-246f, -30f, 0f) - At(-228f, -58f, 2.8f)));
+            // Phase 5 step 4: trees, the stream, the practice area.
+            Shot("trees_stream.png", At(225f, -15f, 4f), Quaternion.LookRotation(At(300f, 25f, 0f) - At(225f, -15f, 4f)));
+            Shot("trees_road.png", At(84f, -150f, 2.6f), Quaternion.LookRotation(At(80f, 20f, 3f) - At(84f, -150f, 2.6f)));
+            Shot("trees_farm.png", At(70f, 4f, 2.6f), Quaternion.LookRotation(At(40f, 15f, 4f) - At(70f, 4f, 2.6f)));
+            Shot("trees_country.png", At(-260f, 300f, 8f), Quaternion.LookRotation(new Vector3(-0.7f, -0.08f, 0.7f)));
+            Shot("trees_south.png", At(-100f, -330f, 8f), Quaternion.LookRotation(new Vector3(0.3f, -0.08f, -0.95f)));
+            Shot("trees_track.png", At(-90f, -60f, 2.8f), Quaternion.LookRotation(At(-150f, -64f, 2f) - At(-90f, -60f, 2.8f)));
+            Shot("village.png", At(0f, 60f, 3f), Quaternion.LookRotation(At(-430f, 560f, 15f) - At(0f, 60f, 3f)));
+            Shot("village_near.png", At(-330f, 420f, 25f), Quaternion.LookRotation(At(-430f, 560f, 10f) - At(-330f, 420f, 25f)));
+            Shot("practice_area.png", At(30f, -5f, 12f), Quaternion.LookRotation(At(56f, -48f, 0f) - At(30f, -5f, 12f)));
             FieldMap.Clear();
         }
 
@@ -3100,6 +3204,17 @@ public static class ProjectSetup
         panelComp.PreviewOpen();
         cabCtl.speedLever.localRotation = Quaternion.AngleAxis(15f, Vector3.right);
         cam.fieldOfView = 70f;
+        var tutorial = Object.FindAnyObjectByType<Tutorial>();
+        if (tutorial)
+        {
+            tutorial.Preview(-1, 0);
+            Shot("tutorial_start.png", seat.position, Quaternion.LookRotation(tutorial.transform.position - seat.position));
+            tutorial.Preview(0, 1);
+            Shot("tutorial_step.png", seat.position, Quaternion.LookRotation(tutorial.transform.position + tractor.right * 0.25f - seat.position));
+            tutorial.Preview(3, 1);
+            Shot("tutorial_goal.png", seat.position, Quaternion.LookRotation(new Vector3(5f, 0f, -36f) - seat.position));
+            tutorial.PreviewCleanup();
+        }
         Shot("panel.png", seat.position, Quaternion.LookRotation(panelComp.transform.position + new Vector3(0f, -0.08f, 0f) - seat.position));
         // Close-up of the lever, pushed fully forward: stalk, shell, button block and buttons must move together.
         cabCtl.speedLever.localRotation = Quaternion.AngleAxis(cabCtl.leverTilt, Vector3.right);

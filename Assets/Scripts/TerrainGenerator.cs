@@ -13,6 +13,7 @@ public class TerrainGenerator : MonoBehaviour
 {
     public Material material;                          // GroundLit; an instance gets the control texture
     public Material gravel, asphalt, concrete;         // TriplanarLit
+    public Material water;                             // the stream (EnvLit, dark and glossy)
     public Shader fieldBrush;                          // FieldMap painting (kept referenced here so builds include it)
     public float size = 2000f;
     public int chunks = 8;
@@ -21,8 +22,65 @@ public class TerrainGenerator : MonoBehaviour
     public const float FlatRadius = 60f, BlendRadius = 160f;
     const float WorldSize = 2000f, GridCell = 5f;      // must match size / cell (SurfaceHeight follows the triangles)
 
-    /// <summary>Ground height (m) at world x, z (the smooth function the terrain is sampled from).</summary>
+    /// <summary>Ground height (m) at world x, z (the smooth function the terrain is sampled from): the hills, flattened under the
+    /// practice area, with the stream's channel cut in.</summary>
     public static float Height(float x, float z)
+    {
+        float h = BaseHeight(x, z);
+        foreach (var a in WorldLayout.PracticeArea)   // flat pad (+ 12 m blend), at the yard's level
+        {
+            float dx = Mathf.Max(a.x0 - x, 0f, x - a.x1), dz = Mathf.Max(a.z0 - z, 0f, z - a.z1);
+            float w = Mathf.Clamp01(1f - Mathf.Sqrt(dx * dx + dz * dz) / 12f);
+            h = Mathf.Lerp(h, 0f, w * w * (3f - 2f * w));
+        }
+        {   // the village's plateau: its houses are one mesh, so the ground under it is flat
+            var v = WorldLayout.Village;
+            float d = Mathf.Sqrt((x - v.x) * (x - v.x) + (z - v.y) * (z - v.y));
+            if (d < WorldLayout.VillageRadius + 250f)
+            {
+                villageLevel ??= BaseHeight(v.x, v.y) + 2f;
+                float bank = 40f + 5f * Mathf.Abs(h - villageLevel.Value);   // wider where the plateau is far from the hills' height
+                float w = Mathf.Clamp01(1f - (d - WorldLayout.VillageRadius) / bank);
+                h = Mathf.Lerp(h, villageLevel.Value, w * w * (3f - 2f * w));
+            }
+        }
+        if (WorldLayout.NearStream(x, z, 120f))
+        {
+            float d = WorldLayout.StreamDistance(x, z, out float along);
+            if (d < 120f)
+            {
+                // Flat bottom 6 m either side; the banks get wider where the cut (or fill) is deeper, so they stay below ~12°.
+                float floor = StreamBed(along);
+                float bank = 16f + 4.5f * Mathf.Abs(h - floor);
+                float w = Mathf.Clamp01((d - 6f) / bank);
+                h = Mathf.Lerp(floor, h, w * w * (3f - 2f * w));
+            }
+        }
+        return h;
+    }
+
+    static float? villageLevel;
+    public static float VillageLevel => Height(WorldLayout.Village.x, WorldLayout.Village.y);
+    static float[] bed;
+    /// <summary>Height of the stream's channel bottom at a position along it: the ground at its points (smoothed with the neighbours)
+    /// minus 1.6 m, linear in between.</summary>
+    public static float StreamBed(float along)
+    {
+        var pts = WorldLayout.Stream;
+        if (bed == null)
+        {
+            var raw = new float[pts.Length];
+            for (int i = 0; i < pts.Length; i++) raw[i] = BaseHeight(pts[i].x, pts[i].y);
+            var b = new float[pts.Length];
+            for (int i = 0; i < pts.Length; i++)
+                b[i] = (raw[Mathf.Max(0, i - 1)] + 2f * raw[i] + raw[Mathf.Min(pts.Length - 1, i + 1)]) * 0.25f - 1.6f;
+            bed = b;
+        }
+        int k = Mathf.Clamp(Mathf.FloorToInt(along), 0, pts.Length - 2);
+        return Mathf.Lerp(bed[k], bed[k + 1], along - k);
+    }
+
+    static float BaseHeight(float x, float z)
     {
         float h = 34f * (Mathf.PerlinNoise(x / 380f + 13.7f, z / 380f + 4.1f) - 0.5f)
                 + 9f * (Mathf.PerlinNoise(x / 140f + 71.3f, z / 140f + 22.9f) - 0.5f);
@@ -155,6 +213,16 @@ public class TerrainGenerator : MonoBehaviour
         parent.SetParent(transform, false);
         var y = WorldLayout.Yard;
         AddMesh(parent, "Yard", Patch(y.x0, y.z0, y.x1, y.z1, 2f, 0.03f), concrete);
+        foreach (var a in WorldLayout.PracticeArea)
+            AddMesh(parent, a.name, Patch(a.x0, a.z0, a.x1, a.z1, 2f, 0.03f), concrete);
+        if (water != null)
+        {
+            var stream = Ribbon(WorldLayout.Stream, WorldLayout.StreamHalfWidth * 2f, 0.35f);
+            var white = new Color[stream.vertexCount];   // EnvLit reads its baked AO from the vertex colour
+            for (int i = 0; i < white.Length; i++) white[i] = Color.white;
+            stream.colors = white;
+            AddMesh(parent, "Stream", stream, water);
+        }
         foreach (var r in WorldLayout.Roads)
         {
             bool tarmac = r.type == Ground.Asphalt;

@@ -1,0 +1,356 @@
+fileFormatVersion: 2
+guid: 8e1e7bf9a6aa67a47ac83da83201f2dc
+ModelImporter:
+  serializedVersion: 24600
+  internalIDToNameTable: []
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_Bark
+    second: {fileID: 2100000, guid: 1a372faef216c3e4d90ed934190edefb, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_BarkPale
+    second: {fileID: 2100000, guid: a0b57ffdb22f8f941a2cb6c472526351, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_Boards
+    second: {fileID: 2100000, guid: 0f2cd1523effb074f828ee02b853799f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_BoardsDark
+    second: {fileID: 2100000, guid: 99b7b65ba6eae3548905dc3590944986, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_Concrete
+    second: {fileID: 2100000, guid: ec76798bcdc6ce24cabe46be8eb5e908, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_ConeOrange
+    second: {fileID: 2100000, guid: 38b510e27011b6d4f8cc40a5afc6ec67, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_Corrugated
+    second: {fileID: 2100000, guid: 33d352eafb158634c95dc611797391a9, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_Earth
+    second: {fileID: 2100000, guid: 94181c488deee2c45946f3524858250d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_Glass
+    second: {fileID: 2100000, guid: 770ba6365a7420c4ebbd1b4b43a5733e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_Hay
+    second: {fileID: 2100000, guid: e5c52cad86f3995498d7a3ce3adf973f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_HayGrey
+    second: {fileID: 2100000, guid: 884a0c9f39d711d4c8e52011ceb06a8a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_HayOld
+    second: {fileID: 2100000, guid: ef0124100d287bc4e90784d8f8d74358, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_HayStack
+    second: {fileID: 2100000, guid: 008ee1425f0beb54a930824eb295a612, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_LeafAcacia
+    second: {fileID: 2100000, guid: 2878c98e2a042fe4bb76c534740cdf31, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_LeafPear
+    second: {fileID: 2100000, guid: 5fcbc6c9761da5b4fb4e555b97a7a31b, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_LeafPoplar
+    second: {fileID: 2100000, guid: 267d790a415ef9b4f9637b9f5f46001c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_LeafWalnut
+    second: {fileID: 2100000, guid: 5719ddb140b30474898c08ca2fa60baa, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_LeafWillow
+    second: {fileID: 2100000, guid: 8a0505ba3554077499ce1e9c8bb0dc6d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_Muck
+    second: {fileID: 2100000, guid: d9bc9abdae5729b41acd07b4a1c7cded, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_PaintGreen
+    second: {fileID: 2100000, guid: ece21b7414d14144e82e413a3fafb06a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_PaintRed
+    second: {fileID: 2100000, guid: 62a65376c4503684195e0dc29d1ba4e2, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_PaintWhite
+    second: {fileID: 2100000, guid: 04d4d506f07b82245aa788539507977e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_PaintYellow
+    second: {fileID: 2100000, guid: d2e63ef3333ab694b96a40e34479a3ec, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_Plaster
+    second: {fileID: 2100000, guid: d656e6c81cb14ee4ba07bcfe73706003, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_PlasterBase
+    second: {fileID: 2100000, guid: 089947f08078a88439048db1050bda98, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_PlasterHouse
+    second: {fileID: 2100000, guid: 51aea7046a6128f41ae8b4fc48140d4f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_PlasterVillage
+    second: {fileID: 2100000, guid: fed9c2aa2f352ab4cb1ae831f463e111, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_RoofSlate
+    second: {fileID: 2100000, guid: d501b7d844673f74a9d89b9cab82034d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_RoofTiles
+    second: {fileID: 2100000, guid: d6e665ddfafda164c9c914d4b81ee152, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_RoofVillage
+    second: {fileID: 2100000, guid: ecd25ba12f7bb954982dd1625348dd6e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_Rope
+    second: {fileID: 2100000, guid: 4898024fed6a543469201ab601427956, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_RubberBlack
+    second: {fileID: 2100000, guid: 03d2342450b9ae24bab64ae51b694bef, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_SilageSheet
+    second: {fileID: 2100000, guid: 82971acc6516e9b448258e8e4a9161ed, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_SiloSteel
+    second: {fileID: 2100000, guid: ddded0029c6d2eb48a2450c206ec73af, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_Steel
+    second: {fileID: 2100000, guid: d4a689db5a2c85245ab5936946160acd, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Env_Timber
+    second: {fileID: 2100000, guid: a05c4ab7a60197440a6d9f83c82405cd, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Impl_Amber
+    second: {fileID: 2100000, guid: a56e15e475ea7d443b73d13cac7ba569, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Impl_Blue
+    second: {fileID: 2100000, guid: 5122f7763c6f48b4d92266a3011c8230, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Impl_Cast
+    second: {fileID: 2100000, guid: 4b95cfde4dfb9c84ea97c7f2b214e7f4, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Impl_Chrome
+    second: {fileID: 2100000, guid: afd28643abfeb4c499f574f1c35e553a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Impl_Green
+    second: {fileID: 2100000, guid: d066358fdc68aec47b54e8749c31985a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Impl_Lamp
+    second: {fileID: 2100000, guid: cdc07d60dc1712a449ada53edf091477, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Impl_Polished
+    second: {fileID: 2100000, guid: 781de672a653d3f41b6ce1974890b21a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Impl_Red
+    second: {fileID: 2100000, guid: e8a2461cd008b9c4da840d3ba24dd743, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Impl_Rubber
+    second: {fileID: 2100000, guid: f4097bcb5cf8af947b37bd64dbbd0cff, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Impl_Steel
+    second: {fileID: 2100000, guid: b0014a7611f8a5649b8589452fda6cb0, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Impl_White
+    second: {fileID: 2100000, guid: 7f313d350225a574cb8b1f7486cc9b41, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Impl_Yellow
+    second: {fileID: 2100000, guid: 39c17dec45e4415448d935a21540aec3, type: 2}
+  materials:
+    materialImportMode: 2
+    materialName: 0
+    materialSearch: 1
+    materialLocation: 1
+    searchTexturesGlobally: 0
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    removeConstantScaleCurves: 0
+    motionNodeName: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    importAnimatedCustomProperties: 0
+    importConstraints: 0
+    animationCompression: 1
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    extraUserProperties: []
+    clipAnimations: []
+    isReadable: 0
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 1
+    meshCompression: 0
+    addColliders: 0
+    useSRGBMaterialColor: 1
+    sortHierarchyByName: 1
+    preBakeConvexCollisionMesh: 0
+    preBakeTriangleCollisionMesh: 0
+    importPhysicalCameras: 1
+    importVisibility: 0
+    importBlendShapes: 0
+    importCameras: 0
+    importLights: 0
+    nodeNameCollisionStrategy: 1
+    fileIdsGeneration: 2
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    keepQuads: 0
+    weldVertices: 1
+    bakeAxisConversion: 0
+    preserveHierarchy: 0
+    skinWeightsMode: 0
+    maxBonesPerVertex: 4
+    minBoneWeight: 0.001
+    optimizeBones: 1
+    generateMeshLods: 0
+    meshLodGenerationFlags: 0
+    maximumMeshLod: -1
+    importUVs: -1
+    importVertexColors: 1
+    meshOptimizationFlags: -1
+    indexFormat: 0
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVMarginMethod: 1
+    secondaryUVMinLightmapResolution: 40
+    secondaryUVMinObjectScale: 1
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+    strictVertexDataChecks: 0
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 0
+    tangentImportMode: 3
+    normalCalculationMode: 4
+    legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes: 0
+    blendShapeNormalImportMode: 1
+    normalSmoothingSource: 0
+    calculateBlendshapeNormalsDeltaFromImportedNormals: 0
+  referencedClips: []
+  importAnimation: 0
+  humanDescription:
+    serializedVersion: 3
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    globalScale: 1
+    rootMotionBoneName: 
+    hasTranslationDoF: 0
+    hasExtraRoot: 0
+    skeletonHasParents: 1
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  autoGenerateAvatarMappingIfUnspecified: 1
+  animationType: 0
+  humanoidOversampling: 1
+  avatarSetup: 0
+  addHumanoidExtraRootOnlyWhenUsingAvatar: 1
+  importBlendShapeDeformPercent: 1
+  remapMaterialsIfMaterialImportModeIsNone: 0
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

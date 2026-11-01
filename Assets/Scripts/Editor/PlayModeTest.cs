@@ -141,6 +141,24 @@ public static class PlayModeTest
         Once("hitchDown", 19, t, () => input.scriptedHitch = -1f);
         Once("hitchUp", 22, t, () => input.scriptedHitch = 1f);
         Once("tip", 20, t, () => Object.FindAnyObjectByType<Tipper>().Move(1f, 7f));   // raise the parked trailer's body straight to the top
+        // Phase 6: the start menu is up at start; walk through every lesson's steps (SKIP / NEXT LESSON each frame), so each
+        // step's enter, check, status and highlight code runs at least once.
+        Once("tutorial", 22.5, t, () =>
+        {
+            var tut = Tutorial.Instance;
+            if (tut == null) { Debug.LogError("[PlayModeTest] no Tutorial in the scene"); return; }
+            log.AppendLine($"{t:0.0}s tutorial board: \"{tut.Title}\" with {tut.ButtonCount} buttons");
+            tut.ShowLessons();
+            log.AppendLine($"{t:0.0}s lessons: {tut.ButtonCount - 1}");
+            tut.StartLesson(0);
+        });
+        if (t > 22.6 && t < 24.6 && Tutorial.Instance != null && Tutorial.Instance.Visible && Tutorial.Instance.ButtonCount > 0)
+        {
+            var tut = Tutorial.Instance;
+            if (tut.Title != lastTutorialTitle) { tutorialPages++; lastTutorialTitle = tut.Title; }
+            tut.Press(0);
+        }
+        Once("tutorialEnd", 24.7, t, () => log.AppendLine($"{t:0.0}s tutorial: {tutorialPages} pages walked, now \"{Tutorial.Instance?.Title}\""));
         Once("end", 25, t, () =>
         {
             input.scriptedHitch = 0f;
@@ -156,6 +174,9 @@ public static class PlayModeTest
             Finish(null);
         });
     }
+
+    static int tutorialPages;
+    static string lastTutorialTitle;
 
     static void Finish(string problem)
     {

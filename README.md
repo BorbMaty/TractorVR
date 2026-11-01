@@ -119,6 +119,26 @@ field, a roofed **wayside cross** at the crossroads, and the Görgényi mountain
 
 ![around Reghin](docs/images/phase5_reghin.png)
 
+### Trees, the stream, the village (phase 5 step 4)
+Walnut and wild pear trees stand alone on the balks, black locust grows on the steep slopes, Lombardy poplars line the main road and
+willows follow a stream in the valley east of it. About 1000 trees, modelled in Blender and drawn instanced (a near and a far model).
+A village with a Reformed church (a spire with four corner turrets) stands on a hill 700 m to the north-west.
+
+| Trees and the stream | Practice area |
+|---|---|
+| ![trees](docs/images/phase5_trees.png) | ![practice area](docs/images/phase5_practice.png) |
+
+### Start menu and tutorial (phase 6)
+At start a board at the cab's left front offers **FREE ROAM** or the **TUTORIAL**: nine lessons, from driving off to ploughing,
+mowing, reversing a trailer into a bay and driving on the road at dusk. Each step checks itself, a yellow glow marks the control to
+use or the place to drive to, and SKIP / REPEAT / LESSONS are always there. The panel's TUTORIAL button brings the lessons back;
+on the desktop the same board is drawn on the screen. The **practice area** east of the yard has a cone slalom, a reversing bay and
+a coupling spot.
+
+| Start menu | A lesson step |
+|---|---|
+| ![menu](docs/images/phase6_menu.png) | ![step](docs/images/phase6_tutorial.png) |
+
 ### Driving
 - 7.5 t physics body on four raycast wheels (suspension, tyre friction circle), 90 Hz physics, power limit on climbs (195 hp), parking brake that holds on slopes
 - Gearbox like the 6195M's AutoQuad Plus 20/20 (A1–E4, automatic or manual, skip-shifts), engine RPM and load, top speed 50 km/h
@@ -298,6 +318,7 @@ The panel's MENU tab is always visible at the right front of the cab.
 | Panel TIP UP / TIP DOWN | I / K | Raise / lower the coupled tipping trailer's body |
 | **Grip** on a door | — | Swing the door open / closed (it stays where you let go); panel DOORS opens / closes both |
 | **Menu** button (left) | M | Cab panel at the right front: touch the buttons with a controller tip or a fingertip |
+| Touch the board at the left front | mouse (top-left box) | Start menu (FREE ROAM / TUTORIAL) and lesson steps: NEXT / SKIP STEP / REPEAT LESSON / LESSONS; panel TUTORIAL reopens it |
 | CommandCenter / panel THROTTLE − / + | [ / ] | Hand throttle (engine speed, idle = off) |
 | Right stick flick → / ← | X / Z | Shift up / down (switches the gearbox to manual) |
 | **Y** (left) | T | Gearbox: automatic ↔ manual (saved) |

@@ -1,0 +1,34 @@
+{
+  "asset": "Cone",
+  "notes": "Traffic cone 0.75 m (practice area). Collider and Rigidbody added in ProjectSetup.",
+  "variants": {
+    "Full": {
+      "triangles": 332,
+      "vertices": 178,
+      "materials": [
+        "Env_RubberBlack",
+        "Env_ConeOrange",
+        "Env_PaintWhite"
+      ],
+      "size_unity": [
+        0.42,
+        0.75,
+        0.42
+      ]
+    },
+    "Light": {
+      "triangles": 172,
+      "vertices": 98,
+      "materials": [
+        "Env_RubberBlack",
+        "Env_ConeOrange",
+        "Env_PaintWhite"
+      ],
+      "size_unity": [
+        0.42,
+        0.75,
+        0.42
+      ]
+    }
+  }
+}

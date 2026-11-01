@@ -9,3 +9,4 @@ Builds/
 *.sln
 .vs/
 .utmp/
+__pycache__/

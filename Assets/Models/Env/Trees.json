@@ -1,0 +1,266 @@
+{
+  "asset": "Trees",
+  "notes": "Trees: walnut 12 m, wild pear 10 m, black locust 13 m, Lombardy poplar 22 m, white willow 9 m; near (Full / Light) and far variants. Drawn instanced by Trees.cs; trunk colliders made there (capsules).",
+  "variants": {
+    "Walnut_Full": {
+      "triangles": 1576,
+      "vertices": 828,
+      "materials": [
+        "Env_Bark",
+        "Env_LeafWalnut"
+      ],
+      "size_unity": [
+        12.378,
+        11.917,
+        11.79
+      ]
+    },
+    "Pear_Full": {
+      "triangles": 1328,
+      "vertices": 698,
+      "materials": [
+        "Env_Bark",
+        "Env_LeafPear"
+      ],
+      "size_unity": [
+        8.559,
+        11.495,
+        8.842
+      ]
+    },
+    "Acacia_Full": {
+      "triangles": 2744,
+      "vertices": 1404,
+      "materials": [
+        "Env_Bark",
+        "Env_LeafAcacia"
+      ],
+      "size_unity": [
+        7.705,
+        13.687,
+        6.914
+      ]
+    },
+    "Poplar_Full": {
+      "triangles": 1648,
+      "vertices": 836,
+      "materials": [
+        "Env_BarkPale",
+        "Env_LeafPoplar"
+      ],
+      "size_unity": [
+        4.403,
+        23.652,
+        4.242
+      ]
+    },
+    "Willow_Full": {
+      "triangles": 1492,
+      "vertices": 784,
+      "materials": [
+        "Env_BarkPale",
+        "Env_LeafWillow"
+      ],
+      "size_unity": [
+        10.481,
+        9.06,
+        9.805
+      ]
+    },
+    "WalnutFar_Full": {
+      "triangles": 96,
+      "vertices": 52,
+      "materials": [
+        "Env_Bark",
+        "Env_LeafWalnut"
+      ],
+      "size_unity": [
+        12.98,
+        12.561,
+        11.671
+      ]
+    },
+    "PearFar_Full": {
+      "triangles": 96,
+      "vertices": 52,
+      "materials": [
+        "Env_Bark",
+        "Env_LeafPear"
+      ],
+      "size_unity": [
+        7.154,
+        12.325,
+        7.754
+      ]
+    },
+    "AcaciaFar_Full": {
+      "triangles": 112,
+      "vertices": 60,
+      "materials": [
+        "Env_Bark",
+        "Env_LeafAcacia"
+      ],
+      "size_unity": [
+        6.771,
+        12.659,
+        6.652
+      ]
+    },
+    "PoplarFar_Full": {
+      "triangles": 104,
+      "vertices": 56,
+      "materials": [
+        "Env_BarkPale",
+        "Env_LeafPoplar"
+      ],
+      "size_unity": [
+        3.818,
+        22.12,
+        3.708
+      ]
+    },
+    "WillowFar_Full": {
+      "triangles": 96,
+      "vertices": 52,
+      "materials": [
+        "Env_BarkPale",
+        "Env_LeafWillow"
+      ],
+      "size_unity": [
+        9.773,
+        9.191,
+        8.947
+      ]
+    },
+    "Walnut_Light": {
+      "triangles": 432,
+      "vertices": 252,
+      "materials": [
+        "Env_Bark",
+        "Env_LeafWalnut"
+      ],
+      "size_unity": [
+        11.96,
+        11.916,
+        11.134
+      ]
+    },
+    "Pear_Light": {
+      "triangles": 372,
+      "vertices": 216,
+      "materials": [
+        "Env_Bark",
+        "Env_LeafPear"
+      ],
+      "size_unity": [
+        8.1,
+        11.494,
+        8.256
+      ]
+    },
+    "Acacia_Light": {
+      "triangles": 760,
+      "vertices": 406,
+      "materials": [
+        "Env_Bark",
+        "Env_LeafAcacia"
+      ],
+      "size_unity": [
+        7.218,
+        13.654,
+        6.317
+      ]
+    },
+    "Poplar_Light": {
+      "triangles": 436,
+      "vertices": 230,
+      "materials": [
+        "Env_BarkPale",
+        "Env_LeafPoplar"
+      ],
+      "size_unity": [
+        4.403,
+        23.652,
+        4.13
+      ]
+    },
+    "Willow_Light": {
+      "triangles": 412,
+      "vertices": 240,
+      "materials": [
+        "Env_BarkPale",
+        "Env_LeafWillow"
+      ],
+      "size_unity": [
+        10.005,
+        8.974,
+        9.306
+      ]
+    },
+    "WalnutFar_Light": {
+      "triangles": 44,
+      "vertices": 26,
+      "materials": [
+        "Env_Bark",
+        "Env_LeafWalnut"
+      ],
+      "size_unity": [
+        10.255,
+        12.56,
+        10.227
+      ]
+    },
+    "PearFar_Light": {
+      "triangles": 44,
+      "vertices": 26,
+      "materials": [
+        "Env_Bark",
+        "Env_LeafPear"
+      ],
+      "size_unity": [
+        6.46,
+        12.324,
+        6.776
+      ]
+    },
+    "AcaciaFar_Light": {
+      "triangles": 68,
+      "vertices": 38,
+      "materials": [
+        "Env_Bark",
+        "Env_LeafAcacia"
+      ],
+      "size_unity": [
+        6.485,
+        12.658,
+        6.05
+      ]
+    },
+    "PoplarFar_Light": {
+      "triangles": 56,
+      "vertices": 32,
+      "materials": [
+        "Env_BarkPale",
+        "Env_LeafPoplar"
+      ],
+      "size_unity": [
+        3.68,
+        22.12,
+        3.504
+      ]
+    },
+    "WillowFar_Light": {
+      "triangles": 44,
+      "vertices": 26,
+      "materials": [
+        "Env_BarkPale",
+        "Env_LeafWillow"
+      ],
+      "size_unity": [
+        8.773,
+        8.43,
+        8.051
+      ]
+    }
+  }
+}

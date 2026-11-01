@@ -1,0 +1,68 @@
+{
+  "asset": "Practice",
+  "notes": "",
+  "variants": {
+    "Full": {
+      "triangles": 2448,
+      "vertices": 1317,
+      "materials": [
+        "Env_PaintWhite",
+        "Env_PaintYellow",
+        "Env_Concrete",
+        "Env_Timber",
+        "Env_PaintGreen"
+      ],
+      "size_unity": [
+        34.411,
+        2.398,
+        66.8
+      ]
+    },
+    "Light": {
+      "triangles": 1960,
+      "vertices": 1053,
+      "materials": [
+        "Env_PaintWhite",
+        "Env_PaintYellow",
+        "Env_Concrete",
+        "Env_Timber",
+        "Env_PaintGreen"
+      ],
+      "size_unity": [
+        34.411,
+        2.398,
+        66.8
+      ]
+    }
+  },
+  "colliders": [
+    {
+      "centre": [
+        66.0,
+        0.18,
+        -77.0
+      ],
+      "size": [
+        5.5,
+        0.36,
+        0.5
+      ],
+      "yaw": 0.0,
+      "roll": 0.0
+    },
+    {
+      "centre": [
+        36.0,
+        1.0,
+        -10.5
+      ],
+      "size": [
+        2.4,
+        2.0,
+        0.2
+      ],
+      "yaw": 0.0,
+      "roll": 0.0
+    }
+  ]
+}

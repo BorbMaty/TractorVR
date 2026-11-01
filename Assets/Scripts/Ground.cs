@@ -57,6 +57,61 @@ public static class WorldLayout
     };
     public static readonly Vector3 WaysideCross = new Vector3(86.5f, 5f, -90f);
 
+    /// <summary>The stream (patak) in the valley east of the main road (phase 5 step 4): x, z points west to east. The terrain cuts a
+    /// flat-bottomed channel along it (<see cref="TerrainGenerator.Height"/>), a water ribbon lies in it, willows and a few poplars
+    /// stand on its banks (<see cref="TreeLayout"/>), its bed and banks are mud.</summary>
+    public static readonly Vector2[] Stream =
+    {
+        new Vector2(140f, -20f), new Vector2(200f, 10f), new Vector2(260f, 0f), new Vector2(330f, 30f), new Vector2(400f, 20f),
+        new Vector2(470f, 60f), new Vector2(560f, 50f), new Vector2(650f, 90f), new Vector2(760f, 80f), new Vector2(900f, 120f),
+        new Vector2(1000f, 130f),
+    };
+    public const float StreamHalfWidth = 2.6f;   // water; the flat channel bottom is 6 m either side of the line
+
+    /// <summary>Practice area (phase 5 step 5, the tutorial's driving school): a flat concrete pad east of the yard, beyond the rail fence,
+    /// with a cone slalom, a reversing bay for the trailer and a coupling spot (tools/blender/practice.py, world coordinates).</summary>
+    public static readonly Area[] PracticeArea =
+    {
+        new Area { name = "Practice area", type = Ground.Concrete, x0 = 34f, z0 = -78f, x1 = 76f, z1 = -12f },
+    };
+    /// <summary>Cone slalom down the pad's west half (x, z): 8 m apart; the tutorial drives through it.</summary>
+    public static readonly Vector2[] SlalomCones =
+    {
+        new Vector2(46f, -20f), new Vector2(46f, -28f), new Vector2(46f, -36f), new Vector2(46f, -44f), new Vector2(46f, -52f), new Vector2(46f, -60f),
+    };
+    /// <summary>Reversing bay for the trailer in the pad's south-east corner: open to the north, 4.5 m wide, 12 m deep (the trailer's
+    /// whole length), centre line x = 66; cones on its two sides. Goal: the trailer's axle inside <see cref="ReversingGoal"/>.</summary>
+    public static readonly Area ReversingGoal = new Area { name = "Reversing bay", x0 = 63.75f, z0 = -76f, x1 = 68.25f, z1 = -66f };
+    /// <summary>Cones along both sides of the reversing bay's mouth and sides (x, z).</summary>
+    public static readonly Vector2[] BayCones =
+    {
+        new Vector2(63f, -64f), new Vector2(63f, -68f), new Vector2(63f, -72f), new Vector2(69f, -64f), new Vector2(69f, -68f), new Vector2(69f, -72f),
+    };
+    /// <summary>The village on the horizon (tools/blender/village.py): x, z of its church, yaw. ~700 m north-west of the farm, on a plateau.</summary>
+    public static readonly Vector3 Village = new Vector3(-430f, 560f, 40f);
+    public const float VillageRadius = 200f;   // flat plateau (TerrainGenerator.Height) + 90 m blend; no trees
+
+    /// <summary>Coupling spot on the pad's north-east: a painted box where an implement can be parked (x, z of its coupling point).</summary>
+    public static readonly Vector2 CouplingSpot = new Vector2(66f, -26f);
+
+    /// <summary>Cheap test: x, z within <paramref name="margin"/> of the stream's bounding box.</summary>
+    public static bool NearStream(float x, float z, float margin) => x > 140f - margin && x < 1000f + margin && z > -20f - margin && z < 130f + margin;
+
+    /// <summary>Distance (m) from x, z to the stream's line and the position along it (0..points-1, fractional).</summary>
+    public static float StreamDistance(float x, float z, out float along)
+    {
+        float best = float.MaxValue; along = 0f;
+        var p = new Vector2(x, z);
+        for (int i = 0; i + 1 < Stream.Length; i++)
+        {
+            Vector2 a = Stream[i], ab = Stream[i + 1] - a;
+            float t = Mathf.Clamp01(Vector2.Dot(p - a, ab) / ab.sqrMagnitude);
+            float d = Vector2.Distance(p, a + ab * t);
+            if (d < best) { best = d; along = i + t; }
+        }
+        return best;
+    }
+
     static Vector3 BumpOnWestTrack(float along)
     {
         Vector2 a = new Vector2(-25f, -30f), b = new Vector2(-60f, -60f), d = (b - a).normalized, p = a + d * along;
@@ -197,6 +252,9 @@ public static class GroundMap
         foreach (var r in WorldLayout.Roads)
             if (r.type != Ground.Asphalt && WorldLayout.DistanceToRoad(r, x, z) < r.width * 0.5f) return r.type;
         if (WorldLayout.Yard.Contains(x, z)) return Ground.Concrete;
+        foreach (var a in WorldLayout.PracticeArea)
+            if (a.Contains(x, z)) return Ground.Concrete;
+        if (WorldLayout.NearStream(x, z, 7f) && WorldLayout.StreamDistance(x, z, out _) < 7f) return Ground.Mud;
         foreach (var m in WorldLayout.MudSpots)
             if ((x - m.x) * (x - m.x) + (z - m.y) * (z - m.y) < m.z * m.z) return Ground.Mud;
         foreach (var f in WorldLayout.Fields)

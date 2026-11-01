@@ -1,5 +1,18 @@
 # Roadmap
 
+## ▶ Where we left off (2026-11-01, late evening): the game is playable
+Goal of the evening (user): a working game. Built: **phase 5 step 4** (trees, a stream, a village on the horizon), **step 5**
+(practice area), **phase 6** (start menu FREE ROAM / TUTORIAL, 9 lessons with self-checking steps and glows). `PlayModeTest` (both
+levels, walks every lesson step) and `PhysicsTest` pass; Quest APK and PC exe rebuilt. Details in the DEVLOG.
+
+### ▶ Next session: start here
+1. **Headset play-through** (Quest APK, and PC VR over Link): the start menu, then the lessons one by one. Look for: board readable
+   and in reach (left front), buttons easy to poke, glows visible on the right controls, instructions match the controls, each check
+   passes when it should (coupling distances, the slalom, the reversing bay, the earth ramp check).
+2. **Quest benchmark** with the trees (target: trees under ~1.5 ms; detailDistance 120 m), and the open items of the list below
+   (the landscape look, mowing / ploughing look, steep slopes comfort, desktop coupling from the shed bays).
+3. Desktop check of the tutorial box (top left) and the start menu with the mouse.
+
 ## ▶ Where we left off (2026-11-01, end of day)
 **Phase 5 steps 1–3 are built** in one day (details in the DEVLOG, pictures in the README):
 - **Step 1, farmyard** ✅: farmhouse (user: "love it"), Székely gate + fences (top fixed twice after the user's screenshot), silos,
@@ -316,23 +329,34 @@ repeated things, no shadows on Quest except buildings, impostors for far trees, 
   the horizon (part 3a); haystacks (boglya), pole gates at the three field entries, a wayside cross (part 3b). Hedges and ditches
   dropped (not part of this landscape); the balks are the field edges. Trees (walnut, wild pear, acacia, willows) go to step 4
 
-### Step 4: landscape
-- [ ] Sky (Poly Haven HDRI), tree lines, woods, roadside (poles, signs), grass tufts near the camera. Around Reghin: solitary walnut
-  and wild pear trees on the balks, acacia (black locust) strips along the tracks and ravines, willows and poplars along a stream
-- [ ] Village silhouette with a church spire on the horizon
+### Step 4: landscape (built 2026-11-01 evening; headset look + Quest benchmark still to do)
+- [x] Trees around Reghin: solitary walnut and wild pear trees on the balks, acacia (black locust) on the steep slopes and along the
+  west track, Lombardy poplars along the main road, willows (and a few poplars) along a new stream in the valley east of the road,
+  walnut + pear in the farmhouse garden. `trees.py` + `Trees.cs` (instanced, near / far meshes, trunk colliders), 1036 trees.
+  Far trees are low-poly meshes instead of billboards (no alpha test on the Quest). Stream: channel in `Height` + water ribbon
+- [x] Sky (Poly Haven HDRI) → dropped 2026-11-01: the procedural sky stays, `TractorLights` animates it for dusk / night (an HDRI
+  would need one per time of day). Roadside poles / signs and grass tufts near the camera → moved to "Future ideas"
+- [x] Village silhouette with a church spire on the horizon: `village.py`, ~700 m north-west on a plateau, a Reformed church with a
+  spire and four corner turrets, ~30 houses and barns
 
-### Step 5: tutorial places (phase 6)
-- [ ] Practice area: cones, a reversing bay for the trailer, coupling spots
+### Step 5: tutorial places (phase 6) (built 2026-11-01 evening)
+- [x] Practice area: cones, a reversing bay for the trailer, coupling spots. Concrete pad east of the yard (`WorldLayout.PracticeArea`),
+  `practice.py` (slalom lines, bay with a kerb, coupling spot, sign), 12 pushable cones (`cone.py`). The shed bays stay the coupling
+  spots the tutorial uses
 
-## Phase 6: free roam + tutorial modes (planned 2026-10-30)
-- [ ] Start menu: FREE ROAM (as now) / TUTORIAL
-- [ ] Tutorial engine: steps with a goal and a check (e.g. "start the engine", "drive to the shed", "couple the plough"), in-headset
-  prompts, highlight of the control to use (positions from the cab guide), skip / repeat
-- [ ] Lessons: driving and the cab, gearbox and hand throttle, hitch and implements, ploughing, mowing, trailer and tipping,
-  traction (4WD, diff lock), lights and road driving
-- [ ] Works in all three versions (VR hands / controllers, desktop mouse)
+## Phase 6: free roam + tutorial modes (planned 2026-10-30, built 2026-11-01 evening; headset play-through still to do)
+- [x] Start menu: FREE ROAM (as now) / TUTORIAL (board at the cab's left front; panel TUTORIAL brings back the lesson list)
+- [x] Tutorial engine: steps with a goal and a check, in-headset prompts, highlight of the control to use, skip / repeat
+  (`Tutorial.cs`: checks read the real state, so done steps pass at once; glows on controls and over places to drive to)
+- [x] Lessons: driving and the cab, gearbox and hand throttle, slalom, coupling the plough, ploughing, mowing, trailer + reversing +
+  tipping, traction (4WD, diff lock, earth ramp), lights and road driving (9 lessons, 45 steps)
+- [x] Works in all three versions (VR hands / controllers: poke; desktop: the same board drawn on screen, mouse). `PlayModeTest` walks
+  every step at both quality levels. In the headset: still to do
 
 ## Future ideas / reference (not scheduled)
+- Roadside details (poles, signs), grass tufts near the camera (from phase 5 step 4, 2026-11-01).
+- Sky from Poly Haven HDRIs (one per time of day).
+- Tutorial: voice-over / sounds per step, a score for the slalom and the reversing bay.
 - **Working mirrors**: the model has three parts with the `mirror` material. One small render-texture camera per mirror (mono, from the reflected
   eye position), ~256², short draw distance, no shadows, updated every other frame, shown on the mirror glass; a MIRRORS on/off panel button.
   Expected cost ~1–2 ms per frame on the Quest 2, so measure the frame rate (OVR Metrics Tool) before keeping it.

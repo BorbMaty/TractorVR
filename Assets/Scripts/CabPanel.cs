@@ -43,7 +43,7 @@ public class CabPanel : MonoBehaviour
     Font font;
 
     const float W = 0.105f, H = 0.042f, Gap = 0.008f;
-    const int Cols = 3;   // 32 buttons: three columns keep the panel about as tall as the seat-to-knee distance
+    const int Cols = 3;   // 33 buttons: three columns keep the panel about as tall as the seat-to-knee distance
 
     void Start()
     {
@@ -55,6 +55,7 @@ public class CabPanel : MonoBehaviour
         var lights = tractor.GetComponent<TractorLights>();
         var items = new (string id, System.Func<string> text, System.Action press, bool repeat)[]
         {
+            ("tutorial", () => "TUTORIAL", () => { if (Tutorial.Instance) Tutorial.Instance.ShowLessons(); }, false),
             ("view",     () => rig.view == VRCameraRig.View.Cab ? "VIEW: CAB" : "VIEW: 3RD", () => rig.ToggleView(), false),
             ("recenter", () => "RECENTER", () => rig.Recenter(), false),
             ("comfort",  () => "COMFORT: " + comfort.CurrentLevel.ToString().ToUpperInvariant(), () => comfort.Cycle(), false),

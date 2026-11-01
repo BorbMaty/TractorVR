@@ -48,6 +48,7 @@ public class DesktopMode : MonoBehaviour
     Rect menuRect;
     readonly HashSet<int> heldRepeat = new HashSet<int>();
     GUIStyle buttonStyle, labelStyle, boxStyle;
+    Rect tutorialRect;   // screen area of the tutorial box (mouse clicks there don't reach the cab)
 
     static bool XRRunning
     {
@@ -245,7 +246,7 @@ public class DesktopMode : MonoBehaviour
         if (mouse == null || rig.view != VRCameraRig.View.Cab) { h.PokeTip = far; VRHands.Apply(h, false, far, false); return; }
         Vector2 mp = mouse.position.ReadValue();
         bool down = mouse.leftButton.isPressed;
-        bool overMenu = panel.Open && menuRect.Contains(new Vector2(mp.x, Screen.height - mp.y));
+        bool overMenu = (panel.Open && menuRect.Contains(new Vector2(mp.x, Screen.height - mp.y))) || tutorialRect.Contains(new Vector2(mp.x, Screen.height - mp.y));
         Ray ray = cam.ScreenPointToRay(mp);
 
         if (h.Grabbing && down)
@@ -339,6 +340,28 @@ public class DesktopMode : MonoBehaviour
             win.x += bw + gap;
             if (GUI.Button(win, "TRY VR (F9)", buttonStyle)) StartCoroutine(TryVR());
         }
+
+        // Start menu / tutorial (phase 6): the board's text and buttons, top left.
+        var tut = Tutorial.Instance;
+        if (tut != null && tut.Visible)
+        {
+            float tw = Mathf.Min(Screen.width * 0.36f, u * 22f);
+            var titleStyle = new GUIStyle(labelStyle) { fontStyle = FontStyle.Bold, normal = { textColor = new Color(1f, 0.85f, 0.3f) } };
+            float bodyH = labelStyle.CalcHeight(new GUIContent(tut.Body), tw - u);
+            int nb = tut.ButtonCount, tcols = nb > 4 ? 2 : Mathf.Max(1, nb), tbrows = (nb + tcols - 1) / tcols;
+            Rect box = new Rect(u * 0.5f, u, tw, u * 1.6f + bodyH + tbrows * (u + gap) + u * 0.6f);
+            tutorialRect = box;
+            GUI.Box(box, GUIContent.none, boxStyle);
+            GUI.Label(new Rect(box.x + u * 0.5f, box.y + u * 0.3f, tw - u, u * 1.2f), tut.Title, titleStyle);
+            GUI.Label(new Rect(box.x + u * 0.5f, box.y + u * 1.5f, tw - u, bodyH), tut.Body, labelStyle);
+            float bw2 = (tw - u - (tcols - 1) * gap) / tcols, by = box.y + u * 1.6f + bodyH + u * 0.2f;
+            for (int i = 0; i < nb; i++)
+            {
+                Rect r = new Rect(box.x + u * 0.5f + (i % tcols) * (bw2 + gap), by + (i / tcols) * (u + gap), bw2, u);
+                if (GUI.Button(r, tut.ButtonLabel(i), buttonStyle)) { tut.Press(i); break; }
+            }
+        }
+        else tutorialRect = Rect.zero;
 
         // Key help, bottom left.
         GUI.Label(new Rect(u * 0.5f, Screen.height - u * 3.2f, Screen.width * 0.6f, u * 3f),
