@@ -3151,6 +3151,7 @@ public static class ProjectSetup
             Shot("trees_track.png", At(-90f, -60f, 2.8f), Quaternion.LookRotation(At(-150f, -64f, 2f) - At(-90f, -60f, 2.8f)));
             Shot("village.png", At(0f, 60f, 3f), Quaternion.LookRotation(At(-430f, 560f, 15f) - At(0f, 60f, 3f)));
             Shot("village_near.png", At(-330f, 420f, 25f), Quaternion.LookRotation(At(-430f, 560f, 10f) - At(-330f, 420f, 25f)));
+            Shot("practice_sign.png", At(32f, -3f, 2.6f), Quaternion.LookRotation(At(36f, -10.5f, 2.2f) - At(32f, -3f, 2.6f)));
             Shot("practice_area.png", At(30f, -5f, 12f), Quaternion.LookRotation(At(56f, -48f, 0f) - At(30f, -5f, 12f)));
             FieldMap.Clear();
         }

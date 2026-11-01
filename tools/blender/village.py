@@ -8,46 +8,36 @@ import math
 import random
 
 
-def house(b, x, z, yaw, w=6.5, l=11.0, h=3.2):
-    """House with its gable to the street: walls and a steep roof turned by yaw (only 0 / 90 used: boxes are axis-aligned)."""
-    if yaw:
-        w, l = l, w
+def house(b, x, z, w=6.5, l=11.0, h=3.2):
+    """House (or barn) with its ridge along Z: walls, a solid gable / attic under the roof (the first version had only the two roof
+    slabs, so the gable ends were open and the roofs looked see-through), two 45 degree roof slabs with eaves."""
     b.box((x, h / 2 - 0.3, z), (w, h + 0.6, l), "Env_PlasterVillage", cell=8.0)
-    pitch = 45.0
-    if yaw:   # ridge along X
-        half = l / 2 + 0.4
-        rise = half
-        for s in (-1, 1):
-            b.box((x, h + rise / 2, z + s * half / 2), (w + 0.6, 0.15, half * 1.42), "Env_RoofVillage", pitch=s * pitch, cell=8.0)
-    else:     # ridge along Z
-        half = w / 2 + 0.4
-        rise = half
-        for s in (-1, 1):
-            b.box((x + s * half / 2, h + rise / 2, z), (half * 1.42, 0.15, l + 0.6), "Env_RoofVillage", roll=-s * pitch, cell=8.0)
+    b.gable(x - w / 2, x + w / 2, h, w / 2, z - l / 2, z + l / 2, "Env_PlasterVillage", cell=8.0)
+    half = w / 2 + 0.4
+    for s in (-1, 1):
+        b.box((x + s * half / 2, h + half / 2 + 0.05, z), (half * 1.42, 0.15, l + 0.6), "Env_RoofVillage", roll=-s * 45.0, cell=8.0)
 
 
 def describe(b):
     rnd = random.Random(7)
-    # Church: nave 22 x 11 m along X, tower at its west end, on the origin.
-    b.box((8, 4, 0), (22, 9, 11), "Env_PlasterVillage", cell=8.0)
-    for s in (-1, 1):
-        b.box((8, 8.5 + 3.0, s * 3.0), (23, 0.2, 8.4), "Env_RoofVillage", roll=0, pitch=s * 45, cell=8.0)
-    b.box((-5, 10, 0), (6, 21, 6), "Env_PlasterVillage", cell=8.0)
-    b.revolve((-5, 20.5, 0), [(4.6, 0.0), (0.0, 22.0)], "Env_RoofSlate", segs=8, yaw=22.5)           # spire, 8 sides
+    # Church: nave 11 x 22 m along Z with a solid gable roof, the tower at its south end, on the origin.
+    house(b, 0, 9, w=11, l=22, h=8.5)
+    b.box((0, 10, -5), (6, 21, 6), "Env_PlasterVillage", cell=8.0)
+    b.revolve((0, 20.5, -5), [(4.6, 0.0), (0.0, 22.0)], "Env_RoofSlate", segs=8, yaw=22.5)           # spire, 8 sides
     for dx in (-1, 1):
         for dz in (-1, 1):                                                                           # corner turrets
-            b.revolve((-5 + dx * 3.0, 20.5, dz * 3.0), [(0.9, 0.0), (0.0, 7.0)], "Env_RoofSlate", segs=6)
-    b.box((-5, 43.3, 0), (0.15, 1.6, 0.15), "Env_Steel")
-    # Houses along a winding street (z = 30 sin(x / 70)), both sides, gable ends to it.
+            b.revolve((dx * 3.0, 20.5, -5 + dz * 3.0), [(0.9, 0.0), (0.0, 7.0)], "Env_RoofSlate", segs=6)
+    b.box((0, 43.3, -5), (0.15, 1.6, 0.15), "Env_Steel")
+    # Houses along a winding street (z = 30 sin(x / 70)), both sides, gable ends to it; half of them with a barn behind.
     for k in range(32):
         side = 1 if k % 2 else -1
         x = -180 + k * 11.5 + rnd.uniform(-2, 2)
         if -20 < x < 30:
             continue
         zs = 30 * math.sin(x / 70.0)
-        house(b, x, zs + side * (12 + rnd.uniform(0, 4)), 0, w=rnd.uniform(6, 7.5), l=rnd.uniform(10, 14), h=rnd.uniform(2.9, 3.5))
-        if rnd.random() < 0.5:   # barn behind
-            house(b, x + rnd.uniform(-2, 2), zs + side * 30, 90, w=7, l=14, h=4.0)
+        house(b, x, zs + side * (12 + rnd.uniform(0, 4)), w=rnd.uniform(6, 7.5), l=rnd.uniform(10, 14), h=rnd.uniform(2.9, 3.5))
+        if rnd.random() < 0.5:
+            house(b, x + rnd.uniform(-2, 2), zs + side * 32, w=9, l=8, h=4.0)
 
 
 NAME = "Village"

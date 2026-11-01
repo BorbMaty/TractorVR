@@ -1306,3 +1306,9 @@ not the TextMesh size: first try overlapped). Board 36 cm wide. Desktop: the box
 69 fps, 72 fps in 70 %, below 70 fps in 21 % (dips to 51-65 fps around 19:30-19:32), App GPU mostly 9-11 ms (GPU 80-98 % busy), one
 20 ms second. No errors from the game in the log. Next: BENCHMARK run to see where the dips are (trees near 120 m on the Quest are
 the first suspect).
+
+**Fix (user, after playing): the PRACTICE AREA sign was too small and its letters floated in the air; the village roofs were
+see-through.** The lettering was wider than the 2.6 m board, so the ends of the words hung in the air: now a 4.6 x 1.3 m board on 3 m
+posts with a white border and the letters on its faces (`Builder.text` comes out ~1.5x the asked cap height: 0.22 m asked).
+The village houses had only two roof slabs, open at the gable ends: now walls + a solid gable (`Builder.gable`) under every roof,
+the church nave too (turned along Z for that). Preview `practice_sign`.

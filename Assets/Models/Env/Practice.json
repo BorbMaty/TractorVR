@@ -3,8 +3,8 @@
   "notes": "",
   "variants": {
     "Full": {
-      "triangles": 2448,
-      "vertices": 1317,
+      "triangles": 2616,
+      "vertices": 1449,
       "materials": [
         "Env_PaintWhite",
         "Env_PaintYellow",
@@ -13,14 +13,14 @@
         "Env_PaintGreen"
       ],
       "size_unity": [
-        34.411,
-        2.398,
-        66.8
+        35.05,
+        3.3,
+        66.82
       ]
     },
     "Light": {
-      "triangles": 1960,
-      "vertices": 1053,
+      "triangles": 1984,
+      "vertices": 1072,
       "materials": [
         "Env_PaintWhite",
         "Env_PaintYellow",
@@ -29,9 +29,9 @@
         "Env_PaintGreen"
       ],
       "size_unity": [
-        34.411,
-        2.398,
-        66.8
+        35.05,
+        3.3,
+        66.82
       ]
     }
   },
@@ -53,12 +53,12 @@
     {
       "centre": [
         36.0,
-        1.0,
+        1.5,
         -10.5
       ],
       "size": [
-        2.4,
-        2.0,
+        4.4,
+        3.0,
         0.2
       ],
       "yaw": 0.0,

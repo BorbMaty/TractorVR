@@ -33,11 +33,15 @@ def describe(b):
     line(b, cx - 1.5, cz - 1.5, cx - 1.5, cz + 1.5)
     line(b, cx + 1.5, cz - 1.5, cx + 1.5, cz + 1.5)
     # Sign board on two posts, facing the yard (north-west): readable from +Z turned by yaw.
+    # 4.6 x 1.3 m board on 3 m posts (the first one, 2.6 m wide, was narrower than its lettering: the letters stuck out into the air);
+    # the letters sit on the board's faces (board 6 cm thick, letters 2 cm deep, centred 1 cm proud of each face).
     sx, sz = 36.0, -10.5
-    for dx in (-1.1, 1.1):
-        b.box((sx + dx, 1.0, sz), (0.1, 2.3, 0.1), "Env_Timber")
-    b.box((sx, 1.75, sz), (2.6, 0.7, 0.05), "Env_PaintGreen")
-    b.text("PRACTICE AREA", (sx, 1.72, sz + 0.035), 0.24, "Env_PaintWhite")
-    b.text("PRACTICE AREA", (sx, 1.72, sz - 0.035), 0.24, "Env_PaintWhite", yaw=180)
-    b.collider((sx, 1.0, sz), (2.4, 2.0, 0.2))
+    for dx in (-2.0, 2.0):
+        b.box((sx + dx, 1.35, sz), (0.14, 3.3, 0.14), "Env_Timber")
+    b.box((sx, 2.3, sz), (4.6, 1.3, 0.06), "Env_PaintGreen")
+    b.box((sx, 2.3, sz), (4.4, 1.1, 0.064), "Env_PaintWhite", detail=True)    # white border (the green panel inside it is drawn next)
+    b.box((sx, 2.3, sz), (4.3, 1.0, 0.068), "Env_PaintGreen", detail=True)
+    b.text("PRACTICE AREA", (sx, 2.3, sz + 0.044), 0.22, "Env_PaintWhite")
+    b.text("PRACTICE AREA", (sx, 2.3, sz - 0.044), 0.22, "Env_PaintWhite", yaw=180)
+    b.collider((sx, 1.5, sz), (4.4, 3.0, 0.2))
     b.text("COUPLING", (cx, Y + 0.01, cz + 2.4), 0.5, "Env_PaintYellow", depth=0.008)
