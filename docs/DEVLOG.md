@@ -1451,3 +1451,11 @@ cab frames over budget, ~100 dropped); +1.2-1.5 ms wherever the landscape is in 
 the yard view (land / notrees / notufts / nosky): everything 11.5 ms, without the trees 10.8 (-0.7), without the tufts 11.4 (-0.1),
 without the sky picture 11.3 (-0.2). The trees are the main cost. Possible fixes (not done, user: leave it for now): near-tree
 distance on the Quest 120 -> 60 m, draw the near trees front to back, fewer crown lumps in the Light variant.
+
+**PHYSICS.md checked against the code (user: "check if the math is correct").** Every number recomputed (static loads, natural
+frequencies 2.25 / 2.37 Hz, front weight +12.33 kN, power 150.8 / 144.9 kW, torque rise 33.5 %, gear step 1.1733, fuel 41.0 L/h,
+coolant 385 s, draft 30.39 kN, steering lock 2.08 deg at 50 km/h, braking 5.28 m): all right. Six statements were wrong and are fixed:
+the Ackermann formula had the sign the wrong way round (left R + t/2, right R - t/2); a wheel spins at u > 99.5 % with force missing,
+97 % is only the cap inside the slip formula (also on the slip chart); steering ratio 13 = 13 deg of steering wheel per deg at the road
+wheels; the bump stop adds 10 x k (11 x in total); the parking brake removes half the speed per step (+ slope compensation); the STOP
+result is test P, not C.

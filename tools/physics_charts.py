@@ -181,7 +181,7 @@ def chart_slip(th, mode):
     for t in leg.get_texts():
         t.set_color(th["ink"])
     ax.axhline(0.97, color=th["ink2"], linewidth=1, linestyle=(0, (4, 3)))
-    label(ax, th, 24, 1.03, "97 %: beyond this the wheel spins (or locks when braking)", th["ink2"])
+    label(ax, th, 12, 1.03, "97 %: cap inside the slip formula (the wheel spins only at 100 % with force missing)", th["ink2"])
     ax.set_xlim(0, 60); ax.set_ylim(0, 1.12)
     ax.yaxis.set_major_formatter(matplotlib.ticker.PercentFormatter(1.0))
     title(fig, th, "Tyre slip: how much the wheel turns faster than the ground", "u = 1 - exp(-k s)  <=>  s = -ln(1 - u) / k   (WheelSlip; k = GroundMap slipK)")

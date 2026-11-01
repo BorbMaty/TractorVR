@@ -156,9 +156,9 @@ $$N = N_0 + k\,(x - x_0) + c\,\dot x \qquad\text{with}\qquad c = 2\,\zeta\,\sqrt
 | $c$ | damping, from the damping ratio $\zeta$ and the mass $N_0/g$ the wheel carries | $\zeta = 0.45$ |
 
 The damping ratio 0.45 is below 1 (critical damping) on purpose: a tractor rocks once after a bump and settles; much more damping
-feels like a rigid cart. The natural frequency (how often the body would bounce per second) $f = \frac{1}{2\pi}\sqrt{k g / N_0}$ is about 2.3 Hz:
-$k$ = spring stiffness, $N_0/g$ = the mass on that wheel, $2\pi$ turns radians per second into cycles per second. A **bump stop** stiffens the
-spring tenfold in the last 20 % of its travel. Over the speed bumps (10 cm, test W) the front axle rose 4.8 cm at 8 km/h and 12.5 cm at
+feels like a rigid cart. The natural frequency (how often the body would bounce per second) $f = \frac{1}{2\pi}\sqrt{k g / N_0}$ is 2.25 Hz at the front and 2.37 Hz at the rear:
+$k$ = spring stiffness, $N_0/g$ = the mass on that wheel, $2\pi$ turns radians per second into cycles per second. A **bump stop** adds ten times the
+spring stiffness (eleven times in total) in the last 20 % of the upward travel (compression beyond $1.8 \times 0.15$ m). Over the speed bumps (10 cm, test W) the front axle rose 4.8 cm at 8 km/h and 12.5 cm at
 20 km/h, and the body pitched less than 3°.
 
 <picture>
@@ -192,7 +192,8 @@ $$v_c \leftarrow v_c + \mathrm{clamp}\big(v_t - v_c,\; -a\,\Delta t,\; a\,\Delta
 | stick against the motion (braking), STOP button | 2.5 m/s² |
 | stick partly back | 1.25 m/s² |
 
-$v_t$ = stick share × top speed (50 km/h forward, 15 km/h reverse; in manual, the selected gear's speed, §11). The command
+$v_t$ = stick share × top speed (50 km/h forward, 15 km/h reverse; in manual, the selected gear's speed, §11); the stick has a
+dead zone of 0.08, and its share is measured from there: $(|\text{stick}| - 0.08) / 0.92$. The command
 is kept within ±1.5 m/s of the real speed $v$ (**anti wind-up**): on a climb the engine can't follow, and without this limit
 the command would run far ahead and the tractor would surge when the slope ends.
 
@@ -306,7 +307,8 @@ $k$ is high on asphalt (the tyre grips at little slip) and low in mud. The wheel
 $$v_\text{wheel} = \frac{v_\text{ground}}{1 - s} \;\text{(driving)} \qquad v_\text{wheel} = v_\text{ground}\,(1 - s) \;\text{(braking)}$$
 
 ($v_\text{wheel}$ = speed of the tyre's tread, $v_\text{ground}$ = speed of the ground under it) and it follows that target with a
-0.08 s time constant. Above $u = 97\,\%$ with a shortfall the wheel **spins** (it runs up
+0.08 s time constant. ($u$ is capped at 97 % inside the slip formula, so $s$ stays finite: $\ln(1-u)$ would be $-\infty$ at
+$u = 1$.) When a tyre uses its whole grip ($u > 99.5\,\%$) and force is still missing (a shortfall, §7), the wheel **spins** (it runs up
 by 0.6-3.5 m/s, twice as fast through an open diff, whose other wheel stands) or **locks** when braking. The engine speed follows
 the rear wheels' speed, so wheel spin shows on the rev counter, and spinning wheels throw clods of the ground's colour.
 
@@ -338,13 +340,13 @@ $m\,g\,C_{rr}$ within 0.1 kN on every surface (e.g. mud: 11.0 kN measured, 11.0 
 The front wheels turn to the **Ackermann** angles: both point at the same turning centre on the rear axle line, so the inner wheel
 turns more than the outer one. For the steering angle $\delta$ of a virtual centre wheel:
 
-$$R = \frac{L}{\tan\delta} \qquad \delta_{L,R} = \arctan\frac{L}{R \mp t/2}$$
+$$R = \frac{L}{\tan\delta} \qquad \delta_L = \arctan\frac{L}{R + t/2} \qquad \delta_R = \arctan\frac{L}{R - t/2}$$
 
 | Symbol | Meaning | Value |
 |---|---|---|
 | $\delta$ | steering angle of a virtual wheel in the middle of the front axle | up to 40° |
 | $R$ | turning radius (turning centre to the middle of the rear axle) | m |
-| $\delta_L$, $\delta_R$ | angles of the left / right front wheel ($\mp$: minus for the left, plus for the right in a right turn) | |
+| $\delta_L$, $\delta_R$ | angles of the left / right front wheel; $R$ and $\delta$ are positive in a right turn, so the right wheel is on the inside ($R - t/2$, the smaller radius) and turns more; in a left turn both are negative and it is the other way round | |
 | $L$ | wheelbase | 2.80 m |
 | $t$ | front track | 1.89 m |
 
@@ -361,8 +363,9 @@ $$\delta_\text{max}(v) = \min\!\left(40°,\; \arctan\frac{\omega_\text{max}\,L}{
 | $\omega_\text{max}$ | the allowed yaw rate: the comfort cap, or the one that keeps the sideways acceleration $\omega v$ at 2.5 m/s² | |
 | $v$ | speed | m/s |
 
-The stick input is squared (fine control near the centre); the wheels turn at 35°/s, or follow the hands directly when the
-steering wheel is held (13 turns of the wheel per turn of the road wheels, about 2.9 turns lock to lock).
+The stick input is squared (fine control near the centre); the wheels turn at 35°/s, or six times as fast, following the hands,
+when the steering wheel is held. Steering ratio 13: the steering wheel turns 13° for every 1° at the road wheels, so from full left
+to full right ($2 \times 40° \times 13 = 1040°$) it makes about 2.9 turns.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/physics_steering_dark.png">
@@ -482,7 +485,8 @@ $$a = -\frac{v}{2\,\Delta t} - 20\,(p - p_0)\cdot\hat f \qquad F_\text{lat} \lef
 | 20 | spring strength of the hold | 1/s² |
 | $F_\text{lat}$, $N/g$ | each tyre's sideways force (§6) and the mass on it | |
 
-The first term stops any speed in two steps, the second pulls back to $p_0$ like a stiff spring. All four wheels hold (park lock + front axle engaged). Test G parks on 4.3° and measures 0.0 cm creep in 5 s. A teleport (reset,
+The first term removes half of the remaining speed every step, the second pulls back to $p_0$ like a stiff spring; as while
+driving (§5), the slope and the rolling resistance are compensated on top, so the hold doesn't have to fight gravity. All four wheels hold (park lock + front axle engaged). Test G parks on 4.3° and measures 0.0 cm creep in 5 s. A teleport (reset,
 lesson set-up) clears $p_0$; a stale one once pulled the tractor back towards its old spot.
 
 ## 14. Validation
@@ -493,7 +497,7 @@ physics by hand, and logs every scenario. It runs after every change to the vehi
 | Test | What | Result | Expected |
 |---|---|---|---|
 | B | full throttle on the flat | 0 → 50 km/h in 14 s, gears B2 → E4 | comfort rate 1 m/s² (→ 13.9 s) |
-| C, P | release / STOP from 20 km/h | stopped in 2.2 s | 2.5 m/s² → 2.2 s (coasting 7.0 s) |
+| P | STOP button at 20.1 km/h | stopped in 2.2 s | 2.5 m/s² → 2.23 s (coasting at 0.8 m/s² would take 7.0 s) |
 | F | the steepest slope in the world (22.8°) | climbs at ~14 km/h on full power | power-limited, no wheel spin |
 | G | park on 4.3° | 0.0 cm creep in 5 s | no creep |
 | O | rolling resistance per surface | within 0.1 kN of $m g C_{rr}$ | GroundMap values |
