@@ -132,7 +132,8 @@ public static class CabGuide
         // seen from in front and above, on a plain background, with a label on every button.
         var ctlL = Resources.FindObjectsOfTypeAll<ControllerVisual>().Select(c => c.transform).FirstOrDefault(t => t.name == "Left Controller");
         var ctlR = Resources.FindObjectsOfTypeAll<ControllerVisual>().Select(c => c.transform).FirstOrDefault(t => t.name == "Right Controller");
-        if (ctlL && ctlR)
+        // Skipped for the ring fallback (no Meta files, so no bones to label): the existing guide pictures stay.
+        if (ctlL && ctlR && ctlL.GetComponent<ControllerVisual>().stick != null)
         {
             var basePos = new Vector3(0f, 300f, 0f);
             var pose = Quaternion.Euler(CtlPitch, 0f, 0f);
