@@ -10,3 +10,13 @@ Builds/
 .vs/
 .utmp/
 __pycache__/
+
+# Licensed TurboSquid tractor model and meshes cut out of it by ProjectSetup: never commit (repo is public)
+Assets/Models/John_Deere_6195M.fbx
+Assets/Models/John_Deere_6195M.fbx.meta
+Assets/Generated/CabInterior_NoWheel.asset*
+Assets/Generated/SteeringWheel.asset*
+Assets/Generated/SpeedLever.asset*
+Assets/Generated/RemoteLever*.asset*
+Assets/Generated/IndicatorStalk.asset*
+Assets/Generated/Switch_*.asset*

@@ -438,6 +438,15 @@ Assets/Scenes/TractorFlat.unity       generated scene
 hand edits to `TractorFlat.unity` are overwritten. Change the generator instead, or save the
 scene under a different name.
 
+## Getting the tractor model
+The tractor is a licensed TurboSquid model, so it is not in this repository (neither are the meshes setup cuts out of it).
+A fresh clone does not build until you add it:
+1. Buy the *John Deere 6195M* model on TurboSquid and export or copy its FBX to `Assets/Models/John_Deere_6195M.fbx`.
+2. Run the full setup (menu *Tractor VR → Run Full Setup*, or `ProjectSetup.Run` in batch mode). It regenerates the cab
+   meshes in `Assets/Generated/` (`CabInterior_NoWheel`, `SteeringWheel`, `SpeedLever`, `RemoteLever*`, `IndicatorStalk`, `Switch_*`).
+
+These paths are in `.gitignore`. Never commit them.
+
 ## Running on the Quest 2
 1. Turn on Developer Mode on the headset (Meta Horizon phone app → Devices → Developer Mode).
 2. Connect it over USB-C and accept "Allow USB debugging" inside the headset (tick *Always allow from this computer*).
@@ -524,7 +533,7 @@ The same `Builds/PC/TractorVR.exe`: if no headset is in use through Link within 
 - If you feel motion sick: set the vignette to high (X), prefer the cab view, keep sessions short.
 
 ## Credits and licences
-- **Tractor model**: John Deere 6195M, TurboSquid (licensed; the reason this repository is private).
+- **Tractor model**: John Deere 6195M, TurboSquid (licensed, **not included** in this repository; see *Getting the tractor model*).
 - **Textures and skies**: [Poly Haven](https://polyhaven.com), CC0 (lists in `Assets/Textures/Env/LICENSE.txt` and `Assets/Textures/Sky/LICENSE.txt`).
 - **Quest 2 controller models**: Meta XR Core SDK (Oculus SDK License, `Assets/Models/MetaControllers/README.md`).
 - **Hand models**: Unity XR Hands sample (Unity Package Distribution License).

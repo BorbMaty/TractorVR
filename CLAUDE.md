@@ -252,5 +252,7 @@ $u = "C:\Program Files\Unity\Hub\Editor\6000.6.3f1\Editor\Unity.exe"
 - Quest blocks a launch via adb with a "controllers required" dialog while the headset sleeps. That isn't a crash.
 - Killing the editor also kills its adb server. A fresh adb server must be re-authorized on the headset (tick *Always allow from this computer*).
 - Avoid deprecated APIs (`FindObjectsOfType` etc.): use `FindObjectsByType` / serialized references.
-- The FBX is ~58 MB and stored with Git LFS (`*.fbx`). The model is a licensed TurboSquid asset, so keep the repo private.
+- The FBX (~58 MB) is a licensed TurboSquid asset and is **not in git** (`.gitignore`, purged from history before the repo went public).
+  Neither are the meshes setup cuts out of it (`CabInterior_NoWheel`, `SteeringWheel`, `SpeedLever`, `RemoteLever*`, `IndicatorStalk`,
+  `Switch_*` in `Assets/Generated/`). Never commit them. If setup starts saving a new mesh derived from the model, add it to `.gitignore`.
 - `IRUMSim/` (outside this repo) is an older compiled Unity 2022.3 build of the original sim. It is reference only and has no sources.
