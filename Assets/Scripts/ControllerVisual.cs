@@ -5,6 +5,7 @@ using UnityEngine.InputSystem;
 /// Animates the bones of the official Quest 2 Touch model (set up by ProjectSetup.BuildController):
 /// stick tilt, A/B (X/Y) press, trigger and grip, using the ranges of Meta's own press animations.
 /// The pose comes from a TrackedPoseDriver on the same object. Hidden while the controller isn't tracked.
+/// Without bones (ring fallback when the Meta files are missing) it only shows / hides the renderers.
 /// </summary>
 public class ControllerVisual : MonoBehaviour
 {
@@ -38,6 +39,7 @@ public class ControllerVisual : MonoBehaviour
         trackedAction = Make("Tracked", $"<XRController>{hand}/isTracked");
 
         renderers = GetComponentsInChildren<Renderer>(true);
+        if (stick == null) return; // ring fallback: nothing to animate
         stickRest = stick.localRotation;
         triggerRest = trigger.localRotation;
         gripRest = grip.localRotation;
@@ -68,7 +70,7 @@ public class ControllerVisual : MonoBehaviour
             shown = tracked;
             foreach (var r in renderers) r.enabled = tracked;
         }
-        if (!tracked) return;
+        if (!tracked || stick == null) return;
 
         Vector2 s = stickAction.ReadValue<Vector2>();
         stick.localRotation = stickRest * Quaternion.Euler(s.y * StickTilt, 0f, -s.x * StickTilt);

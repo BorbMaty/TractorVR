@@ -2973,7 +2973,7 @@ public static class ProjectSetup
     }
 
     // ------------------------------------------------------------------ controllers
-    // Official Quest 2 Touch models from the Meta XR Core SDK (see Assets/Models/MetaControllers/README.md).
+    // Official Quest 2 Touch models from the Meta XR Core SDK (not in git: see the README, "Getting the tractor model and the controller models").
     // They are authored in Meta's pointer frame (origin on the face plate, +Z along the laser), so they are
     // driven by the OpenXR aim pose (pointerPosition/pointerRotation) and offset so that the model's
     // *_laser_begin node lands exactly on that pose.
@@ -2983,7 +2983,9 @@ public static class ProjectSetup
     {
         foreach (var side in new[] { "Left", "Right" })
         {
-            var imp = (ModelImporter)AssetImporter.GetAtPath($"{ControllerDir}/OculusTouchForQuest2_{side}.fbx");
+            // The Meta files are not in git (Oculus SDK License): a fresh clone has none until they are copied in.
+            var imp = AssetImporter.GetAtPath($"{ControllerDir}/OculusTouchForQuest2_{side}.fbx") as ModelImporter;
+            if (imp == null) { Debug.LogWarning($"Quest 2 controller model missing ({side}); using ring fallback. See README."); continue; }
             imp.importAnimation = false;
             imp.importCameras = false;
             imp.importLights = false;
@@ -3218,6 +3220,22 @@ public static class ProjectSetup
         tpd.trackingStateInput = new InputActionProperty(new InputAction(hand + "State", InputActionType.Value, $"<XRController>{{{hand}}}/trackingState", expectedControlType: "Integer"));
 
         var fbx = AssetDatabase.LoadAssetAtPath<GameObject>($"{ControllerDir}/OculusTouchForQuest2_{(left ? "Left" : "Right")}.fbx");
+        if (fbx == null)
+        {
+            // Fallback without the Meta files: the pre-Meta tracking ring. The root must still exist, because
+            // VRHands aims and pokes with it; ControllerVisual without bones only shows / hides the ring.
+            var ring = new GameObject("Ring");
+            ring.transform.SetParent(root.transform, false);
+            ring.transform.localPosition = new Vector3(0f, -0.028f, 0.045f);
+            ring.transform.localRotation = Quaternion.Euler(0f, 0f, 90f); // torus axis (Y) -> X
+            ring.AddComponent<MeshFilter>().sharedMesh = RingMesh();
+            var rr = ring.AddComponent<MeshRenderer>();
+            rr.sharedMaterial = RingMaterial();
+            rr.shadowCastingMode = ShadowCastingMode.Off;
+            var ringVis = root.AddComponent<ControllerVisual>();
+            ringVis.leftHand = left;
+            return ringVis;
+        }
         var model = Object.Instantiate(fbx, root.transform);
         model.name = "Model";
         foreach (var r in model.GetComponentsInChildren<Renderer>())
@@ -3243,6 +3261,52 @@ public static class ProjectSetup
         // Meta's press animation moves A/B down 1.78 mm; the buttons are 15.53 mm apart. Scale to bone-local units.
         vis.buttonTravel = 1.78f / 15.53f * Vector3.Distance(vis.primaryButton.localPosition, vis.secondaryButton.localPosition);
         return vis;
+    }
+
+    // The ring fallback's mesh and material are loaded if they exist and only created otherwise: both controllers share them,
+    // and the delete-then-create of SaveMat / CreateAsset would destroy the left ring's assets while building the right one.
+    // shortcut: an existing asset is reused, so after changing the ring's size or colour delete it from Generated/ first.
+    static Material RingMaterial()
+    {
+        var existing = AssetDatabase.LoadAssetAtPath<Material>($"{GenDir}/Controller_Ring.mat");
+        if (existing != null) return existing;
+        var mat = new Material(LitShader) { color = new Color(0.2f, 0.2f, 0.22f) };
+        mat.SetFloat("_Smoothness", 0.6f);
+        return SaveMat(mat, "Controller_Ring");
+    }
+
+    // Torus around local Y, radius 4.5 cm, tube 0.6 cm: the controller fallback (restored from before the Meta models,
+    // 3077c65^). Saved as an asset so the scene can reference it.
+    static Mesh RingMesh()
+    {
+        string p = $"{GenDir}/ControllerRing.asset";
+        var existing = AssetDatabase.LoadAssetAtPath<Mesh>(p);
+        if (existing != null) return existing;
+
+        const int seg = 48, tube = 10;
+        const float R = 0.045f, r = 0.006f;
+        var verts = new Vector3[(seg + 1) * (tube + 1)];
+        var tris = new int[seg * tube * 6];
+        for (int i = 0; i <= seg; i++)
+        for (int j = 0; j <= tube; j++)
+        {
+            float u = i * Mathf.PI * 2f / seg, v = j * Mathf.PI * 2f / tube;
+            float d = R + r * Mathf.Cos(v);
+            verts[i * (tube + 1) + j] = new Vector3(d * Mathf.Cos(u), r * Mathf.Sin(v), d * Mathf.Sin(u));
+        }
+        int t = 0;
+        for (int i = 0; i < seg; i++)
+        for (int j = 0; j < tube; j++)
+        {
+            int a = i * (tube + 1) + j, b = a + tube + 1;
+            tris[t++] = a; tris[t++] = a + 1; tris[t++] = b;
+            tris[t++] = b; tris[t++] = a + 1; tris[t++] = b + 1;
+        }
+        var mesh = new Mesh { name = "ControllerRing", vertices = verts, triangles = tris };
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+        AssetDatabase.CreateAsset(mesh, p);
+        return mesh;
     }
 
     // ------------------------------------------------------------------ preview renders (batch mode QA)

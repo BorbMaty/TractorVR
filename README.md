@@ -429,7 +429,7 @@ Assets/Scripts/Dashboard.cs           instrument cluster (needles, gear, mode)
 Assets/Scripts/TractorHud.cs          speed / gear / rpm readout
 Assets/Scripts/ComfortVignette.cs     comfort vignette (+ Assets/Shaders/ComfortVignette.shader)
 Assets/Scripts/ControllerVisual.cs    animates the controller models
-Assets/Models/MetaControllers/        Quest 2 controller models (Meta XR Core SDK, Oculus SDK License)
+Assets/Models/MetaControllers/        Quest 2 controller models (Meta XR Core SDK, not in git: see Getting the ... models)
 Assets/Scripts/Editor/ProjectSetup.cs settings + scene generator  (menu: Tractor VR > Run Full Setup)
 Assets/Scripts/Editor/BuildQuest.cs   APK build                      (menu: Tractor VR > Build Quest APK)
 Assets/Scenes/TractorFlat.unity       generated scene
@@ -438,12 +438,22 @@ Assets/Scenes/TractorFlat.unity       generated scene
 hand edits to `TractorFlat.unity` are overwritten. Change the generator instead, or save the
 scene under a different name.
 
-## Getting the tractor model
-The tractor is a licensed TurboSquid model, so it is not in this repository (neither are the meshes setup cuts out of it).
+## Getting the tractor model and the controller models
+Two sets of third-party files are not in this repository: their licences don't allow it.
+
+**Tractor (required).** A licensed TurboSquid model; neither it nor the meshes setup cuts out of it are included.
 A fresh clone does not build until you add it:
 1. Buy the *John Deere 6195M* model on TurboSquid and export or copy its FBX to `Assets/Models/John_Deere_6195M.fbx`.
 2. Run the full setup (menu *Tractor VR → Run Full Setup*, or `ProjectSetup.Run` in batch mode). It regenerates the cab
    meshes in `Assets/Generated/` (`CabInterior_NoWheel`, `SteeringWheel`, `SpeedLever`, `RemoteLever*`, `IndicatorStalk`, `Switch_*`).
+
+**Quest 2 controllers (optional).** Meta's Touch models, under the Oculus SDK License. Without them, setup logs a warning
+and draws a plain ring on each controller instead (no animated buttons, and `CabGuide` skips the controller picture). To get them:
+1. Download the Meta XR Core SDK (`com.meta.xr.sdk.core`, tested with 207.0.1) from the Unity Asset Store or Meta's npm registry.
+2. Copy `Meshes/OculusTouchForQuest2/OculusTouchForQuest2_Left.fbx`, `..._Right.fbx` and
+   `Textures/OculusTouchForQuest2/OculusTouchForQuest2_AlbedoRoughness.tga` into `Assets/Models/MetaControllers/`.
+   You don't need to install the SDK itself.
+3. Run the full setup again.
 
 These paths are in `.gitignore`. Never commit them.
 
@@ -533,9 +543,10 @@ The same `Builds/PC/TractorVR.exe`: if no headset is in use through Link within 
 - If you feel motion sick: set the vignette to high (X), prefer the cab view, keep sessions short.
 
 ## Credits and licences
-- **Tractor model**: John Deere 6195M, TurboSquid (licensed, **not included** in this repository; see *Getting the tractor model*).
+- **Tractor model**: John Deere 6195M, TurboSquid (licensed, **not included** in this repository; see *Getting the tractor model and the controller models*).
 - **Textures and skies**: [Poly Haven](https://polyhaven.com), CC0 (lists in `Assets/Textures/Env/LICENSE.txt` and `Assets/Textures/Sky/LICENSE.txt`).
-- **Quest 2 controller models**: Meta XR Core SDK (Oculus SDK License, `Assets/Models/MetaControllers/README.md`).
+- **Quest 2 controller models**: © Meta Platforms, Inc., Meta XR Core SDK, [Oculus SDK License](https://developers.meta.com/horizon/licenses/oculussdk/)
+  (**not included** in this repository; see *Getting the tractor model and the controller models*).
 - **Hand models**: Unity XR Hands sample (Unity Package Distribution License).
 - Everything else (farm, implements, trees, village, sounds, cab textures, code) is made by this project: modelled by script in Blender,
   generated in Unity, or synthesised.

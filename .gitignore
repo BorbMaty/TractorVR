@@ -20,3 +20,7 @@ Assets/Generated/SpeedLever.asset*
 Assets/Generated/RemoteLever*.asset*
 Assets/Generated/IndicatorStalk.asset*
 Assets/Generated/Switch_*.asset*
+
+# Meta Quest 2 controller models (Oculus SDK License): copy them from the Meta XR Core SDK, never commit (see README)
+Assets/Models/MetaControllers/
+Assets/Models/MetaControllers.meta
