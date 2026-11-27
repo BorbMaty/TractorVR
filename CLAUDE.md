@@ -43,8 +43,8 @@ what's next and `docs/DEVLOG.md` for history and decisions.
 | `Assets/Scripts/Dashboard.cs` + `Assets/Shaders/WorldText.shader` | Instrument cluster needles + gear/mode text (depth-tested TextMesh shader) |
 | `Assets/Scripts/TractorHud.cs` | Rig-locked speed / gear / rpm readout (TextMesh) |
 | `Assets/Scripts/ComfortVignette.cs` + `Assets/Shaders/ComfortVignette.shader` | Edge darkening while turning / changing speed; level on X (PlayerPrefs) |
-| `Assets/Scripts/ControllerVisual.cs` | Animates the bones of the official Quest 2 controller models (stick, buttons, trigger, grip; hidden when untracked) |
-| `Assets/Models/MetaControllers/` | Quest 2 Touch FBX + texture copied from the Meta XR Core SDK (Oculus SDK License, see README there) |
+| `Assets/Scripts/ControllerVisual.cs` | Animates the bones of the official Quest 2 controller models (stick, buttons, trigger, grip; hidden when untracked). Without bones (ring fallback) it only shows / hides |
+| `Assets/Models/MetaControllers/` | Quest 2 Touch FBX + texture copied from the Meta XR Core SDK (Oculus SDK License): **not in git** (`.gitignore`, purged from history). Missing → `BuildController` puts the procedural `ControllerRing` on the aim pose instead |
 | `Assets/Scripts/Editor/ProjectSetup.cs` | **Generates everything**: player/XR/URP settings, model import, materials, scene, preview renders |
 | `Assets/Scripts/Editor/CabGuide.cs` + `tools/annotate_guide.py` | Cab guide: renders seat views + the Quest controllers (own layer, plain background) + control positions (`Logs/Guide/*.json`), then Python (Pillow) draws text boxes + arrows → `docs/images/guide_*.png` (README); `--game` = 1.45x lettering → `Assets/Textures/Guide/` (start menu CONTROLS pages). Re-run all three when controls change |
 | `docs/PHYSICS.md` + `tools/physics_charts.py` | The physics write-up; the script draws its graphs (light + dark) from the model's numbers (copied at its top: keep them in sync with the code) and from `Logs/PhysicsTest.txt`. After a physics change: run `PhysicsTest`, re-run the script, update the formulas / tables in the doc |
