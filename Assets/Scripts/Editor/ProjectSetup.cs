@@ -2973,7 +2973,7 @@ public static class ProjectSetup
     }
 
     // ------------------------------------------------------------------ controllers
-    // Official Quest 2 Touch models from the Meta XR Core SDK (see Assets/Models/MetaControllers/README.md).
+    // Official Quest 2 Touch models from the Meta XR Core SDK (not in git: see the README, "Getting the tractor model and the controller models").
     // They are authored in Meta's pointer frame (origin on the face plate, +Z along the laser), so they are
     // driven by the OpenXR aim pose (pointerPosition/pointerRotation) and offset so that the model's
     // *_laser_begin node lands exactly on that pose.
@@ -3230,9 +3230,7 @@ public static class ProjectSetup
             ring.transform.localRotation = Quaternion.Euler(0f, 0f, 90f); // torus axis (Y) -> X
             ring.AddComponent<MeshFilter>().sharedMesh = RingMesh();
             var rr = ring.AddComponent<MeshRenderer>();
-            var ringMat = new Material(LitShader) { color = new Color(0.2f, 0.2f, 0.22f) };
-            ringMat.SetFloat("_Smoothness", 0.6f);
-            rr.sharedMaterial = SaveMat(ringMat, "Controller_Ring");
+            rr.sharedMaterial = RingMaterial();
             rr.shadowCastingMode = ShadowCastingMode.Off;
             var ringVis = root.AddComponent<ControllerVisual>();
             ringVis.leftHand = left;
@@ -3265,12 +3263,25 @@ public static class ProjectSetup
         return vis;
     }
 
+    // The ring fallback's mesh and material are loaded if they exist and only created otherwise: both controllers share them,
+    // and the delete-then-create of SaveMat / CreateAsset would destroy the left ring's assets while building the right one.
+    // shortcut: an existing asset is reused, so after changing the ring's size or colour delete it from Generated/ first.
+    static Material RingMaterial()
+    {
+        var existing = AssetDatabase.LoadAssetAtPath<Material>($"{GenDir}/Controller_Ring.mat");
+        if (existing != null) return existing;
+        var mat = new Material(LitShader) { color = new Color(0.2f, 0.2f, 0.22f) };
+        mat.SetFloat("_Smoothness", 0.6f);
+        return SaveMat(mat, "Controller_Ring");
+    }
+
     // Torus around local Y, radius 4.5 cm, tube 0.6 cm: the controller fallback (restored from before the Meta models,
-    // commit 3077c65). Saved as an asset so the scene can reference it.
+    // 3077c65^). Saved as an asset so the scene can reference it.
     static Mesh RingMesh()
     {
         string p = $"{GenDir}/ControllerRing.asset";
-        AssetDatabase.DeleteAsset(p);
+        var existing = AssetDatabase.LoadAssetAtPath<Mesh>(p);
+        if (existing != null) return existing;
 
         const int seg = 48, tube = 10;
         const float R = 0.045f, r = 0.006f;
